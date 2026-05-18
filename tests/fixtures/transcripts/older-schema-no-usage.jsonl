@@ -1,0 +1,4 @@
+{"type":"user","uuid":"u1","sessionId":"oldernousg","timestamp":"2026-04-15T07:00:00.000Z","cwd":"/home/test/proj","message":{"role":"user","content":"old session"}}
+{"type":"assistant","uuid":"a1","sessionId":"oldernousg","timestamp":"2026-04-15T07:00:03.000Z","cwd":"/home/test/proj","message":{"model":"claude-sonnet-4","role":"assistant","content":[{"type":"text","text":"a response"}]}}
+{"type":"user","uuid":"u2","sessionId":"oldernousg","timestamp":"2026-04-15T07:00:30.000Z","cwd":"/home/test/proj","message":{"role":"user","content":"thanks"}}
+{"type":"assistant","uuid":"a2","sessionId":"oldernousg","timestamp":"2026-04-15T07:00:32.000Z","cwd":"/home/test/proj","message":{"model":"claude-sonnet-4","role":"assistant","content":[{"type":"text","text":"you're welcome"}]}}

@@ -1,0 +1,5 @@
+{"type":"user","uuid":"u1","sessionId":"malformed1","timestamp":"2026-05-04T10:00:00.000Z","cwd":"/home/test/proj","message":{"role":"user","content":"a prompt"}}
+{"type":"assistant","uuid":"a1","sessionId":"malformed1","timestamp":"2026-05-04T10:00:01.000Z","cwd":"/home/test/proj","message":{"model":"claude-sonnet-4","role":"assistant","content":[{"type":"text","text":"hi"}],"usage":{"input_tokens":20,"output_tokens":10,"cache_read_input_tokens":0,"cache_creation_input_tokens":500}}}
+{"type":"assistant","uuid":"a2"  BROKEN JSON HERE
+{"type":"user","uuid":"u2","sessionId":"malformed1","timestamp":"2026-05-04T10:00:03.000Z","cwd":"/home/test/proj","message":{"role":"user","content":"continuing after broken line"}}
+{"type":"assistant","uuid":"a3","sessionId":"malformed1","timestamp":"2026-05-04T10:00:05.000Z","cwd":"/home/test/proj","message":{"model":"claude-sonnet-4","role":"assistant","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":15,"output_tokens":8,"cache_read_input_tokens":500,"cache_creation_input_tokens":20}}}
