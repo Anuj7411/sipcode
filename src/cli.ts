@@ -39,19 +39,26 @@ program
 program
   .command("init")
   .description("Set up Sipcode in the current project.")
-  .action(async () => {
+  .option("--yes", "accept all defaults (non-interactive)")
+  .option("--tighten", "default budget mode to tighten")
+  .option("--no-claude-md", "skip CLAUDE.md injection")
+  .action(async (opts) => {
     const { runInit } = await import("./commands/init.js");
-    await runInit();
+    const r = await runInit(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
   });
 
 program
   .command("manifest")
   .description("Generate or refresh the project manifest.")
   .option("--no-budget", "skip the 2k-token budget check")
-  .option("--delta", "emit only changes since last manifest")
+  .option("--tighten", "drop low-signal sections to fit the budget")
+  .option("--delta", "emit only changes since last manifest (v1.1+, stubbed)")
+  .option("--explain <file>", "show parse error for a specific file (v1.1+, stubbed)")
   .action(async (opts) => {
     const { runManifest } = await import("./commands/manifest.js");
-    await runManifest(opts);
+    const r = await runManifest(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
   });
 
 program
