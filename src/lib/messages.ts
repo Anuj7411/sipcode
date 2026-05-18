@@ -175,4 +175,28 @@ export const MESSAGES = {
 
   manifestExplainNotImplemented: (file: string) =>
     `[planned] --explain ${file} lands in v1.1+. for now, the [E002] line printed during generation tells you why a file was skipped.`,
+
+  // ---- output compression milestone (v0.2.0) ----
+
+  rulesInstalledAt: (mode: string, claudeMdPath: string) =>
+    `installed output compression (${mode} mode) in ${claudeMdPath}.`,
+
+  rulesAlreadyInstalled: (mode: string) =>
+    `already installed at ${mode} mode. no changes.`,
+
+  rulesSwitchedMode: (from: string, to: string, claudeMdPath: string) =>
+    `switched output compression: ${from} -> ${to} in ${claudeMdPath}.`,
+
+  rulesUninstalled: (claudeMdPath: string) =>
+    `removed output compression block from ${claudeMdPath}.`,
+
+  rulesNotInstalled: "output compression rules are not installed. run `npx sipcode rules --install` to add them.",
+
+  rulesActive: (mode: string) =>
+    `output compression: installed, mode = ${mode}.`,
+
+  rulesDiffIdentical: "no changes — claude.md is already in the requested state.",
+
+  rulesNoClaudeMd: (path: string) =>
+    `${path} does not exist yet. --install will create it.`,
 } as const;

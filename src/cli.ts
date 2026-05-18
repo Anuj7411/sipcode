@@ -42,6 +42,10 @@ program
   .option("--yes", "accept all defaults (non-interactive)")
   .option("--tighten", "default budget mode to tighten")
   .option("--no-claude-md", "skip CLAUDE.md injection")
+  .option(
+    "--rules-mode <mode>",
+    "output-compression rules mode: default | strict | verbose | skip",
+  )
   .action(async (opts) => {
     const { runInit } = await import("./commands/init.js");
     const r = await runInit(opts);
@@ -73,6 +77,19 @@ program
     const { runReceipt } = await import("./commands/receipt.js");
     const result = await runReceipt({ ...opts, session: sessionId });
     if (result?.exitCode) process.exit(result.exitCode);
+  });
+
+program
+  .command("rules")
+  .description("Install, switch, or inspect Sipcode output-compression rules in CLAUDE.md.")
+  .option("--install", "add the output-compression block to CLAUDE.md (idempotent)")
+  .option("--uninstall", "remove the output-compression block from CLAUDE.md")
+  .option("--mode <mode>", "install/switch to mode: default | strict | verbose")
+  .option("--diff", "show what would change without writing")
+  .action(async (opts) => {
+    const { runRules } = await import("./commands/rules.js");
+    const r = await runRules(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
   });
 
 program
