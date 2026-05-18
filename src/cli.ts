@@ -26,10 +26,14 @@ program
   .description("Audit past Claude Code sessions and show where tokens died.")
   .option("--session <id>", "audit a specific session")
   .option("--list", "list available sessions instead of auditing")
+  .option("--here", "scope to sessions for the current working directory")
+  .option("--all-projects", "scan across all project hashes (default)")
   .option("--json", "machine-readable output")
+  .option("--verbose", "show full token totals breakdown")
   .action(async (opts) => {
     const { runWhy } = await import("./commands/why.js");
-    await runWhy(opts);
+    const result = await runWhy(opts);
+    if (result?.exitCode) process.exit(result.exitCode);
   });
 
 program
