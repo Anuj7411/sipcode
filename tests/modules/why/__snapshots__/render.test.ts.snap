@@ -1,0 +1,236 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderReport > matches JSON snapshot for minimal-2turn 1`] = `
+{
+  "duplicates": [],
+  "estimatedSavings": {
+    "breakdown": {
+      "s001_manifest": 273,
+      "s021_diffOutput": 68,
+      "s030_readOnce": 0,
+    },
+    "totalTokens": 341,
+    "totalUSD": 0.0009098535469107551,
+  },
+  "header": {
+    "durationHuman": "46s",
+    "model": "claude-sonnet-4",
+    "projectHash": "test-project",
+    "sessionIdShort": "minimal0",
+  },
+  "idle": [],
+  "metaPricing": {
+    "ageDays": 14,
+    "asOf": "2026-05-01",
+  },
+  "nextStep": "run \`npx sipcode init\` to start saving on your next session.",
+  "punchline": {
+    "nonOutputTokens": 2502,
+    "oneLiner": "you burned 2,622 tokens. 120 were code output. the other 2,502 were exploration, re-reads, and idle context.",
+    "outputRatioPct": 4.6,
+    "outputTokens": 120,
+    "totalTokens": 2622,
+  },
+  "schemaVersion": "sipcode-why/1",
+  "topExpensive": [
+    {
+      "label": "/home/test/proj/foo.test.ts",
+      "reason": "ordinary",
+      "tokens": 1370,
+      "toolName": "Write",
+    },
+  ],
+  "topLeaks": [
+    {
+      "detail": "context written into cache",
+      "rank": 1,
+      "title": "cache-creation overhead",
+      "tokens": 1240,
+    },
+    {
+      "detail": "rehydrated each turn",
+      "rank": 2,
+      "title": "input tokens (system + prompts)",
+      "tokens": 62,
+    },
+  ],
+  "totals": {
+    "cacheCreationTokens": 1240,
+    "cacheReadTokens": 1200,
+    "distinctFilesRead": 0,
+    "estCostUSD": 0.0069960000000000005,
+    "inputTokens": 62,
+    "outputTokens": 120,
+    "toolCallCount": 1,
+  },
+  "warnings": [],
+}
+`;
+
+exports[`renderReport > matches JSON snapshot for multi-model 1`] = `
+{
+  "duplicates": [],
+  "estimatedSavings": {
+    "breakdown": {
+      "s001_manifest": 484,
+      "s021_diffOutput": 0,
+      "s030_readOnce": 0,
+    },
+    "totalTokens": 484,
+    "totalUSD": 0.011707358579881656,
+  },
+  "header": {
+    "durationHuman": "1m 10s",
+    "model": "claude-haiku-4",
+    "projectHash": "test-project",
+    "sessionIdShort": "multimod",
+  },
+  "idle": [],
+  "metaPricing": {
+    "ageDays": 14,
+    "asOf": "2026-05-01",
+  },
+  "nextStep": "run \`npx sipcode init\` to start saving on your next session.",
+  "punchline": {
+    "nonOutputTokens": 2730,
+    "oneLiner": "you burned 3,380 tokens. 650 were code output. the other 2,730 were exploration, re-reads, and idle context.",
+    "outputRatioPct": 19.2,
+    "outputTokens": 650,
+    "totalTokens": 3380,
+  },
+  "schemaVersion": "sipcode-why/1",
+  "topExpensive": [],
+  "topLeaks": [
+    {
+      "detail": "context written into cache",
+      "rank": 1,
+      "title": "cache-creation overhead",
+      "tokens": 2200,
+    },
+    {
+      "detail": "rehydrated each turn",
+      "rank": 2,
+      "title": "input tokens (system + prompts)",
+      "tokens": 130,
+    },
+  ],
+  "totals": {
+    "cacheCreationTokens": 2200,
+    "cacheReadTokens": 400,
+    "distinctFilesRead": 0,
+    "estCostUSD": 0.081758,
+    "inputTokens": 130,
+    "outputTokens": 650,
+    "toolCallCount": 0,
+  },
+  "warnings": [],
+}
+`;
+
+exports[`renderReport > matches JSON snapshot for read-heavy 1`] = `
+{
+  "duplicates": [
+    {
+      "filePath": "/home/test/proj/src/main.ts",
+      "reads": 3,
+      "wastedTokens": 17940,
+    },
+    {
+      "filePath": "/home/test/proj/src/utils.ts",
+      "reads": 2,
+      "wastedTokens": 9020,
+    },
+  ],
+  "estimatedSavings": {
+    "breakdown": {
+      "s001_manifest": 2233,
+      "s021_diffOutput": 0,
+      "s030_readOnce": 26960,
+    },
+    "totalTokens": 11265,
+    "totalUSD": 0.07522232226623579,
+  },
+  "header": {
+    "durationHuman": "30s",
+    "model": "claude-opus-4",
+    "projectHash": "test-project",
+    "sessionIdShort": "readheav",
+  },
+  "idle": [],
+  "metaPricing": {
+    "ageDays": 14,
+    "asOf": "2026-05-01",
+  },
+  "nextStep": "run \`npx sipcode init\` to start saving on your next session.",
+  "punchline": {
+    "nonOutputTokens": 46995,
+    "oneLiner": "you burned 47,965 tokens. 970 were code output. the other 46,995 were exploration, re-reads, and idle context.",
+    "outputRatioPct": 2,
+    "outputTokens": 970,
+    "totalTokens": 47965,
+  },
+  "schemaVersion": "sipcode-why/1",
+  "topExpensive": [
+    {
+      "label": "/home/test/proj/src/main.ts",
+      "reason": "cache-creation",
+      "tokens": 10155,
+      "toolName": "Read",
+    },
+    {
+      "label": "/home/test/proj/src/utils.ts",
+      "reason": "cache-creation",
+      "tokens": 9060,
+      "toolName": "Read",
+    },
+    {
+      "label": "/home/test/proj/src/main.ts",
+      "reason": "cache-creation",
+      "tokens": 7860,
+      "toolName": "Read",
+    },
+    {
+      "label": "/home/test/proj/src/utils.ts",
+      "reason": "cache-creation",
+      "tokens": 6355,
+      "toolName": "Read",
+    },
+    {
+      "label": "/home/test/proj/src/main.ts",
+      "reason": "cache-creation",
+      "tokens": 3570,
+      "toolName": "Read",
+    },
+  ],
+  "topLeaks": [
+    {
+      "detail": "2 files read more than once",
+      "rank": 1,
+      "title": "duplicate file reads",
+      "tokens": 26960,
+    },
+    {
+      "detail": "context written into cache",
+      "rank": 2,
+      "title": "cache-creation overhead",
+      "tokens": 10150,
+    },
+    {
+      "detail": "rehydrated each turn",
+      "rank": 3,
+      "title": "input tokens (system + prompts)",
+      "tokens": 145,
+    },
+  ],
+  "totals": {
+    "cacheCreationTokens": 10150,
+    "cacheReadTokens": 36700,
+    "distinctFilesRead": 2,
+    "estCostUSD": 0.3202875,
+    "inputTokens": 145,
+    "outputTokens": 970,
+    "toolCallCount": 5,
+  },
+  "warnings": [],
+}
+`;
