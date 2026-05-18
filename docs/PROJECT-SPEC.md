@@ -214,9 +214,53 @@ These are the rules that govern every PR. They are inherited from Answerable.
 
 ---
 
-## 14. Out of scope (forever or for a long time)
+## 14. Development methodology
 
-- A web-based dashboard.
+Sipcode is built solo by Anuj. To compensate for the lack of a real team, we adopt **gstack** ([garrytan/gstack](https://github.com/garrytan/gstack), 98.8k★) as the synthetic-team layer.
+
+### 14.1 Why gstack
+
+gstack is a Claude Code skill pack that simulates a multi-role engineering team (CEO, eng manager, designer, reviewer, QA, security, release engineer). Garry Tan (YC) documented ~810× his 2013 code-change rate using it. For a solo founder, it provides the discipline that would otherwise come from a senior team.
+
+### 14.2 The sprint pipeline
+
+Every Sipcode milestone follows this pipeline:
+
+| Stage | Activity | gstack skill (optional) |
+|---|---|---|
+| **Think** | Brainstorm the problem before writing anything | self-directed (skip `/office-hours` — too token-heavy for solo) |
+| **Plan** | Write/update the spec, define exit criteria, capture stable IDs | `/plan-ceo-review` once, at milestone start |
+| **Build** | Implement the milestone per `SESSION-HANDOFF.md` | `/freeze`, `/guard`, `/careful` as safety nets |
+| **Review** | Self-review + AI second opinion | `/review` on every branch before merge |
+| **Test** | Run the benchmark suite + unit tests | `/qa` on the CLI when web UI ships |
+| **Ship** | Tag, publish to npm, update the SIPCODE-MASTER-RECORD | self-directed |
+| **Reflect** | Capture what worked, update the spec | self-directed; write retrospective notes in `docs/retros/` |
+
+### 14.3 Token-cost-aware skill selection
+
+gstack burns more tokens than vanilla Claude Code. Sipcode is being built to reduce token cost, so we use gstack skills selectively:
+
+- **Use frequently (cheap, high-value):** `/review`, `/freeze`, `/guard`, `/careful`
+- **Use at milestone boundaries (medium-cost):** `/plan-ceo-review`, `/qa`
+- **Skip (too expensive for solo):** `/office-hours` and other multi-role simulations
+
+This is also dogfooding: every gstack session is a Claude Code session we can later analyze with `sipcode why` and turn into a marketing screenshot.
+
+### 14.4 Install
+
+```bash
+git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack \
+  && cd ~/.claude/skills/gstack \
+  && ./setup
+```
+
+Prerequisites: Claude Code, Git, Bun ≥ 1.0.
+
+---
+
+## 15. Out of scope (forever or for a long time)
+
+- A web-based dashboard built as a separate product. (A simple web UI on top of the CLI is on the post-v1.0 roadmap.)
 - A hosted SaaS that runs the agent for the user.
 - Token optimization for non-coding agents (chat, research, image gen).
 - Provider-side compression (let Headroom own that).

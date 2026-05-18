@@ -42,7 +42,7 @@ If you need one document that answers "what is Sipcode, who decided what, when, 
 | **Sibling project** | [Answerable](https://github.com/Anuj7411/answerable) — SEO optimization CLI for Next.js (Sipcode borrows its architecture). |
 | **Distribution channel (committed)** | npm / terminal CLI install (`npx sipcode <cmd>` and `npm install -g @sipcode/cli`). |
 | **Distribution channel (deferred)** | Web UI for non-CLI users — planned for after v1.0. |
-| **Distribution channel (rejected by user this session)** | Claude Code plugin marketplace. User clarified they want broad terminal availability, not platform-locked distribution. Note: shipping as a Claude Code plugin would *not* have limited the tool to Anuj's own use — it'd have been an additional install surface for any Claude Code user. The CLI would still have worked for everyone. User decision stands regardless. May revisit post-v1.0. |
+| **Distribution channel (re-opened in this session)** | Claude Code plugin marketplace. Initially rejected by user ("limits to myself"). Reopened after gstack research surfaced 98.8k★ on a tool distributed *exclusively* as a Claude Code skill pack — strong evidence the plugin channel is massive, not limiting. User responded "No preference" — decision deferred. **Revisit at v0.9 (pre-launch)**: ship as both npm CLI and Claude Code plugin if budget allows ~1 day extra work. |
 | **npm scope** | `@sipcode` (claimed by user this session) |
 | **GitHub repo (planned)** | `github.com/Anuj7411/sipcode` (not yet created) |
 | **Domain (planned)** | `sipcode.dev` (not yet purchased) |
@@ -153,6 +153,8 @@ Three pivots happened in this session that materially change the prior plan.
 - **Shareable Receipts (HTML + PNG)** added as the viral surface.
 - **Honesty positioning** elevated to explicit brand pillar.
 - **Cross-agent support** affirmed as defensive necessity, not just a v0.2 nice-to-have.
+- **Development methodology adopted:** gstack ([garrytan/gstack](https://github.com/garrytan/gstack), 98.8k★) sprint pipeline — Think → Plan → Build → Review → Test → Ship → Reflect. Skill selection is token-cost-aware (skip multi-role simulations, use `/review` / `/freeze` / `/guard` regularly). See `docs/PROJECT-SPEC.md §14`.
+- **Plugin distribution decision re-opened:** gstack's 98.8k★ as a Claude Code skill pack is strong evidence the channel isn't limiting. Decision deferred to v0.9 (pre-launch) — not rejected outright.
 
 ---
 
@@ -492,6 +494,14 @@ Most are from PROJECT-SPEC §13; this session added rows 1, 6, and 7.
 1. **Create GitHub repo** `github.com/Anuj7411/sipcode` (Private is fine for now.) Then: `git remote add origin … && git push -u origin main`.
 2. **Buy `sipcode.dev`** (target ≤ $15).
 3. **Trademark gut-check** "Sipcode" against beverage industry — quick USPTO + EUIPO search.
+4. **Install gstack** (Anuj decided to adopt the sprint-pipeline methodology). Touches global `~/.claude/skills/`, so Claude won't auto-run it:
+   ```bash
+   git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack \
+     && cd ~/.claude/skills/gstack \
+     && ./setup
+   ```
+   Prerequisites: Bun ≥ 1.0. Reference: [garrytan/gstack](https://github.com/garrytan/gstack) (98.8k★).
+5. **Decision point at v0.9 (pre-launch):** revisit Claude Code plugin distribution. gstack proves the channel is massive (98.8k★ as a CC skill pack). Currently deferred — "No preference" answer in this session.
 
 ### 15.2 Outstanding for Claude (next session)
 
@@ -551,6 +561,10 @@ Every URL cited across this record and the planning docs, organized by topic.
 - [I Analyzed 38 Claude Code Sessions. Only 0.6% of Tokens Were Actual Code Output — DEV Community](https://dev.to/lsvishaal/i-analyzed-38-claude-code-sessions-only-06-of-tokens-were-actual-code-output-56li)
 - [AI Agent Token Budget Management — MindStudio](https://www.mindstudio.ai/blog/ai-agent-token-budget-management-claude-code)
 - [Claude Code Token Limits — Faros AI](https://www.faros.ai/blog/claude-code-token-limits)
+
+### Development methodology
+
+- [gstack — garrytan](https://github.com/garrytan/gstack) — 98.8k★, Claude Code skill pack simulating a multi-role engineering team. Adopted as Sipcode's sprint-pipeline methodology.
 
 ### Agent ecosystems / awesome lists
 
