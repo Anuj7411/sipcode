@@ -1,0 +1,10 @@
+{
+  "name": "fixture-astro",
+  "version": "0.0.0",
+  "dependencies": {
+    "astro": "^4.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0"
+  }
+}
