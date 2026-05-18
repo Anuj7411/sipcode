@@ -155,6 +155,21 @@ Three pivots happened in this session that materially change the prior plan.
 - **Development methodology adopted:** gstack ([garrytan/gstack](https://github.com/garrytan/gstack), 98.8k★) sprint pipeline — Think → Plan → Build → Review → Test → Ship → Reflect. Skill selection is token-cost-aware (skip multi-role simulations, use `/review` / `/freeze` / `/guard` regularly). See `docs/PROJECT-SPEC.md §14`.
 - **Plugin distribution decision re-opened:** gstack's 98.8k★ as a Claude Code skill pack is strong evidence the channel isn't limiting. Decision deferred to v0.9 (pre-launch) — not rejected outright.
 
+### 3.4 Autoplan results (2026-05-18) — fat v1.0 confirmed
+
+`/autoplan` ran all 4 phases against `docs/PROJECT-SPEC.md` with Codex unavailable (single-voice throughout). Composite confidence: **3.75/10**.
+
+| Phase | Confidence | Headline finding |
+|---|---|---|
+| CEO | 4/10 | Recommended cut v1.0 12→4 features |
+| Design | 2/10 | Receipt has no visual spec; PNG renderer missing from stack |
+| Eng | 5/10 | I/O seams missing; realistic timeline 10–14 months solo |
+| DX | 4/10 | TTHW ~5 min vs target <90s; install-free demo buried |
+
+**User decision at Final Approval Gate (2026-05-18):** keep 12-feature fat v1.0; accept 10–14 month realistic timeline; reject autoplan's scope-cut recommendation. Technical/design/DX improvements (validators on branded types, I/O seams, satori for PNG, error rewrites in brand voice, sharing flow polish) to be folded into implementation work as foundational wins, not as a separate planning phase. **No further planning. Move to implementation.**
+
+Subagent reports are preserved in the prior session transcript for future reference; implementation does not block on adopting any specific finding.
+
 ---
 
 ## 4. The 10 out-of-the-box ideas
