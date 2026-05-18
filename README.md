@@ -135,7 +135,14 @@ This is not a "we'll add telemetry later" promise. The architecture has no netwo
 
 ## Project status
 
-**v0.1.0-alpha** — three core features shipped (audit, manifest, receipt). Active development. 222 tests passing. Solo dev, MIT, free forever.
+**v0.2.0-alpha** — four features shipped of twelve planned for v1.0:
+
+- ✅ `sipcode why` — install-free Claude Code session auditor
+- ✅ `sipcode manifest` — static-analysis project map
+- ✅ `sipcode receipt` — HTML + 1200×630 PNG with clipboard + tweet intent
+- ✅ `sipcode rules` — Output Compression (S020/S021/S022), three modes
+
+Active development. **286 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
