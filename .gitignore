@@ -1,0 +1,20 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# Sipcode runtime artifacts
+.sipcode/
+
+# Exports & local working files
+_export/
+*.local.md
+
+# IDE / agent local state
+.claude/settings.local.json
+.vscode/
+.idea/
