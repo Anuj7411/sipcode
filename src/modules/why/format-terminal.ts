@@ -6,6 +6,7 @@
  * and respects NO_COLOR). Order: savings first, totals later.
  */
 import chalk from "chalk";
+import { formatNum, formatUSD } from "../../lib/format.js";
 import type { RenderedReport } from "./render.js";
 
 interface FormatOptions {
@@ -40,23 +41,23 @@ export function formatTerminal(
   const saved = report.estimatedSavings.totalTokens;
   lines.push(
     c.bold(
-      `if sipcode had been on, you could have saved ~${saved.toLocaleString()} tokens this session.`,
+      `if sipcode had been on, you could have saved ~${formatNum(saved)} tokens this session.`,
     ),
   );
   const b = report.estimatedSavings.breakdown;
   lines.push(
     c.dim(
-      `  · smart manifest (S001): ${b.s001_manifest.toLocaleString()} tokens`,
+      `  · smart manifest (S001): ${formatNum(b.s001_manifest)} tokens`,
     ),
   );
   lines.push(
     c.dim(
-      `  · read-once cache (S030): ${b.s030_readOnce.toLocaleString()} tokens`,
+      `  · read-once cache (S030): ${formatNum(b.s030_readOnce)} tokens`,
     ),
   );
   lines.push(
     c.dim(
-      `  · diff-output (S021):     ${b.s021_diffOutput.toLocaleString()} tokens`,
+      `  · diff-output (S021):     ${formatNum(b.s021_diffOutput)} tokens`,
     ),
   );
   lines.push("");
@@ -68,7 +69,7 @@ export function formatTerminal(
   } else {
     for (const leak of report.topLeaks) {
       lines.push(
-        `  ${leak.rank}. ${c.yellow(leak.title)} — ${leak.tokens.toLocaleString()} tokens ${c.dim(`(${leak.detail})`)}`,
+        `  ${leak.rank}. ${c.yellow(leak.title)} — ${formatNum(leak.tokens)} tokens ${c.dim(`(${leak.detail})`)}`,
       );
     }
   }
@@ -79,7 +80,7 @@ export function formatTerminal(
     lines.push(c.bold("duplicate reads:"));
     for (const d of report.duplicates) {
       lines.push(
-        `  · ${d.filePath} ${c.dim(`(${d.reads}× — ${d.wastedTokens.toLocaleString()} tokens wasted)`)}`,
+        `  · ${d.filePath} ${c.dim(`(${d.reads}× — ${formatNum(d.wastedTokens)} tokens wasted)`)}`,
       );
     }
     lines.push("");
@@ -90,7 +91,7 @@ export function formatTerminal(
     lines.push(c.bold("idle context (files held but not re-referenced):"));
     for (const f of report.idle) {
       lines.push(
-        `  · ${f.filePath} ${c.dim(`(idle for ${f.idleTurns} turns — ${f.wastedTokens.toLocaleString()} tokens)`)}`,
+        `  · ${f.filePath} ${c.dim(`(idle for ${f.idleTurns} turns — ${formatNum(f.wastedTokens)} tokens)`)}`,
       );
     }
     lines.push("");
@@ -101,7 +102,7 @@ export function formatTerminal(
     lines.push(c.bold("most expensive tool calls:"));
     for (const t of report.topExpensive) {
       lines.push(
-        `  · ${t.toolName} ${c.dim(`[${t.reason}]`)} — ${t.tokens.toLocaleString()} tokens ${c.dim(`(${t.label})`)}`,
+        `  · ${t.toolName} ${c.dim(`[${t.reason}]`)} — ${formatNum(t.tokens)} tokens ${c.dim(`(${t.label})`)}`,
       );
     }
     lines.push("");
@@ -111,14 +112,14 @@ export function formatTerminal(
   if (opts.verbose) {
     const t = report.totals;
     lines.push(c.bold("totals:"));
-    lines.push(`  input tokens:           ${t.inputTokens.toLocaleString()}`);
-    lines.push(`  output tokens:          ${t.outputTokens.toLocaleString()}`);
-    lines.push(`  cache read tokens:      ${t.cacheReadTokens.toLocaleString()}`);
+    lines.push(`  input tokens:           ${formatNum(t.inputTokens)}`);
+    lines.push(`  output tokens:          ${formatNum(t.outputTokens)}`);
+    lines.push(`  cache read tokens:      ${formatNum(t.cacheReadTokens)}`);
     lines.push(
-      `  cache creation tokens:  ${t.cacheCreationTokens.toLocaleString()}`,
+      `  cache creation tokens:  ${formatNum(t.cacheCreationTokens)}`,
     );
-    lines.push(`  total tool calls:       ${t.toolCallCount.toLocaleString()}`);
-    lines.push(`  distinct files read:    ${t.distinctFilesRead.toLocaleString()}`);
+    lines.push(`  total tool calls:       ${formatNum(t.toolCallCount)}`);
+    lines.push(`  distinct files read:    ${formatNum(t.distinctFilesRead)}`);
     lines.push(`  est. cost:              $${t.estCostUSD.toFixed(4)}`);
     lines.push("");
   } else {

@@ -3,6 +3,7 @@
  * No I/O, no colors — that's format-terminal.ts.
  */
 import type { ParsedSession } from "../transcript/parse.js";
+import { formatNum } from "../../lib/format.js";
 import type { TokenTotals } from "../transcript/analyzers/tokens.js";
 import type { DuplicateReadsResult } from "../transcript/analyzers/duplicateReads.js";
 import type { IdleContextResult } from "../transcript/analyzers/idleContext.js";
@@ -152,8 +153,8 @@ export function renderReport(input: RenderInput): RenderedReport {
     totals.estCostUSD * (total > 0 ? counterfactual.total / total : 0);
 
   const oneLiner =
-    `you burned ${total.toLocaleString()} tokens. ${totals.outputTokens.toLocaleString()} were code output. ` +
-    `the other ${nonOutput.toLocaleString()} were exploration, re-reads, and idle context.`;
+    `you burned ${formatNum(total)} tokens. ${formatNum(totals.outputTokens)} were code output. ` +
+    `the other ${formatNum(nonOutput)} were exploration, re-reads, and idle context.`;
 
   return {
     schemaVersion: "sipcode-why/1",
