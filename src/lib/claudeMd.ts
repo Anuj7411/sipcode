@@ -1,64 +1,183 @@
 /**
  * CLAUDE.md injection — idempotent block between stable markers.
  *
- * We never blindly overwrite. If the user has hand-edited content inside
- * the markers, we refuse (E005) and let them sort it out.
+ * v=2 layout: the outer markers wrap zero-or-more NAMED sub-blocks.
+ * The v=1 layout (anonymous body under v=1 markers) is migrated to v=2
+ * transparently: the body becomes a single named sub-block "manifest".
  */
 import { err, ok, type Result } from "./result.js";
 import { issue, type SipcodeIssue } from "./errors.js";
 
-export const MARKER_START = "<!-- sipcode:start v=1 -->";
+export const MARKER_START_V1 = "<!-- sipcode:start v=1 -->";
+export const MARKER_START_V2 = "<!-- sipcode:start v=2 -->";
 export const MARKER_END = "<!-- sipcode:end -->";
 
-export interface ExtractedClaudeMd {
-  /** Content before the start marker (or full content if no markers). */
-  readonly before: string;
-  /** Content between markers, or undefined if no sipcode block. */
-  readonly sipcode: string | undefined;
-  /** Content after the end marker (empty if no markers). */
-  readonly after: string;
+/** Default current-version start marker. */
+export const MARKER_START = MARKER_START_V2;
+
+const SUB_OPEN_RE =
+  /<!--\s*sipcode:block\s+name="([^"]+)"(?:\s+mode="([^"]+)")?\s*-->/g;
+const SUB_CLOSE = "<!-- /sipcode:block -->";
+
+export interface SubBlock {
+  readonly name: string;
+  readonly mode?: string;
+  readonly body: string;
 }
 
-/**
- * Pull apart an existing CLAUDE.md into (before, sipcode-block?, after).
- * Returns null if file is empty.
- *
- * Tolerates exactly one sipcode block. Two or more is E005-territory and
- * surfaces as `sipcode === undefined` from the caller's perspective via
- * `injectSection`.
- */
+export interface ExtractedClaudeMd {
+  readonly before: string;
+  readonly sipcode: string | undefined;
+  readonly after: string;
+  readonly version?: 1 | 2;
+}
+
 export function extractExisting(content: string): ExtractedClaudeMd | null {
   if (content.length === 0) return null;
-  const startIdx = content.indexOf(MARKER_START);
-  const endIdx = content.indexOf(MARKER_END);
-  if (startIdx === -1 && endIdx === -1) {
+
+  const found = findOuterMarkers(content);
+  if (!found) {
     return { before: content, sipcode: undefined, after: "" };
   }
-  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+
+  if (!found.valid) {
     return { before: content, sipcode: undefined, after: "" };
   }
-  // Count markers — duplicates are a hand-edit hazard.
-  const startCount = (content.match(new RegExp(escapeRe(MARKER_START), "g")) ?? [])
-    .length;
-  const endCount = (content.match(new RegExp(escapeRe(MARKER_END), "g")) ?? [])
-    .length;
-  if (startCount !== 1 || endCount !== 1) {
-    return { before: content, sipcode: undefined, after: "" };
-  }
-  const before = content.slice(0, startIdx);
-  const sipcode = content.slice(
-    startIdx + MARKER_START.length,
-    endIdx,
-  );
-  const after = content.slice(endIdx + MARKER_END.length);
-  return { before, sipcode, after };
+
+  return {
+    before: content.slice(0, found.startIdx),
+    sipcode: content.slice(found.bodyStart, found.bodyEnd),
+    after: content.slice(found.endIdx + MARKER_END.length),
+    version: found.version,
+  };
 }
 
-/**
- * Compose the sipcode block that goes between markers (without the markers
- * themselves). The shape is stable across runs so re-injection is idempotent.
- */
+interface OuterMatch {
+  readonly valid: boolean;
+  readonly version: 1 | 2;
+  readonly startIdx: number;
+  readonly bodyStart: number;
+  readonly bodyEnd: number;
+  readonly endIdx: number;
+}
+
+function findOuterMarkers(content: string): OuterMatch | null {
+  const v2Start = content.indexOf(MARKER_START_V2);
+  const v1Start = content.indexOf(MARKER_START_V1);
+
+  let version: 1 | 2;
+  let marker: string;
+  let startIdx: number;
+
+  if (v2Start !== -1) {
+    version = 2;
+    marker = MARKER_START_V2;
+    startIdx = v2Start;
+  } else if (v1Start !== -1) {
+    version = 1;
+    marker = MARKER_START_V1;
+    startIdx = v1Start;
+  } else {
+    return null;
+  }
+
+  const endIdx = content.indexOf(MARKER_END);
+  if (endIdx === -1 || endIdx < startIdx) {
+    return {
+      valid: false,
+      version,
+      startIdx,
+      bodyStart: startIdx + marker.length,
+      bodyEnd: endIdx === -1 ? startIdx + marker.length : endIdx,
+      endIdx: endIdx === -1 ? content.length : endIdx,
+    };
+  }
+
+  const startCount =
+    countMatches(content, MARKER_START_V1) +
+    countMatches(content, MARKER_START_V2);
+  const endCount = countMatches(content, MARKER_END);
+  if (startCount !== 1 || endCount !== 1) {
+    return {
+      valid: false,
+      version,
+      startIdx,
+      bodyStart: startIdx + marker.length,
+      bodyEnd: endIdx,
+      endIdx,
+    };
+  }
+
+  return {
+    valid: true,
+    version,
+    startIdx,
+    bodyStart: startIdx + marker.length,
+    bodyEnd: endIdx,
+    endIdx,
+  };
+}
+
+function countMatches(haystack: string, needle: string): number {
+  let count = 0;
+  let from = 0;
+  while (true) {
+    const idx = haystack.indexOf(needle, from);
+    if (idx === -1) break;
+    count += 1;
+    from = idx + needle.length;
+  }
+  return count;
+}
+
+export function parseSubBlocks(body: string): SubBlock[] | null {
+  if (!body.includes("<!-- sipcode:block")) {
+    return [{ name: "manifest", body }];
+  }
+
+  const blocks: SubBlock[] = [];
+  let cursor = 0;
+  while (true) {
+    SUB_OPEN_RE.lastIndex = cursor;
+    const match = SUB_OPEN_RE.exec(body);
+    if (!match) break;
+    const openEnd = match.index + match[0].length;
+    const closeIdx = body.indexOf(SUB_CLOSE, openEnd);
+    if (closeIdx === -1) return null;
+    const name = match[1]!;
+    const mode = match[2];
+    const innerBody = body.slice(openEnd, closeIdx);
+    blocks.push(
+      mode !== undefined ? { name, mode, body: innerBody } : { name, body: innerBody },
+    );
+    cursor = closeIdx + SUB_CLOSE.length;
+  }
+  return blocks;
+}
+
+export function renderSubBlocks(blocks: ReadonlyArray<SubBlock>): string {
+  if (blocks.length === 0) return "\n";
+  // Canonical shape: outer markers each on their own line; sub-block
+  // open/close markers each on their own line; body sits between with
+  // no inserted whitespace (body is responsible for its own newlines).
+  let out = "\n";
+  for (const b of blocks) {
+    const attr = b.mode !== undefined ? ` mode="${b.mode}"` : "";
+    out += `<!-- sipcode:block name="${b.name}"${attr} -->`;
+    out += b.body;
+    out += `${SUB_CLOSE}\n\n`;
+  }
+  return out;
+}
+
 export function renderSipcodeBlock(opts: {
+  manifestPath: string;
+  generatedAt: string;
+}): string {
+  return renderManifestSubBlockBody(opts);
+}
+
+export function renderManifestSubBlockBody(opts: {
   manifestPath: string;
   generatedAt: string;
 }): string {
@@ -78,45 +197,35 @@ export function renderSipcodeBlock(opts: {
   ].join("\n");
 }
 
-/**
- * Inject (or refresh) the sipcode block in CLAUDE.md.
- *
- * Rules:
- *  - No markers in existing content     -> append a clean block at the end.
- *  - Exactly one valid marker pair      -> replace the block between them.
- *  - Anything else (no end, dup markers, manual edits between markers that
- *    don't look like our render)        -> E005, return Issues, no write.
- *
- * The "looks like our render" check is loose: we accept any content that
- * starts with a blank line and contains "## Sipcode". Users adding extra
- * notes outside the marker pair (before/after) is fine and preserved.
- */
 export function injectSection(
   currentContent: string,
   block: string,
 ): Result<string, SipcodeIssue[]> {
+  return upsertSubBlock(currentContent, { name: "manifest", body: block });
+}
+
+export function upsertSubBlock(
+  currentContent: string,
+  next: SubBlock,
+): Result<string, SipcodeIssue[]> {
   if (currentContent.length === 0) {
-    // Brand-new file.
-    return ok(`${MARKER_START}${block}${MARKER_END}\n`);
+    return ok(`${buildWrapped([next])}\n`);
   }
 
   const parsed = extractExisting(currentContent);
   if (!parsed) {
-    return ok(`${MARKER_START}${block}${MARKER_END}\n`);
+    return ok(`${buildWrapped([next])}\n`);
   }
 
   if (parsed.sipcode === undefined) {
-    // No existing block. If markers are completely absent, append.
     if (
-      !currentContent.includes(MARKER_START) &&
+      !currentContent.includes(MARKER_START_V1) &&
+      !currentContent.includes(MARKER_START_V2) &&
       !currentContent.includes(MARKER_END)
     ) {
       const sep = currentContent.endsWith("\n") ? "" : "\n";
-      return ok(
-        `${currentContent}${sep}\n${MARKER_START}${block}${MARKER_END}\n`,
-      );
+      return ok(`${currentContent}${sep}\n${buildWrapped([next])}\n`);
     }
-    // Markers exist but are malformed / duplicated / hand-edited.
     return err([
       issue(
         "E005",
@@ -126,29 +235,90 @@ export function injectSection(
     ]);
   }
 
-  // Check the existing block "looks like" our render. If a user replaced
-  // the body with their own prose, refuse.
-  if (!isOurBlockShape(parsed.sipcode)) {
+  const subs = parseSubBlocks(parsed.sipcode);
+  if (subs === null) {
     return err([
       issue(
         "E005",
-        "claude.md has hand-edited content inside the sipcode markers. refusing to overwrite.",
+        "claude.md has an unclosed sipcode:block marker. refusing to overwrite.",
         { path: "CLAUDE.md" },
       ),
     ]);
   }
 
-  return ok(
-    `${parsed.before}${MARKER_START}${block}${MARKER_END}${parsed.after}`,
-  );
+  const existingSameName = subs.find((s) => s.name === next.name);
+  if (existingSameName && !subBlockLooksOurs(existingSameName)) {
+    return err([
+      issue(
+        "E005",
+        `claude.md has hand-edited content inside the sipcode "${next.name}" sub-block. refusing to overwrite.`,
+        { path: "CLAUDE.md" },
+      ),
+    ]);
+  }
+
+  let replaced = false;
+  const merged: SubBlock[] = subs.map((s) => {
+    if (s.name === next.name) {
+      replaced = true;
+      return next;
+    }
+    return s;
+  });
+  if (!replaced) merged.push(next);
+
+  return ok(`${parsed.before}${buildWrapped(merged)}${parsed.after}`);
 }
 
-function isOurBlockShape(body: string): boolean {
-  // Accept empty (first-write race) or anything containing our heading.
-  if (body.trim().length === 0) return true;
-  return body.includes("## Sipcode");
+export function removeSubBlock(
+  currentContent: string,
+  name: string,
+): Result<string, SipcodeIssue[]> {
+  if (currentContent.length === 0) return ok(currentContent);
+  const parsed = extractExisting(currentContent);
+  if (!parsed || parsed.sipcode === undefined) return ok(currentContent);
+
+  const subs = parseSubBlocks(parsed.sipcode);
+  if (subs === null) {
+    return err([
+      issue(
+        "E005",
+        "claude.md has an unclosed sipcode:block marker. refusing to modify.",
+        { path: "CLAUDE.md" },
+      ),
+    ]);
+  }
+
+  const filtered = subs.filter((s) => s.name !== name);
+  if (filtered.length === subs.length) return ok(currentContent);
+
+  if (filtered.length === 0) {
+    const before = parsed.before.replace(/\n+$/, "\n");
+    const after = parsed.after.replace(/^\n+/, "");
+    if (before.length === 0 && after.length === 0) return ok("");
+    if (before.length === 0) return ok(after);
+    if (after.length === 0) return ok(before);
+    return ok(`${before}\n${after}`);
+  }
+  return ok(`${parsed.before}${buildWrapped(filtered)}${parsed.after}`);
 }
 
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export function listSubBlocks(currentContent: string): SubBlock[] | null {
+  if (currentContent.length === 0) return [];
+  const parsed = extractExisting(currentContent);
+  if (!parsed || parsed.sipcode === undefined) return [];
+  return parseSubBlocks(parsed.sipcode);
+}
+
+function buildWrapped(blocks: ReadonlyArray<SubBlock>): string {
+  return `${MARKER_START_V2}${renderSubBlocks(blocks)}${MARKER_END}`;
+}
+
+function subBlockLooksOurs(s: SubBlock): boolean {
+  const trimmed = s.body.trim();
+  if (trimmed.length === 0) return true;
+  if (s.name === "manifest") return s.body.includes("## Sipcode");
+  if (s.name === "output-compression")
+    return s.body.includes("Sipcode Output Compression");
+  return true;
 }

@@ -2,9 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   MARKER_END,
   MARKER_START,
+  MARKER_START_V1,
+  MARKER_START_V2,
   extractExisting,
   injectSection,
+  listSubBlocks,
+  parseSubBlocks,
+  removeSubBlock,
   renderSipcodeBlock,
+  renderSubBlocks,
+  upsertSubBlock,
+  type SubBlock,
 } from "../../src/lib/claudeMd.js";
 
 const BLOCK = renderSipcodeBlock({
@@ -106,3 +114,203 @@ describe("injectSection", () => {
     if (!r.ok) expect(r.error[0]?.code).toBe("E005");
   });
 });
+
+// ---- v=2 sub-block coverage ----
+
+describe("MARKER_START", () => {
+  it("defaults to v=2", () => {
+    expect(MARKER_START).toBe(MARKER_START_V2);
+  });
+});
+
+describe("extractExisting (v=2)", () => {
+  it("reads version 2 markers", () => {
+    const content = `${MARKER_START_V2}\nbody\n${MARKER_END}\n`;
+    const r = extractExisting(content);
+    expect(r?.version).toBe(2);
+    expect(r?.sipcode).toBe("\nbody\n");
+  });
+
+  it("reads version 1 markers as version=1", () => {
+    const content = `${MARKER_START_V1}\nbody\n${MARKER_END}\n`;
+    const r = extractExisting(content);
+    expect(r?.version).toBe(1);
+    expect(r?.sipcode).toBe("\nbody\n");
+  });
+
+  it("flags v=2 duplicates as unsafe", () => {
+    const content = `${MARKER_START_V2}\nx\n${MARKER_END}\n${MARKER_START_V2}\ny\n${MARKER_END}`;
+    const r = extractExisting(content);
+    expect(r?.sipcode).toBeUndefined();
+  });
+});
+
+describe("parseSubBlocks", () => {
+  it("treats marker-less body as a single anonymous manifest block", () => {
+    const subs = parseSubBlocks("\nsome legacy v=1 body\n");
+    expect(subs).toEqual([{ name: "manifest", body: "\nsome legacy v=1 body\n" }]);
+  });
+
+  it("parses two named sub-blocks with attributes", () => {
+    const body =
+      `\n<!-- sipcode:block name="manifest" -->m-body<!-- /sipcode:block -->\n` +
+      `\n<!-- sipcode:block name="output-compression" mode="strict" -->oc-body<!-- /sipcode:block -->\n`;
+    const subs = parseSubBlocks(body);
+    expect(subs).toEqual([
+      { name: "manifest", body: "m-body" },
+      { name: "output-compression", mode: "strict", body: "oc-body" },
+    ]);
+  });
+
+  it("returns null on an unclosed sub-block", () => {
+    const body = `\n<!-- sipcode:block name="manifest" -->forever\n`;
+    expect(parseSubBlocks(body)).toBeNull();
+  });
+});
+
+describe("renderSubBlocks", () => {
+  it("round-trips with parseSubBlocks", () => {
+    const subs: SubBlock[] = [
+      { name: "manifest", body: "\nbody A\n" },
+      { name: "output-compression", mode: "default", body: "\nbody B\n" },
+    ];
+    const rendered = renderSubBlocks(subs);
+    const reparsed = parseSubBlocks(rendered);
+    expect(reparsed).toEqual(subs);
+  });
+});
+
+describe("upsertSubBlock", () => {
+  it("creates a v=2 wrapper for an empty file", () => {
+    const r = upsertSubBlock("", { name: "output-compression", body: "x", mode: "default" });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value).toContain(MARKER_START_V2);
+    expect(r.value).toContain(`name="output-compression"`);
+    expect(r.value).toContain(`mode="default"`);
+  });
+
+  it("migrates a v=1 wrapper to v=2 when upserting a different named block", () => {
+    const v1Content = `${MARKER_START_V1}\nold-body\n${MARKER_END}\n`;
+    const r = upsertSubBlock(v1Content, {
+      name: "output-compression",
+      mode: "default",
+      body: "new",
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value).toContain(MARKER_START_V2);
+    expect(r.value).not.toContain(MARKER_START_V1);
+    // The legacy body becomes a named "manifest" sub-block, preserved.
+    expect(r.value).toContain(`name="manifest"`);
+    expect(r.value).toContain("old-body");
+    expect(r.value).toContain(`name="output-compression"`);
+    expect(r.value).toContain("new");
+  });
+
+  it("adds a second sub-block without disturbing the first", () => {
+    const first = upsertSubBlock("", {
+      name: "manifest",
+      body: "\n## Sipcode\n",
+    });
+    if (!first.ok) throw new Error("setup");
+    const second = upsertSubBlock(first.value, {
+      name: "output-compression",
+      mode: "default",
+      body: "\nSipcode Output Compression\n",
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    const subs = listSubBlocks(second.value)!;
+    expect(subs.map((s) => s.name)).toEqual(["manifest", "output-compression"]);
+  });
+
+  it("is idempotent across multiple sub-blocks", () => {
+    const r1 = upsertSubBlock("", { name: "manifest", body: "\n## Sipcode\n" });
+    if (!r1.ok) throw new Error("setup");
+    const r2 = upsertSubBlock(r1.value, {
+      name: "output-compression",
+      mode: "default",
+      body: "\nSipcode Output Compression\n",
+    });
+    if (!r2.ok) throw new Error("setup");
+    const r3 = upsertSubBlock(r2.value, {
+      name: "output-compression",
+      mode: "default",
+      body: "\nSipcode Output Compression\n",
+    });
+    expect(r3.ok).toBe(true);
+    if (r3.ok) expect(r3.value).toBe(r2.value);
+  });
+
+  it("E005 when a sub-block body looks hand-edited", () => {
+    const tampered =
+      `${MARKER_START_V2}\n` +
+      `<!-- sipcode:block name="output-compression" mode="default" -->\nUSER WROTE PROSE\n<!-- /sipcode:block -->\n` +
+      `\n${MARKER_END}\n`;
+    const r = upsertSubBlock(tampered, {
+      name: "output-compression",
+      mode: "default",
+      body: "\nSipcode Output Compression\n",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error[0]?.code).toBe("E005");
+  });
+
+  it("E005 when sub-block is unclosed", () => {
+    const broken = `${MARKER_START_V2}\n<!-- sipcode:block name="x" -->never closes\n${MARKER_END}\n`;
+    const r = upsertSubBlock(broken, { name: "y", body: "z" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error[0]?.code).toBe("E005");
+  });
+});
+
+describe("removeSubBlock", () => {
+  it("no-ops when sub-block is absent", () => {
+    const r = removeSubBlock("# notes\n", "output-compression");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value).toBe("# notes\n");
+  });
+
+  it("removes one of two sub-blocks, leaves the other", () => {
+    const r1 = upsertSubBlock("", { name: "manifest", body: "\n## Sipcode\n" });
+    if (!r1.ok) throw new Error("setup");
+    const r2 = upsertSubBlock(r1.value, {
+      name: "output-compression",
+      mode: "default",
+      body: "\nSipcode Output Compression\n",
+    });
+    if (!r2.ok) throw new Error("setup");
+    const r3 = removeSubBlock(r2.value, "output-compression");
+    expect(r3.ok).toBe(true);
+    if (!r3.ok) return;
+    expect(r3.value).toContain(`name="manifest"`);
+    expect(r3.value).not.toContain(`name="output-compression"`);
+  });
+
+  it("removes the outer wrapper when last sub-block is removed", () => {
+    const r1 = upsertSubBlock("# notes\n", {
+      name: "output-compression",
+      mode: "default",
+      body: "\nSipcode Output Compression\n",
+    });
+    if (!r1.ok) throw new Error("setup");
+    const r2 = removeSubBlock(r1.value, "output-compression");
+    expect(r2.ok).toBe(true);
+    if (!r2.ok) return;
+    expect(r2.value).not.toContain(MARKER_START_V2);
+    expect(r2.value).not.toContain(MARKER_END);
+    expect(r2.value).toContain("# notes");
+  });
+});
+
+describe("renderSipcodeBlock (legacy entry point)", () => {
+  it("still produces a manifest-body string", () => {
+    const block = renderSipcodeBlock({
+      manifestPath: ".sipcode/manifest.md",
+      generatedAt: "now",
+    });
+    expect(block).toContain("## Sipcode");
+  });
+});
+
