@@ -40,9 +40,8 @@ If you need one document that answers "what is Sipcode, who decided what, when, 
 | **One-liner (technical, ~50% of readers)** | Unified token optimization stack for AI coding agents. Auto-configures output compression, CLI filtering, context management, smart file navigation, and session analytics — the same five-layer stack power users build manually in a day, shipped as a single `npm install`. |
 | **Founder** | Anuj Ojha — GitHub [@Anuj7411](https://github.com/Anuj7411), npm `anujojha18` |
 | **Sibling project** | [Answerable](https://github.com/Anuj7411/answerable) — SEO optimization CLI for Next.js (Sipcode borrows its architecture). |
-| **Distribution channel (committed)** | npm / terminal CLI install (`npx sipcode <cmd>` and `npm install -g @sipcode/cli`). |
+| **Distribution channel (committed for v1.0)** | **Both** npm/terminal CLI (`npx sipcode <cmd>` / `npm install -g @sipcode/cli`) **AND** Claude Code plugin marketplace. User locked this in after gstack's 98.8k★ proved the plugin channel is massive, not limiting. |
 | **Distribution channel (deferred)** | Web UI for non-CLI users — planned for after v1.0. |
-| **Distribution channel (re-opened in this session)** | Claude Code plugin marketplace. Initially rejected by user ("limits to myself"). Reopened after gstack research surfaced 98.8k★ on a tool distributed *exclusively* as a Claude Code skill pack — strong evidence the plugin channel is massive, not limiting. User responded "No preference" — decision deferred. **Revisit at v0.9 (pre-launch)**: ship as both npm CLI and Claude Code plugin if budget allows ~1 day extra work. |
 | **npm scope** | `@sipcode` (claimed by user this session) |
 | **GitHub repo (planned)** | `github.com/Anuj7411/sipcode` (not yet created) |
 | **Domain (planned)** | `sipcode.dev` (not yet purchased) |
@@ -494,14 +493,7 @@ Most are from PROJECT-SPEC §13; this session added rows 1, 6, and 7.
 1. **Create GitHub repo** `github.com/Anuj7411/sipcode` (Private is fine for now.) Then: `git remote add origin … && git push -u origin main`.
 2. **Buy `sipcode.dev`** (target ≤ $15).
 3. **Trademark gut-check** "Sipcode" against beverage industry — quick USPTO + EUIPO search.
-4. **Install gstack** (Anuj decided to adopt the sprint-pipeline methodology). Touches global `~/.claude/skills/`, so Claude won't auto-run it:
-   ```bash
-   git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack \
-     && cd ~/.claude/skills/gstack \
-     && ./setup
-   ```
-   Prerequisites: Bun ≥ 1.0. Reference: [garrytan/gstack](https://github.com/garrytan/gstack) (98.8k★).
-5. **Decision point at v0.9 (pre-launch):** revisit Claude Code plugin distribution. gstack proves the channel is massive (98.8k★ as a CC skill pack). Currently deferred — "No preference" answer in this session.
+4. **~~Install gstack~~ ✓ DONE this session.** Installed at `~/.claude/skills/gstack`. Bun 1.3.11 verified. All 5 binaries compiled (browse, find-browse, design, pdf, gstack-global-discover). Node server bundled. 50+ skills now live and discoverable: `/plan-ceo-review`, `/plan-eng-review`, `/plan-devex-review`, `/plan-design-review`, `/review`, `/freeze`, `/guard`, `/careful`, `/qa`, `/ship`, `/health`, `/autoplan`, `/codex`, `/cso`, `/benchmark-models`, `/context-save` + `/context-restore`, `/investigate`, `/learn`, `/retro`, `/document-release` + `/document-generate`, etc. Reference: [garrytan/gstack](https://github.com/garrytan/gstack).
 
 ### 15.2 Outstanding for Claude (next session)
 

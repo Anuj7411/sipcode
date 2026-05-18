@@ -226,35 +226,36 @@ gstack is a Claude Code skill pack that simulates a multi-role engineering team 
 
 Every Sipcode milestone follows this pipeline:
 
-| Stage | Activity | gstack skill (optional) |
+| Stage | Activity | gstack skill |
 |---|---|---|
-| **Think** | Brainstorm the problem before writing anything | self-directed (skip `/office-hours` — too token-heavy for solo) |
-| **Plan** | Write/update the spec, define exit criteria, capture stable IDs | `/plan-ceo-review` once, at milestone start |
-| **Build** | Implement the milestone per `SESSION-HANDOFF.md` | `/freeze`, `/guard`, `/careful` as safety nets |
-| **Review** | Self-review + AI second opinion | `/review` on every branch before merge |
-| **Test** | Run the benchmark suite + unit tests | `/qa` on the CLI when web UI ships |
-| **Ship** | Tag, publish to npm, update the SIPCODE-MASTER-RECORD | self-directed |
-| **Reflect** | Capture what worked, update the spec | self-directed; write retrospective notes in `docs/retros/` |
+| **Think** | Brainstorm the problem before writing anything | self-directed (`/office-hours` only for genuinely new problem spaces — token-heavy) |
+| **Plan** | Write/update the spec, define exit criteria, capture stable IDs | `/autoplan` (runs CEO + design + eng + DX reviews sequentially) **OR** call them individually: `/plan-ceo-review`, `/plan-devex-review`, `/plan-eng-review` |
+| **Build** | Implement the milestone per `SESSION-HANDOFF.md` | `/freeze`, `/guard`, `/careful` as safety nets; `/context-save` at session breaks |
+| **Review** | Self-review + AI second opinion | `/review` on every branch before merge; `/codex` for adversarial second opinion on critical PRs |
+| **Test** | Run the benchmark suite + unit tests + security audit | `/health` for composite quality score; `/cso` daily mode for security; `/qa` once web UI exists |
+| **Ship** | Tag, publish to npm, update SIPCODE-MASTER-RECORD | `/ship` workflow; `/land-and-deploy` for prod verification post-merge |
+| **Reflect** | Capture what worked, update the spec, learn from the session | `/retro` weekly; `/learn` to capture reusable patterns; write retrospective notes in `docs/retros/` |
 
 ### 14.3 Token-cost-aware skill selection
 
 gstack burns more tokens than vanilla Claude Code. Sipcode is being built to reduce token cost, so we use gstack skills selectively:
 
-- **Use frequently (cheap, high-value):** `/review`, `/freeze`, `/guard`, `/careful`
-- **Use at milestone boundaries (medium-cost):** `/plan-ceo-review`, `/qa`
-- **Skip (too expensive for solo):** `/office-hours` and other multi-role simulations
+| Use frequency | Skills | Token cost |
+|---|---|---|
+| **Every session** | `/freeze`, `/guard`, `/careful`, `/context-save` + `/context-restore` | Negligible — these are hooks/guardrails, not generative |
+| **Every PR** | `/review`, `/health` | Low — read-only audits |
+| **Every milestone** | `/autoplan` *or* its constituents (`/plan-ceo-review`, `/plan-devex-review`, `/plan-eng-review`); `/ship` | Medium — multi-pass reasoning |
+| **Critical PRs only** | `/codex` (adversarial), `/cso comprehensive`, `/benchmark-models` | High — second-model inference |
+| **Weekly cadence** | `/retro`, `/learn` | Medium |
+| **Skip for solo** | `/office-hours` (in YC mode, not builder mode), multi-role simulations | High; designed for teams |
 
-This is also dogfooding: every gstack session is a Claude Code session we can later analyze with `sipcode why` and turn into a marketing screenshot.
+This is also dogfooding: every gstack session is a Claude Code session we can later analyze with `sipcode why` and turn into a marketing screenshot. Sipcode's own development burn becomes the demo corpus.
 
-### 14.4 Install
+### 14.4 Install status
 
-```bash
-git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack \
-  && cd ~/.claude/skills/gstack \
-  && ./setup
-```
+**Installed 2026-05-18.** At `~/.claude/skills/gstack`. Bun 1.3.11. 5 binaries compiled. 50+ skills live. Verified discoverable by Claude Code.
 
-Prerequisites: Claude Code, Git, Bun ≥ 1.0.
+To upgrade later: `/gstack-upgrade` from inside Claude Code.
 
 ---
 
