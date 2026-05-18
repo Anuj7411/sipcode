@@ -70,4 +70,89 @@ export const MESSAGES = {
 
   banner: (sessionId: string, projectHash: string) =>
     `(showing latest session ${sessionId} from ${projectHash}; pass --here to scope to this directory)`,
+
+  // ---- manifest milestone (v0.1.0-alpha.2) ----
+
+  manifestOverBudget: (actual: number, budget: number) =>
+    [
+      `[E001] manifest is ${actual} tokens — over the ${budget}-token budget.`,
+      ``,
+      `why: sipcode's whole point is keeping context small. a manifest that doesn't fit in budget defeats the purpose — your agent will read it AND still grep for more.`,
+      ``,
+      `fix: drop low-signal sections automatically with --tighten, or bypass once with --no-budget if you know what you're doing.`,
+      ``,
+      `next: npx sipcode manifest --tighten`,
+    ].join("\n"),
+
+  manifestParseSkipped: (file: string, reason: string) =>
+    [
+      `[E002] couldn't parse ${file}`,
+      ``,
+      `why: ${reason}`,
+      ``,
+      `fix: skipped — the manifest will still ship without this file's import graph entry. if many files are skipped, the grammar package may not be installed for your platform.`,
+      ``,
+      `next: npx sipcode manifest --explain ${file}`,
+    ].join("\n"),
+
+  claudeMdUnsafe: (path: string) =>
+    [
+      `[E005] ${path} has hand-edited content inside the sipcode markers.`,
+      ``,
+      `why: sipcode injects a fixed block between <!-- sipcode:start --> and <!-- sipcode:end -->. anything inside those markers is sipcode's territory. if you've edited it, sipcode won't blow your changes away.`,
+      ``,
+      `fix: pull your edits out of the markers (move them above or below), then re-run init. or delete the entire marker block to start fresh.`,
+      ``,
+      `next: npx sipcode init`,
+    ].join("\n"),
+
+  gitUnavailable:
+    [
+      `[E006] git not available — hot-files index disabled.`,
+      ``,
+      `why: sipcode reads git history to find your hottest files (top 20 by change frequency in the last 90 days). without git on PATH, that section gets skipped.`,
+      ``,
+      `fix: install git, or ignore — the manifest still ships, just without hot-files.`,
+      ``,
+      `next: npx sipcode manifest`,
+    ].join("\n"),
+
+  unsupportedLanguage: (file: string, ext: string) =>
+    [
+      `[E007] ${file} uses an unsupported language (${ext}) — skipped from manifest.`,
+      ``,
+      `why: v1.0 ships grammars for typescript, javascript, python, and go. other languages are listed in the file tree but skipped for import graph and pattern detection.`,
+      ``,
+      `fix: open an issue at https://github.com/Anuj7411/sipcode if you want this language prioritized.`,
+      ``,
+      `next: npx sipcode manifest`,
+    ].join("\n"),
+
+  manifestBudgetWarn: (actual: number, budget: number) =>
+    [
+      `[R001] manifest is ${actual} tokens (budget ${budget}). sipcode trimmed low-signal sections to fit.`,
+      ``,
+      `why: large repos hit the budget naturally. --tighten dropped the lowest-signal entries first (long files in deep test dirs, then long imports).`,
+      ``,
+      `fix: review the manifest and consider adding skip patterns in .sipcodeignore for generated code or vendored libraries.`,
+      ``,
+      `next: cat .sipcode/manifest.md`,
+    ].join("\n"),
+
+  claudeMdBloated: (tokens: number) =>
+    [
+      `[R007] CLAUDE.md is ${tokens} tokens — getting bloated.`,
+      ``,
+      `why: every prompt pays for CLAUDE.md. anything past ~4000 tokens is taxing every turn forever.`,
+      ``,
+      `fix: trim down. a CLAUDE.md compressor ships in a later milestone.`,
+      ``,
+      `next: cat CLAUDE.md | wc -c`,
+    ].join("\n"),
+
+  manifestDeltaNotImplemented:
+    "[planned] --delta is stubbed for v1.1+. for now, re-run `sipcode manifest` to regenerate from scratch — it's idempotent on unchanged trees, so diffs against the prior version are easy to read.",
+
+  manifestExplainNotImplemented: (file: string) =>
+    `[planned] --explain ${file} lands in v1.1+. for now, the [E002] line printed during generation tells you why a file was skipped.`,
 } as const;
