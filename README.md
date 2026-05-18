@@ -90,7 +90,7 @@ sipcode receipt --html-only         # skip PNG, faster
 | **`sipcode manifest`** | Static-analysis project map injected into `CLAUDE.md` — zero LLM calls | ✅ v0.1.0-alpha |
 | **`sipcode receipt`** | HTML + PNG receipt + system clipboard + tweet intent URL | ✅ v0.1.0-alpha |
 | **`sipcode init`** | Interactive setup (three prompts max) — runs manifest + injects CLAUDE.md | ✅ v0.1.0-alpha |
-| Output Compression (S020) | Professional response rules (diff output, no preamble) — three modes | 🛠️ v0.2.0 |
+| **`sipcode rules`** | Output Compression (S020) — diff edits + no-preamble rules in CLAUDE.md, three modes (default/strict/verbose) | ✅ v0.2.0 |
 | Session Hygiene (S030) | Hook-based read-once cache, context-pressure warnings, smart `/compact` | 🛠️ v0.3.0 |
 | `sipcode estimate "<task>"` | Predicts session cost per model before you run | 🛠️ v0.2.0 |
 | Sipcode Score (S060) | GitHub Action that audits any repo for "agent-friendliness" | 🛠️ v0.4.0 |
