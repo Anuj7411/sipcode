@@ -20,7 +20,10 @@ export type SipcodeErrorCode =
   | "E004" // pricing file out of date
   | "E005" // CLAUDE.md injection target unsafe to modify
   | "E006" // git not available — hot-files disabled
-  | "E007"; // unsupported language family
+  | "E007" // unsupported language family
+  // NOTE: AUDIT-FRAMEWORK.md table update for E008 is pending (planning docs
+  // are locked for v0.1.0-alpha.3 — table-update tracked separately).
+  | "E008"; // PNG renderer (resvg native binding) unavailable
 
 export interface SipcodeIssue {
   readonly code: SipcodeErrorCode;

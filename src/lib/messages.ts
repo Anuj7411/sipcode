@@ -150,6 +150,26 @@ export const MESSAGES = {
       `next: cat CLAUDE.md | wc -c`,
     ].join("\n"),
 
+  // ---- receipt milestone (v0.1.0-alpha.3) ----
+
+  pngRendererUnavailable: (htmlPath: string, detail?: string) =>
+    [
+      `[E008] couldn't render the png — native renderer didn't load on this system.`,
+      ``,
+      `why: @resvg/resvg-js ships native bindings; some platforms (alpine linux, musl, some bun versions) don't have a compatible build.${detail ? ` (${detail})` : ""} the html receipt is still ready — you can screenshot it manually.`,
+      ``,
+      `fix: open the html in your browser and screenshot it: file://${htmlPath}`,
+      ``,
+      `next: open ${htmlPath}`,
+    ].join("\n"),
+
+  receiptWrote: (pngPath: string) => `wrote ${pngPath}`,
+
+  receiptClipboardOk: (strategy: string) =>
+    `copied png to clipboard (${strategy}). paste it anywhere.`,
+
+  receiptClipboardSkipped: (reason: string) => `clipboard: ${reason}`,
+
   manifestDeltaNotImplemented:
     "[planned] --delta is stubbed for v1.1+. for now, re-run `sipcode manifest` to regenerate from scratch — it's idempotent on unchanged trees, so diffs against the prior version are easy to read.",
 
