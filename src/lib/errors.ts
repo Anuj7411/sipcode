@@ -1,36 +1,57 @@
 /**
  * Sipcode batched validation errors.
  *
- * See docs/AUDIT-FRAMEWORK.md §"E — Validation errors" for the full code table.
+ * Error mechanism rule for v0.1.0-alpha.1:
+ *   - Pure analyzers / parsers return `Result<T, SipcodeIssue[]>`.
+ *   - `SipcodeValidationError` may be THROWN only at I/O boundaries
+ *     (commands, CLI entry). Pure runners must never throw.
  *
- * Rule: never throw on first failure mid-flight. Collect issues into an
- * array, return a `SipcodeValidationError` with all of them.
+ * See docs/AUDIT-FRAMEWORK.md §"E — Validation errors".
  */
-import type { CheckId } from "./types.js";
+
+// CheckId is a branded string. We don't import it here to avoid a cycle —
+// errors.ts is leaf-level, types.ts depends on it for validator throws.
+type CheckIdLike = string & { readonly __brand: "CheckId" };
 
 export type SipcodeErrorCode =
-  | "E001"  // manifest exceeded 2k token budget
-  | "E002"  // tree-sitter parse failed (warn, skip)
-  | "E003"  // transcript file unreadable or malformed
-  | "E004"  // pricing file out of date
-  | "E005"  // CLAUDE.md injection target unsafe to modify
-  | "E006"  // git not available — hot-files disabled
+  | "E001" // manifest exceeded 2k token budget
+  | "E002" // tree-sitter parse failed (warn, skip)
+  | "E003" // transcript file unreadable or malformed
+  | "E004" // pricing file out of date
+  | "E005" // CLAUDE.md injection target unsafe to modify
+  | "E006" // git not available — hot-files disabled
   | "E007"; // unsupported language family
 
 export interface SipcodeIssue {
-  code: SipcodeErrorCode;
-  message: string;
-  related?: CheckId | undefined;
-  path?: string | undefined;
+  readonly code: SipcodeErrorCode;
+  readonly message: string;
+  readonly related?: CheckIdLike;
+  readonly path?: string;
 }
 
 export class SipcodeValidationError extends Error {
-  constructor(public readonly issues: ReadonlyArray<SipcodeIssue>) {
+  public readonly issues: ReadonlyArray<SipcodeIssue>;
+  constructor(issues: ReadonlyArray<SipcodeIssue>) {
     super(
-      `Sipcode found ${issues.length} issue(s): ${issues
+      `sipcode found ${issues.length} issue(s): ${issues
         .map((i) => i.code)
         .join(", ")}`,
     );
     this.name = "SipcodeValidationError";
+    this.issues = issues;
   }
 }
+
+export const issue = (
+  code: SipcodeErrorCode,
+  message: string,
+  extra: { related?: CheckIdLike; path?: string } = {},
+): SipcodeIssue => {
+  const result: SipcodeIssue = {
+    code,
+    message,
+    ...(extra.related !== undefined ? { related: extra.related } : {}),
+    ...(extra.path !== undefined ? { path: extra.path } : {}),
+  };
+  return result;
+};
