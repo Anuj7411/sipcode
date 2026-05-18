@@ -65,11 +65,14 @@ program
   .command("receipt")
   .description("Generate a shareable receipt for a session.")
   .argument("[session-id]", "session to render (defaults to latest)")
-  .option("--png", "also emit a PNG receipt")
-  .option("--html", "emit HTML receipt (default true)")
+  .option("--html-only", "skip PNG (faster, no native render needed)")
+  .option("--no-share", "skip clipboard + tweet intent URL")
+  .option("--here", "scope to sessions for the current working directory")
+  .option("--json", "machine-readable output")
   .action(async (sessionId, opts) => {
     const { runReceipt } = await import("./commands/receipt.js");
-    await runReceipt(sessionId, opts);
+    const result = await runReceipt({ ...opts, session: sessionId });
+    if (result?.exitCode) process.exit(result.exitCode);
   });
 
 program
