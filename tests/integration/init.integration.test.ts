@@ -152,10 +152,94 @@ describe("runInit — integration", () => {
           root,
           injectClaudeMd: false,
           budgetMode: "strict",
+          rulesMode: "default",
         }),
       },
     );
     expect(r.exitCode).toBe(0);
     expect([...writes.keys()].find((k) => k.endsWith("CLAUDE.md"))).toBeUndefined();
+  });
+
+  it("--yes installs output-compression rules at default mode", async () => {
+    const root = "/proj";
+    const fs = tinyRepo(root);
+    const writes = new Map<string, string>();
+    const r = await runInit(
+      { yes: true },
+      {
+        fs,
+        clock: new FakeClock(new Date("2026-05-19T00:00:00Z")),
+        env: new FakeProcessEnv(),
+        git: new FakeGit({ available: true }),
+        cwd: root,
+        stdout: () => {},
+        stderr: () => {},
+        writeFile: async (p, c) => {
+          writes.set(p.replace(/\\/g, "/"), c);
+        },
+        readFile: async () => undefined,
+      },
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.rulesMode).toBe("default");
+    const claudeKey = [...writes.keys()].find((k) => k.endsWith("CLAUDE.md"));
+    const claudeContent = writes.get(claudeKey!)!;
+    expect(claudeContent).toContain(`name="output-compression"`);
+    expect(claudeContent).toContain(`mode="default"`);
+    expect(claudeContent).toContain(`name="manifest"`);
+  });
+
+  it("--rules-mode=strict installs strict rules", async () => {
+    const root = "/proj";
+    const fs = tinyRepo(root);
+    const writes = new Map<string, string>();
+    const r = await runInit(
+      { yes: true, rulesMode: "strict" },
+      {
+        fs,
+        clock: new FakeClock(new Date("2026-05-19T00:00:00Z")),
+        env: new FakeProcessEnv(),
+        git: new FakeGit({ available: true }),
+        cwd: root,
+        stdout: () => {},
+        stderr: () => {},
+        writeFile: async (p, c) => {
+          writes.set(p.replace(/\\/g, "/"), c);
+        },
+        readFile: async () => undefined,
+      },
+    );
+    expect(r.exitCode).toBe(0);
+    const claudeKey = [...writes.keys()].find((k) => k.endsWith("CLAUDE.md"));
+    const claudeContent = writes.get(claudeKey!)!;
+    expect(claudeContent).toContain(`mode="strict"`);
+  });
+
+  it("--rules-mode=skip skips rules installation but keeps the manifest", async () => {
+    const root = "/proj";
+    const fs = tinyRepo(root);
+    const writes = new Map<string, string>();
+    const r = await runInit(
+      { yes: true, rulesMode: "skip" },
+      {
+        fs,
+        clock: new FakeClock(new Date("2026-05-19T00:00:00Z")),
+        env: new FakeProcessEnv(),
+        git: new FakeGit({ available: true }),
+        cwd: root,
+        stdout: () => {},
+        stderr: () => {},
+        writeFile: async (p, c) => {
+          writes.set(p.replace(/\\/g, "/"), c);
+        },
+        readFile: async () => undefined,
+      },
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.rulesMode).toBe("skip");
+    const claudeKey = [...writes.keys()].find((k) => k.endsWith("CLAUDE.md"));
+    const claudeContent = writes.get(claudeKey!)!;
+    expect(claudeContent).toContain(`name="manifest"`);
+    expect(claudeContent).not.toContain(`name="output-compression"`);
   });
 });

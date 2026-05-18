@@ -1,13 +1,15 @@
 /**
  * `sipcode init` — interactive setup.
  *
- * Three prompts max:
+ * Four prompts max:
  *   1. Confirm the project root (default: cwd).
  *   2. Confirm CLAUDE.md injection (default: yes).
  *   3. Confirm budget mode (strict / tighten / off).
+ *   4. Output Compression rules mode (default / strict / verbose / skip).
  *
- * After confirmation, it runs the same pipeline as `sipcode manifest` and
- * additionally injects a stable block into CLAUDE.md.
+ * After confirmation, it runs the same pipeline as `sipcode manifest`,
+ * injects the manifest sub-block into CLAUDE.md, and — if not skipped —
+ * also installs the output-compression sub-block.
  */
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
@@ -21,6 +23,8 @@ import {
   injectSection,
   renderSipcodeBlock,
 } from "../lib/claudeMd.js";
+import { installRules } from "../modules/rules/install.js";
+import { isRulesMode, type RulesMode } from "../modules/rules/types.js";
 import { runManifest } from "./manifest.js";
 
 export interface InitOptions {
@@ -30,6 +34,11 @@ export interface InitOptions {
   noClaudeMd?: boolean;
   /** Force non-interactive: accept all defaults. */
   yes?: boolean;
+  /**
+   * Pre-select an output-compression rules mode (skips the prompt).
+   * "skip" means don't install rules. Default: "default".
+   */
+  rulesMode?: RulesMode | "skip";
 }
 
 export interface InitDeps {
@@ -60,6 +69,7 @@ export interface InitResult {
   readonly exitCode: 0 | 1;
   readonly manifestPath?: string;
   readonly claudeMdPath?: string;
+  readonly rulesMode?: RulesMode | "skip";
 }
 
 export async function runInit(
@@ -101,6 +111,7 @@ export async function runInit(
         root: cwd,
         injectClaudeMd: !opts.noClaudeMd,
         budgetMode: opts.tighten ? "tighten" : "strict",
+        rulesMode: opts.rulesMode ?? "default",
       }
     : await prompt([
         {
@@ -126,11 +137,30 @@ export async function runInit(
           ],
           initial: opts.tighten ? 1 : 0,
         },
+        {
+          type: "select",
+          name: "rulesMode",
+          message: "install output compression rules?",
+          choices: [
+            { title: "default (recommended — diff edits, no preamble)", value: "default" },
+            { title: "strict (telegraphic — for power users)", value: "strict" },
+            { title: "verbose (learning mode — extra context)", value: "verbose" },
+            { title: "skip (don't install rules)", value: "skip" },
+          ],
+          initial: 0,
+        },
       ]);
 
   const root = String(answers["root"] ?? cwd);
   const injectClaudeMd = Boolean(answers["injectClaudeMd"]);
   const budgetMode = String(answers["budgetMode"] ?? "strict");
+  const rulesModeRaw = String(answers["rulesMode"] ?? "default");
+  const rulesMode: RulesMode | "skip" =
+    rulesModeRaw === "skip"
+      ? "skip"
+      : isRulesMode(rulesModeRaw)
+      ? rulesModeRaw
+      : "default";
 
   // -- Manifest --
   const manifestResult = await runManifest(
@@ -174,10 +204,27 @@ export async function runInit(
       }
       return { exitCode: 1 };
     }
-    await writeFile(claudeMdPath, injected.value);
+    let nextContent = injected.value;
     stdout(
       `injected sipcode block into ${toPosix(path.relative(root, claudeMdPath))}`,
     );
+
+    if (rulesMode !== "skip") {
+      const withRules = installRules(nextContent, rulesMode);
+      if (!withRules.ok) {
+        for (const i of withRules.error) {
+          if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe("CLAUDE.md"));
+          else stderr(`[${i.code}] ${i.message}`);
+        }
+        return { exitCode: 1 };
+      }
+      nextContent = withRules.value;
+      stdout(
+        `installed output compression rules (${rulesMode} mode).`,
+      );
+    }
+
+    await writeFile(claudeMdPath, nextContent);
   }
 
   stdout("");
@@ -185,6 +232,7 @@ export async function runInit(
 
   return {
     exitCode: 0,
+    rulesMode,
     ...(manifestResult.manifestPath !== undefined
       ? { manifestPath: manifestResult.manifestPath }
       : {}),
