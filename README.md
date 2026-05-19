@@ -93,7 +93,7 @@ sipcode receipt --html-only         # skip PNG, faster
 | **`sipcode rules`** | Output Compression (S020) — diff edits + no-preamble rules in CLAUDE.md, three modes (default/strict/verbose) | ✅ v0.2.0 |
 | Session Hygiene (S030) | Hook-based read-once cache, context-pressure warnings, smart `/compact` | 🛠️ v0.3.0 |
 | **`sipcode estimate "<task>"`** | Predicts session cost per model (opus / sonnet / haiku) before you run — heuristic + historical anchors, zero LLM calls | ✅ v0.2.0 |
-| Sipcode Score (S060) | GitHub Action that audits any repo for "agent-friendliness" | 🛠️ v0.4.0 |
+| **`sipcode score`** | Static-analysis audit of any repo for "agent-friendliness" — 24 checks, 5 categories, shields.io badge, GitHub Action included | ✅ v0.2.0 |
 | Hardest Tasks Benchmark | Canonical waste-maximizing corpus — the cited cost-waste benchmark | 🛠️ v0.4.0 |
 | **Multi-agent (Cursor)** | `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc` — same wedge, now in Cursor. Codex / Gemini / Aider planned. | ✅ v0.2.0 (cursor; rules + manifest only — transcript parsing is claude-code-only for now) |
 
@@ -133,9 +133,19 @@ This is not a "we'll add telemetry later" promise. The architecture has no netwo
 
 ---
 
+## Get the badge
+
+run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.sipcode/badge.json`. commit it (or upload as an artifact via the [composite action](action/)), then pin:
+
+```markdown
+![sipcode score](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/<your-org>/<your-repo>/main/.sipcode/badge.json)
+```
+
+---
+
 ## Project status
 
-**v0.2.0-alpha** — seven features shipped of twelve planned for v1.0:
+**v0.2.0-alpha** — eight features shipped of twelve planned for v1.0:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map
@@ -144,8 +154,9 @@ This is not a "we'll add telemetry later" promise. The architecture has no netwo
 - ✅ `sipcode estimate "<task>"` — cost predictor across models (S050), zero LLM calls
 - ✅ Multi-agent: Cursor (S043) — `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc`. Rules + manifest cross-agent; transcript parsing for Cursor lands later.
 - ✅ `sipcode stats` — Analytics Dashboard (S040) — cross-session totals, daily-spend sparkline, top-N expensive sessions, per-project breakdown, optional standalone HTML at `.sipcode/stats.html`.
+- ✅ `sipcode score` — Sipcode Score (S060) — 24-check static audit of any repo for agent-friendliness across 5 categories (manifest, shape, naming, docs, predictability), tier badge, shields.io endpoint json, composite GitHub Action.
 
-Active development. **536 tests passing.** Solo dev, MIT, free forever.
+Active development. **682 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
