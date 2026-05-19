@@ -1,0 +1,33 @@
+name: sipcode score
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: install
+        run: npm ci
+
+      - name: build (so the local cli is runnable)
+        run: npm run build || true
+
+      - name: run sipcode score
+        run: npx tsx src/cli.ts score --threshold 80 --badge --no-html
+
+      - name: upload badge artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sipcode-badge
+          path: .sipcode/badge.json
+          if-no-files-found: warn

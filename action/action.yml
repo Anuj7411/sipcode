@@ -1,0 +1,32 @@
+name: "Sipcode Score"
+description: "Score how agent-friendly your codebase is. Emits a Shields.io-compatible badge.json."
+author: "sipcode"
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  threshold:
+    description: "Minimum score (0-100) required to pass. 0 = no gate."
+    required: false
+    default: "0"
+  badge-path:
+    description: "Path (relative to repo root) where the Shields.io badge JSON is written."
+    required: false
+    default: "badge.json"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run sipcode score
+      shell: bash
+      run: |
+        npx --yes @sipcode/cli@latest score \
+          --threshold "${{ inputs.threshold }}" \
+          --badge \
+          --no-html
+    - name: Copy badge to requested path
+      shell: bash
+      run: |
+        mkdir -p "$(dirname "${{ inputs.badge-path }}")"
+        cp .sipcode/badge.json "${{ inputs.badge-path }}"
