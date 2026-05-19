@@ -115,9 +115,17 @@ program
 program
   .command("stats")
   .description("Show cumulative token savings across sessions.")
-  .action(async () => {
+  .option("--since <window>", "time window: 7d | 30d | 90d | all | yyyy-mm-dd", "30d")
+  .option("--here", "scope to sessions for the current working directory")
+  .option("--html", "also write .sipcode/stats.html (standalone)")
+  .option("--json", "machine-readable output")
+  .option("--group-by <how>", "group totals: none | project", "none")
+  .option("--top <n>", "show top N most expensive sessions", "5")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .action(async (opts) => {
     const { runStats } = await import("./commands/stats.js");
-    await runStats();
+    const r = await runStats(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
   });
 
 program.parseAsync(process.argv).catch((err) => {
