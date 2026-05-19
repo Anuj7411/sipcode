@@ -30,6 +30,7 @@ program
   .option("--all-projects", "scan across all project hashes (default)")
   .option("--json", "machine-readable output")
   .option("--verbose", "show full token totals breakdown")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
   .action(async (opts) => {
     const { runWhy } = await import("./commands/why.js");
     const result = await runWhy(opts);
@@ -46,6 +47,7 @@ program
     "--rules-mode <mode>",
     "output-compression rules mode: default | strict | verbose | skip",
   )
+  .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
   .action(async (opts) => {
     const { runInit } = await import("./commands/init.js");
     const r = await runInit(opts);
@@ -59,6 +61,7 @@ program
   .option("--tighten", "drop low-signal sections to fit the budget")
   .option("--delta", "emit only changes since last manifest (v1.1+, stubbed)")
   .option("--explain <file>", "show parse error for a specific file (v1.1+, stubbed)")
+  .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
   .action(async (opts) => {
     const { runManifest } = await import("./commands/manifest.js");
     const r = await runManifest(opts);
@@ -73,6 +76,7 @@ program
   .option("--no-share", "skip clipboard + tweet intent URL")
   .option("--here", "scope to sessions for the current working directory")
   .option("--json", "machine-readable output")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
   .action(async (sessionId, opts) => {
     const { runReceipt } = await import("./commands/receipt.js");
     const result = await runReceipt({ ...opts, session: sessionId });
@@ -86,6 +90,7 @@ program
   .option("--uninstall", "remove the output-compression block from CLAUDE.md")
   .option("--mode <mode>", "install/switch to mode: default | strict | verbose")
   .option("--diff", "show what would change without writing")
+  .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
   .action(async (opts) => {
     const { runRules } = await import("./commands/rules.js");
     const r = await runRules(opts);
@@ -100,6 +105,7 @@ program
   .option("--json", "machine-readable output")
   .option("--no-anchors", "skip historical session lookup (faster, less accurate)")
   .option("--model <model>", "show only one model's row: opus | sonnet | haiku")
+  .option("--agent <id>", "which agent to source historical anchors from: claude-code | cursor | auto")
   .action(async (task, opts) => {
     const { runEstimate } = await import("./commands/estimate.js");
     const r = await runEstimate({ ...opts, task });

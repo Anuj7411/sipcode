@@ -33,6 +33,8 @@ export interface WhyOptions {
   allProjects?: boolean;
   verbose?: boolean;
   cwd?: string;
+  /** Which agent to source transcripts from. Default: claude-code. */
+  agent?: string;
 }
 
 export interface WhyDeps {
@@ -56,6 +58,22 @@ export async function runWhy(
   const env = deps.env ?? new RealProcessEnv();
   const stdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
   const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+
+  // Resolve agent. `why` defaults to claude-code (only agent with transcript
+  // parsing in this milestone). When --agent cursor is passed, exit cleanly
+  // with E009 — no crash.
+  if (opts.agent !== undefined && opts.agent !== "auto") {
+    const { parseAgentFlag } = await import("../modules/agents/cli.js");
+    const parsed = parseAgentFlag(opts.agent);
+    if (!parsed.ok) {
+      stderr(parsed.message);
+      return { exitCode: 1 };
+    }
+    if (parsed.selector === "cursor") {
+      stderr(MESSAGES.cursorTranscriptNotSupported());
+      return { exitCode: 1 };
+    }
+  }
 
   const projectsDir = resolveProjectsDir(env);
 

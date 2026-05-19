@@ -16,12 +16,20 @@ import { installRules, uninstallRules } from "../modules/rules/install.js";
 import { inspectRules } from "../modules/rules/inspect.js";
 import { computeDiff } from "../modules/rules/diff.js";
 import { isRulesMode, type RulesMode } from "../modules/rules/types.js";
+import { resolveAgentFromOpts } from "../modules/agents/cli.js";
+import { RealFileSystem, type FileSystem } from "../lib/fs.js";
+import { RealClock, type Clock } from "../lib/clock.js";
+import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
+import { renderRulesBlock } from "../modules/rules/blocks.js";
+import { OUTPUT_COMPRESSION_BLOCK_NAME } from "../modules/rules/types.js";
 
 export interface RulesOptions {
   install?: boolean;
   uninstall?: boolean;
   diff?: boolean;
   mode?: string;
+  /** Which agent to target: "claude-code" | "cursor" | "auto" (default). */
+  agent?: string;
 }
 
 export interface RulesDeps {
@@ -30,6 +38,9 @@ export interface RulesDeps {
   stderr?: (s: string) => void;
   readFile?: (absPath: string) => Promise<string | undefined>;
   writeFile?: (absPath: string, content: string) => Promise<void>;
+  fs?: FileSystem;
+  env?: ProcessEnv;
+  clock?: Clock;
 }
 
 export interface RulesResult {
@@ -61,9 +72,37 @@ export async function runRules(
       await nodeFs.writeFile(p, c, "utf-8");
     });
 
-  const claudeMdPath = path.join(cwd, "CLAUDE.md");
-  const claudeMdRel = "CLAUDE.md";
-  const existing = (await readFile(claudeMdPath)) ?? "";
+  const fs = deps.fs ?? new RealFileSystem();
+  const env = deps.env ?? new RealProcessEnv();
+  const clock = deps.clock ?? new RealClock();
+
+  // Resolve which agent the user is targeting. When --agent is omitted, this
+  // auto-detects; the claude-code adapter mirrors the legacy CLAUDE.md path.
+  const resolvedAgent = await resolveAgentFromOpts({
+    agent: opts.agent,
+    fs,
+    env,
+    cwd,
+    stdout,
+    stderr,
+  });
+  if (!resolvedAgent.ok) return { exitCode: 1 };
+  const agent = resolvedAgent.agent;
+
+  // Use the agent's first preferred rules path as the target. For claude-code
+  // this is `<cwd>/CLAUDE.md` (legacy behavior). For cursor we read whatever
+  // exists (or default to .cursor/rules/sipcode.mdc).
+  const agentRead = await agent.readRulesFile({ fs, env, clock }, cwd);
+  const targetPath =
+    agentRead?.path ?? agent.rulesPathCandidates(cwd)[0]!;
+  // Backward-compat: when no agent-read returned content and the file is
+  // CLAUDE.md, try the readFile seam (existing tests rely on this).
+  let existing = agentRead?.content;
+  if (existing === undefined) {
+    existing = (await readFile(targetPath)) ?? "";
+  }
+  const claudeMdPath = targetPath;
+  const claudeMdRel = toRel(cwd, targetPath);
 
   // Validate --mode early.
   let mode: RulesMode = "default";
@@ -79,25 +118,30 @@ export async function runRules(
 
   // --uninstall --
   if (opts.uninstall) {
-    const result = uninstallRules(existing);
-    if (!result.ok) {
-      for (const i of result.error) {
+    const nextContent = await computeUninstall(agent, existing, {
+      fs,
+      env,
+      clock,
+      cwd,
+    });
+    if (!nextContent.ok) {
+      for (const i of nextContent.error) {
         if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe(claudeMdRel));
         else stderr(`[${i.code}] ${i.message}`);
       }
       return { exitCode: 1 };
     }
-    if (result.value === existing) {
+    if (nextContent.value === existing) {
       stdout(MESSAGES.rulesNotInstalled);
       return { exitCode: 0 };
     }
     if (opts.diff) {
-      const d = computeDiff(existing, result.value);
+      const d = computeDiff(existing, nextContent.value);
       stdout(`would uninstall — ${d.summary}`);
       stdout(d.hunk);
       return { exitCode: 0 };
     }
-    await writeFile(claudeMdPath, result.value);
+    await writeFile(claudeMdPath, nextContent.value);
     stdout(MESSAGES.rulesUninstalled(claudeMdRel));
     return { exitCode: 0 };
   }
@@ -107,7 +151,12 @@ export async function runRules(
     opts.install === true || opts.mode !== undefined;
   if (installRequested) {
     const targetMode: RulesMode = mode;
-    const result = installRules(existing, targetMode);
+    const result = await computeInstall(agent, existing, targetMode, {
+      fs,
+      env,
+      clock,
+      cwd,
+    });
     if (!result.ok) {
       for (const i of result.error) {
         if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe(claudeMdRel));
@@ -147,7 +196,12 @@ export async function runRules(
   // --diff alone (without --install / --mode / --uninstall) -> diff against
   // the recommended default install on whatever currently exists.
   if (opts.diff) {
-    const result = installRules(existing, mode);
+    const result = await computeInstall(agent, existing, mode, {
+      fs,
+      env,
+      clock,
+      cwd,
+    });
     if (!result.ok) {
       for (const i of result.error) {
         if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe(claudeMdRel));
@@ -166,11 +220,66 @@ export async function runRules(
   }
 
   // No flags -> inspect.
-  const state = inspectRules(existing);
+  const state = inspectRules(stripCursorFrontmatter(existing));
   if (!state.installed) {
     stdout(MESSAGES.rulesNotInstalled);
     return { exitCode: 0 };
   }
   stdout(MESSAGES.rulesActive(state.mode ?? "unknown"));
   return { exitCode: 0 };
+}
+
+/** Compute the next content with output-compression installed at `mode`. */
+async function computeInstall(
+  agent: import("../modules/agents/types.js").Agent,
+  existing: string,
+  mode: RulesMode,
+  ctx: { fs: FileSystem; env: ProcessEnv; clock: Clock; cwd: string },
+): Promise<import("../lib/result.js").Result<string, import("../lib/errors.js").SipcodeIssue[]>> {
+  if (agent.id === "claude-code") {
+    // Legacy byte-identical path.
+    return installRules(existing, mode);
+  }
+  // Cursor: route through the agent so .mdc frontmatter is preserved.
+  const body = renderRulesBlock(mode).body;
+  let captured = "";
+  const r = await agent.writeRulesBlock(
+    { fs: ctx.fs, env: ctx.env, clock: ctx.clock },
+    ctx.cwd,
+    { name: OUTPUT_COMPRESSION_BLOCK_NAME, mode, body },
+    async (_p, c) => {
+      captured = c;
+    },
+    existing,
+  );
+  if (!r.ok) return r;
+  return { ok: true, value: captured || r.value.content };
+}
+
+async function computeUninstall(
+  agent: import("../modules/agents/types.js").Agent,
+  existing: string,
+  ctx: { fs: FileSystem; env: ProcessEnv; clock: Clock; cwd: string },
+): Promise<import("../lib/result.js").Result<string, import("../lib/errors.js").SipcodeIssue[]>> {
+  if (agent.id === "claude-code") {
+    return uninstallRules(existing);
+  }
+  // Cursor route — but agent.removeRulesBlock reads from fs. We instead use
+  // the pure helper on the stripped body.
+  const { removeCursorBlock, splitFrontmatter } = await import(
+    "../modules/agents/cursor/rules-file.js"
+  );
+  void splitFrontmatter; // re-exported for clarity
+  return removeCursorBlock(existing, OUTPUT_COMPRESSION_BLOCK_NAME, true);
+}
+
+/** Strip a leading --- frontmatter --- block so inspectRules works on .mdc. */
+function stripCursorFrontmatter(content: string): string {
+  const m = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
+  return m ? content.slice(m[0].length) : content;
+}
+
+function toRel(cwd: string, abs: string): string {
+  const rel = path.relative(cwd, abs).replace(/\\/g, "/");
+  return rel.length > 0 ? rel : path.basename(abs);
 }

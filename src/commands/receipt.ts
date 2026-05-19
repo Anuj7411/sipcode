@@ -58,6 +58,8 @@ export interface ReceiptOptions {
   htmlOnly?: boolean;
   noShare?: boolean;
   cwd?: string;
+  /** Which agent to source transcripts from. Default: claude-code. */
+  agent?: string;
 }
 
 export interface ReceiptDeps {
@@ -111,6 +113,21 @@ export async function runReceipt(
   const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
   const writeFile = deps.writeFile ?? realWriteFile;
   const clipboard = deps.clipboard ?? new RealClipboard(env);
+
+  // Resolve agent: receipt sources transcripts from claude-code only in this
+  // milestone. Explicit --agent cursor exits cleanly with E009.
+  if (opts.agent !== undefined && opts.agent !== "auto") {
+    const { parseAgentFlag } = await import("../modules/agents/cli.js");
+    const parsed = parseAgentFlag(opts.agent);
+    if (!parsed.ok) {
+      stderr(parsed.message);
+      return { exitCode: 1 };
+    }
+    if (parsed.selector === "cursor") {
+      stderr(MESSAGES.cursorTranscriptNotSupported());
+      return { exitCode: 1 };
+    }
+  }
 
   // --- 1. discover ---
   const projectsDir = resolveProjectsDir(env);

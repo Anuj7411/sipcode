@@ -20,12 +20,13 @@ import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { RealGit, type Git } from "../lib/git.js";
 import { MESSAGES } from "../lib/messages.js";
 import {
-  injectSection,
-  renderSipcodeBlock,
+  renderManifestSubBlockBody,
 } from "../lib/claudeMd.js";
-import { installRules } from "../modules/rules/install.js";
+import { renderRulesBlock } from "../modules/rules/blocks.js";
 import { isRulesMode, type RulesMode } from "../modules/rules/types.js";
+import { OUTPUT_COMPRESSION_BLOCK_NAME } from "../modules/rules/types.js";
 import { runManifest } from "./manifest.js";
+import { resolveAgentFromOpts } from "../modules/agents/cli.js";
 
 export interface InitOptions {
   /** Tighten on first run (skip the prompt). */
@@ -39,6 +40,8 @@ export interface InitOptions {
    * "skip" means don't install rules. Default: "default".
    */
   rulesMode?: RulesMode | "skip";
+  /** Which agent to target: "claude-code" | "cursor" | "auto" (default). */
+  agent?: string;
 }
 
 export interface InitDeps {
@@ -186,45 +189,88 @@ export async function runInit(
 
   let claudeMdPath: string | undefined;
 
-  // -- CLAUDE.md injection --
+  // -- Rules-file injection (agent-aware) --
   if (injectClaudeMd) {
-    claudeMdPath = path.join(root, "CLAUDE.md");
-    const existing = (await readFile(claudeMdPath)) ?? "";
-    const block = renderSipcodeBlock({
+    const resolved = await resolveAgentFromOpts({
+      agent: opts.agent,
+      fs,
+      env,
+      cwd: root,
+      stdout,
+      stderr,
+    });
+    if (!resolved.ok) return { exitCode: 1 };
+    const agent = resolved.agent;
+
+    // Read existing rules content via the readFile seam first; fall back to
+    // the agent's reader. The legacy claude-code path uses the readFile dep
+    // for CLAUDE.md, so we preserve that behavior here.
+    const candidatePath = agent.rulesPathCandidates(root)[0]!;
+    let existingContent = await readFile(candidatePath);
+    if (existingContent === undefined) {
+      const ar = await agent.readRulesFile({ fs, env, clock }, root);
+      existingContent = ar?.content ?? "";
+    }
+
+    const manifestBody = renderManifestSubBlockBody({
       manifestPath: ".sipcode/manifest.md",
       generatedAt: manifestResult.manifestPath
         ? `manifest @ .sipcode/manifest.md`
         : "now",
     });
-    const injected = injectSection(existing, block);
-    if (!injected.ok) {
-      for (const i of injected.error) {
-        if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe("CLAUDE.md"));
+
+    // Compose both sub-blocks (manifest + optional output-compression) in
+    // one upsert chain so we issue a single writeFile per file.
+    const manifestWrite = await agent.writeRulesBlock(
+      { fs, env, clock },
+      root,
+      { name: "manifest", body: manifestBody },
+      async () => {
+        // no-op; capture via return value
+      },
+      existingContent,
+    );
+    if (!manifestWrite.ok) {
+      for (const i of manifestWrite.error) {
+        if (i.code === "E005")
+          stderr(MESSAGES.claudeMdUnsafe(candidatePath));
         else stderr(`[${i.code}] ${i.message}`);
       }
       return { exitCode: 1 };
     }
-    let nextContent = injected.value;
-    stdout(
-      `injected sipcode block into ${toPosix(path.relative(root, claudeMdPath))}`,
-    );
+    claudeMdPath = manifestWrite.value.path;
+    let nextContent = manifestWrite.value.content;
 
     if (rulesMode !== "skip") {
-      const withRules = installRules(nextContent, rulesMode);
-      if (!withRules.ok) {
-        for (const i of withRules.error) {
-          if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe("CLAUDE.md"));
+      const rulesBody = renderRulesBlock(rulesMode).body;
+      const rulesWrite = await agent.writeRulesBlock(
+        { fs, env, clock },
+        root,
+        {
+          name: OUTPUT_COMPRESSION_BLOCK_NAME,
+          mode: rulesMode,
+          body: rulesBody,
+        },
+        async () => {},
+        nextContent,
+      );
+      if (!rulesWrite.ok) {
+        for (const i of rulesWrite.error) {
+          if (i.code === "E005") stderr(MESSAGES.claudeMdUnsafe(claudeMdPath));
           else stderr(`[${i.code}] ${i.message}`);
         }
         return { exitCode: 1 };
       }
-      nextContent = withRules.value;
-      stdout(
-        `installed output compression rules (${rulesMode} mode).`,
-      );
+      nextContent = rulesWrite.value.content;
     }
 
     await writeFile(claudeMdPath, nextContent);
+    stdout(
+      `injected sipcode block into ${toPosix(path.relative(root, claudeMdPath))}`,
+    );
+    if (rulesMode !== "skip") {
+      stdout(`installed output compression rules (${rulesMode} mode).`);
+    }
   }
 
   stdout("");

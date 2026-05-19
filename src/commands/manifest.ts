@@ -37,6 +37,8 @@ export interface ManifestOptions {
   tighten?: boolean;
   /** Print parse-error explanation for a single file. (Stub.) */
   explain?: string;
+  /** Reserved for forward compatibility with multi-agent (S043+). */
+  agent?: string;
 }
 
 export interface ManifestDeps {

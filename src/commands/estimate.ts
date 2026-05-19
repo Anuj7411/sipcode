@@ -27,6 +27,8 @@ export interface EstimateOptions {
   anchors?: boolean; // commander emits `anchors: false` when --no-anchors used
   model?: string;
   cwd?: string;
+  /** Which agent to source historical anchors from. Default: claude-code. */
+  agent?: string;
 }
 
 export interface EstimateDeps {
@@ -50,6 +52,22 @@ export async function runEstimate(
   const env = deps.env ?? new RealProcessEnv();
   const stdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
   const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+
+  // Estimate's anchor lookup uses claude-code transcripts only in this
+  // milestone. --agent cursor exits cleanly with E009.
+  if (opts.agent !== undefined && opts.agent !== "auto") {
+    const { parseAgentFlag } = await import("../modules/agents/cli.js");
+    const parsed = parseAgentFlag(opts.agent);
+    if (!parsed.ok) {
+      stderr(parsed.message);
+      return { exitCode: 1 };
+    }
+    if (parsed.selector === "cursor") {
+      const { MESSAGES } = await import("../lib/messages.js");
+      stderr(MESSAGES.cursorTranscriptNotSupported());
+      return { exitCode: 1 };
+    }
+  }
 
   const task = (opts.task ?? "").trim();
   if (task.length === 0) {
