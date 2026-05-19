@@ -92,7 +92,7 @@ sipcode receipt --html-only         # skip PNG, faster
 | **`sipcode init`** | Interactive setup (three prompts max) — runs manifest + injects CLAUDE.md | ✅ v0.1.0-alpha |
 | **`sipcode rules`** | Output Compression (S020) — diff edits + no-preamble rules in CLAUDE.md, three modes (default/strict/verbose) | ✅ v0.2.0 |
 | Session Hygiene (S030) | Hook-based read-once cache, context-pressure warnings, smart `/compact` | 🛠️ v0.3.0 |
-| `sipcode estimate "<task>"` | Predicts session cost per model before you run | 🛠️ v0.2.0 |
+| **`sipcode estimate "<task>"`** | Predicts session cost per model (opus / sonnet / haiku) before you run — heuristic + historical anchors, zero LLM calls | ✅ v0.2.0 |
 | Sipcode Score (S060) | GitHub Action that audits any repo for "agent-friendliness" | 🛠️ v0.4.0 |
 | Hardest Tasks Benchmark | Canonical waste-maximizing corpus — the cited cost-waste benchmark | 🛠️ v0.4.0 |
 | Multi-agent (Cursor, Codex, Gemini, Aider) | Same wedge, every agent | 🛠️ v0.2.0 |
@@ -135,14 +135,15 @@ This is not a "we'll add telemetry later" promise. The architecture has no netwo
 
 ## Project status
 
-**v0.2.0-alpha** — four features shipped of twelve planned for v1.0:
+**v0.2.0-alpha** — five features shipped of twelve planned for v1.0:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map
 - ✅ `sipcode receipt` — HTML + 1200×630 PNG with clipboard + tweet intent
 - ✅ `sipcode rules` — Output Compression (S020/S021/S022), three modes
+- ✅ `sipcode estimate "<task>"` — cost predictor across models (S050), zero LLM calls
 
-Active development. **286 tests passing.** Solo dev, MIT, free forever.
+Active development. **400 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
