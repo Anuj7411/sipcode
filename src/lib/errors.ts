@@ -23,7 +23,10 @@ export type SipcodeErrorCode =
   | "E007" // unsupported language family
   // NOTE: AUDIT-FRAMEWORK.md table update for E008 is pending (planning docs
   // are locked for v0.1.0-alpha.3 — table-update tracked separately).
-  | "E008"; // PNG renderer (resvg native binding) unavailable
+  | "E008" // PNG renderer (resvg native binding) unavailable
+  // NOTE: AUDIT-FRAMEWORK.md table update for E009 is pending (S043 milestone;
+  // tracked separately — planning docs locked).
+  | "E009"; // agent capability unsupported (e.g. cursor transcript parsing)
 
 export interface SipcodeIssue {
   readonly code: SipcodeErrorCode;

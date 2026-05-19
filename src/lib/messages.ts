@@ -199,4 +199,52 @@ export const MESSAGES = {
 
   rulesNoClaudeMd: (path: string) =>
     `${path} does not exist yet. --install will create it.`,
+
+  // ---- multi-agent milestone (v0.2.0-alpha.3, S043) ----
+
+  agentDetectedAuto: (id: string) =>
+    `detected agent: ${id} (auto). pass --agent to override.`,
+
+  agentAmbiguous: () =>
+    [
+      `both claude code and cursor look configured here.`,
+      `pass --agent claude-code or --agent cursor to be explicit.`,
+      `defaulting to claude-code.`,
+    ].join("\n"),
+
+  cursorTranscriptNotSupported: () =>
+    [
+      `[E009] cursor transcript parsing isn't supported yet.`,
+      ``,
+      `why: cursor's chat history schema is internal and unstable across versions. sipcode won't guess at it.`,
+      ``,
+      `fix: use claude code for transcript audits, or open an issue with your cursor version so we can prioritize.`,
+      ``,
+      `next: npx sipcode why --agent claude-code`,
+    ].join("\n"),
+
+  cursorRulesInstalled: (rulesPath: string) =>
+    `wrote sipcode rules to ${rulesPath}. cursor will pick them up on next session.`,
+
+  cursorNotDetected: (cwd: string) =>
+    [
+      `cursor doesn't look configured at ${cwd}.`,
+      ``,
+      `why: no .cursor/ directory or .cursorrules file here, and no global ~/.cursor/.`,
+      ``,
+      `fix: run cursor in this directory at least once, or run \`sipcode init --agent claude-code\` instead.`,
+      ``,
+      `next: npx sipcode init --agent claude-code`,
+    ].join("\n"),
+
+  agentUnknown: (id: string) =>
+    [
+      `unknown agent "${id}".`,
+      ``,
+      `why: sipcode supports --agent claude-code and --agent cursor in this release. codex / gemini / aider are planned.`,
+      ``,
+      `fix: pick one of: claude-code, cursor, auto.`,
+      ``,
+      `next: npx sipcode init --agent auto`,
+    ].join("\n"),
 } as const;
