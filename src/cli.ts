@@ -93,6 +93,20 @@ program
   });
 
 program
+  .command("estimate")
+  .description("Predict what a coding task will cost across models before you run it.")
+  .argument("<task>", "the task description, in quotes")
+  .option("--repo <path>", "path to the repo to use as context (defaults to cwd)")
+  .option("--json", "machine-readable output")
+  .option("--no-anchors", "skip historical session lookup (faster, less accurate)")
+  .option("--model <model>", "show only one model's row: opus | sonnet | haiku")
+  .action(async (task, opts) => {
+    const { runEstimate } = await import("./commands/estimate.js");
+    const r = await runEstimate({ ...opts, task });
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("stats")
   .description("Show cumulative token savings across sessions.")
   .action(async () => {
