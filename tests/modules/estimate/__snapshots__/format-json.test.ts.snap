@@ -1,0 +1,88 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatJson > matches snapshot 1`] = `
+"{
+  "schemaVersion": "sipcode-estimate/1",
+  "task": "refactor the auth module",
+  "complexity": {
+    "tier": "high",
+    "verb": "refactor",
+    "expectedTurns": [
+      25,
+      45
+    ],
+    "expectedReads": [
+      12,
+      25
+    ],
+    "mentionedFiles": 1,
+    "scopeBoost": 0,
+    "scopeReduce": 0,
+    "wordCount": 4
+  },
+  "repoContext": {
+    "fileCount": 112,
+    "framework": "cli",
+    "manifestPresent": true,
+    "manifestTokens": 1303,
+    "fallbackNote": ""
+  },
+  "anchors": {
+    "matchedCount": 4,
+    "medianHistoricalTokens": 187000,
+    "confidence": "high",
+    "skipped": false
+  },
+  "predictions": [
+    {
+      "model": "claude-opus-4",
+      "estimatedTokens": 195000,
+      "tokenBand": [
+        137000,
+        274000
+      ],
+      "costCenter": 1.83,
+      "costBand": [
+        1.28,
+        2.56
+      ]
+    },
+    {
+      "model": "claude-sonnet-4",
+      "estimatedTokens": 195000,
+      "tokenBand": [
+        137000,
+        274000
+      ],
+      "costCenter": 0.37,
+      "costBand": [
+        0.26,
+        0.51
+      ]
+    },
+    {
+      "model": "claude-haiku-4",
+      "estimatedTokens": 195000,
+      "tokenBand": [
+        137000,
+        274000
+      ],
+      "costCenter": 0.1,
+      "costBand": [
+        0.07,
+        0.14
+      ]
+    }
+  ],
+  "recommendation": {
+    "model": "claude-sonnet-4",
+    "reason": "sweet spot for high-tier refactor",
+    "costCenter": 0.37
+  },
+  "metaPricing": {
+    "asOf": "2026-05-01",
+    "ageDays": 18
+  },
+  "warnings": []
+}"
+`;
