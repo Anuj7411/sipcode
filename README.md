@@ -135,7 +135,7 @@ This is not a "we'll add telemetry later" promise. The architecture has no netwo
 
 ## Project status
 
-**v0.2.0-alpha** — six features shipped of twelve planned for v1.0:
+**v0.2.0-alpha** — seven features shipped of twelve planned for v1.0:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map
@@ -143,8 +143,9 @@ This is not a "we'll add telemetry later" promise. The architecture has no netwo
 - ✅ `sipcode rules` — Output Compression (S020/S021/S022), three modes
 - ✅ `sipcode estimate "<task>"` — cost predictor across models (S050), zero LLM calls
 - ✅ Multi-agent: Cursor (S043) — `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc`. Rules + manifest cross-agent; transcript parsing for Cursor lands later.
+- ✅ `sipcode stats` — Analytics Dashboard (S040) — cross-session totals, daily-spend sparkline, top-N expensive sessions, per-project breakdown, optional standalone HTML at `.sipcode/stats.html`.
 
-Active development. **464 tests passing.** Solo dev, MIT, free forever.
+Active development. **536 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
