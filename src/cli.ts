@@ -128,6 +128,19 @@ program
     if (r?.exitCode) process.exit(r.exitCode);
   });
 
+program
+  .command("score")
+  .description("Audit how agent-friendly this codebase is (0-100, tiered badge).")
+  .option("--json", "machine-readable output")
+  .option("--no-html", "skip writing .sipcode/score.html")
+  .option("--badge", "also write .sipcode/badge.json (shields.io endpoint)")
+  .option("--threshold <n>", "exit 1 if score below N (for CI gating)")
+  .action(async (opts) => {
+    const { runScoreCmd } = await import("./commands/score.js");
+    const r = await runScoreCmd(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);
   process.exit(1);

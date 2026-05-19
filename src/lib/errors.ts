@@ -29,7 +29,10 @@ export type SipcodeErrorCode =
   | "E009" // agent capability unsupported (e.g. cursor transcript parsing)
   // NOTE: AUDIT-FRAMEWORK.md table update for E010 is pending (S040 milestone;
   // tracked separately — planning docs locked).
-  | "E010"; // invalid stats window / flag input
+  | "E010" // invalid stats window / flag input
+  // NOTE: AUDIT-FRAMEWORK.md table update for E011 is pending (S060 milestone;
+  // tracked separately — planning docs locked).
+  | "E011"; // invalid score flag input / threshold not met
 
 export interface SipcodeIssue {
   readonly code: SipcodeErrorCode;

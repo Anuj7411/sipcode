@@ -63,6 +63,24 @@ export async function scanFiles(
   const out: ScannedFile[] = [];
   const extraSkip = new Set(opts.extraSkipPrefixes ?? []);
 
+  // Wire up the .sipcodeignore file that the docstring already promises.
+  // One path-or-prefix per line; "#" comments; trailing slash treated as a
+  // directory prefix.
+  const ignorePath = path.join(projectRoot, ".sipcodeignore");
+  if (await fs.exists(ignorePath)) {
+    try {
+      const raw = await fs.readFile(ignorePath);
+      for (const ln of raw.split(/\r?\n/)) {
+        const t = ln.trim();
+        if (t.length === 0 || t.startsWith("#")) continue;
+        const norm = t.replace(/\\/g, "/").replace(/\/+$/g, "");
+        if (norm) extraSkip.add(norm);
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
   await walk(fs, projectRoot, "", out, extraSkip);
 
   return out.sort((a, b) => a.path.localeCompare(b.path));

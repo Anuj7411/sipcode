@@ -285,6 +285,35 @@ export const MESSAGES = {
 
   statsHtmlWrote: (path: string) => `wrote ${path}`,
 
+  // ---- score milestone (v0.2.0-alpha.5, S060) ----
+
+  scoreBadThreshold: (raw: string) =>
+    [
+      `[E011] couldn't parse --threshold "${raw}".`,
+      ``,
+      `why: --threshold wants an integer between 0 and 100.`,
+      ``,
+      `fix: try --threshold 70 or --threshold 80.`,
+      ``,
+      `next: npx sipcode score --threshold 70`,
+    ].join("\n"),
+
+  scoreHtmlWrote: (path: string) => `wrote ${path}`,
+
+  scoreBadgeWrote: (path: string) =>
+    `wrote ${path} — add a badge with: ![sipcode score](https://img.shields.io/endpoint?url=<your-host>/badge.json)`,
+
+  scoreBelowThreshold: (score: number, threshold: number) =>
+    [
+      `[E011] score ${score} is below threshold ${threshold}.`,
+      ``,
+      `why: --threshold gates this command — the score didn't clear the bar.`,
+      ``,
+      `fix: read the recommendations above and address the highest-point items first, or lower --threshold for CI.`,
+      ``,
+      `next: npx sipcode score --html  # open the detailed report`,
+    ].join("\n"),
+
   agentUnknown: (id: string) =>
     [
       `unknown agent "${id}".`,

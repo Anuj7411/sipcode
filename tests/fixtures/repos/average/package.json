@@ -1,0 +1,7 @@
+{
+  "name": "average",
+  "version": "0.1.0",
+  "scripts": {
+    "start": "node src/main.js"
+  }
+}
