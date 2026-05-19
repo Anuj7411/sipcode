@@ -237,6 +237,54 @@ export const MESSAGES = {
       `next: npx sipcode init --agent claude-code`,
     ].join("\n"),
 
+  // ---- stats milestone (v0.2.0-alpha.4, S040) ----
+
+  statsBadSince: (raw: string) =>
+    [
+      `[E010] couldn't parse --since "${raw}".`,
+      ``,
+      `why: sipcode accepts a duration like 7d / 30d / 90d, the keyword "all", or a yyyy-mm-dd date.`,
+      ``,
+      `fix: try --since 30d, --since all, or --since 2026-04-01.`,
+      ``,
+      `next: npx sipcode stats --since 30d`,
+    ].join("\n"),
+
+  statsBadTopN: (raw: string) =>
+    [
+      `[E010] couldn't parse --top "${raw}".`,
+      ``,
+      `why: --top wants a positive integer (1-100).`,
+      ``,
+      `fix: try --top 5 or --top 10.`,
+      ``,
+      `next: npx sipcode stats --top 10`,
+    ].join("\n"),
+
+  statsBadGroupBy: (raw: string) =>
+    [
+      `[E010] couldn't parse --group-by "${raw}".`,
+      ``,
+      `why: --group-by supports: none, project.`,
+      ``,
+      `fix: try --group-by project, or drop the flag for the default view.`,
+      ``,
+      `next: npx sipcode stats --group-by project`,
+    ].join("\n"),
+
+  statsNoSessionsInWindow: (raw: string) =>
+    [
+      `no sessions found in the last ${raw}.`,
+      ``,
+      `why: claude code transcripts exist, but none of them fall inside the window you asked for.`,
+      ``,
+      `fix: widen the window with --since all, or drop --here if you scoped to this cwd.`,
+      ``,
+      `next: npx sipcode stats --since all`,
+    ].join("\n"),
+
+  statsHtmlWrote: (path: string) => `wrote ${path}`,
+
   agentUnknown: (id: string) =>
     [
       `unknown agent "${id}".`,

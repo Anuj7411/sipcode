@@ -26,7 +26,10 @@ export type SipcodeErrorCode =
   | "E008" // PNG renderer (resvg native binding) unavailable
   // NOTE: AUDIT-FRAMEWORK.md table update for E009 is pending (S043 milestone;
   // tracked separately — planning docs locked).
-  | "E009"; // agent capability unsupported (e.g. cursor transcript parsing)
+  | "E009" // agent capability unsupported (e.g. cursor transcript parsing)
+  // NOTE: AUDIT-FRAMEWORK.md table update for E010 is pending (S040 milestone;
+  // tracked separately — planning docs locked).
+  | "E010"; // invalid stats window / flag input
 
 export interface SipcodeIssue {
   readonly code: SipcodeErrorCode;
