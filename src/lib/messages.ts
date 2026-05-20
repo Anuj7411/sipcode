@@ -331,7 +331,7 @@ export const MESSAGES = {
     [
       `no benchmark task matches "${id}".`,
       ``,
-      `why: task ids are stable (BT001 through BT010). they never get renamed or renumbered.`,
+      `why: task ids are stable (BT001 through BT020). they never get renamed or renumbered.`,
       ``,
       `fix: list available tasks and pick a real id.`,
       ``,
