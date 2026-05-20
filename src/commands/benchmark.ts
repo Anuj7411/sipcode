@@ -37,8 +37,14 @@ export interface BenchmarkOptions {
   html?: boolean;
   json?: boolean;
   quick?: boolean;
+  hardest?: boolean;
   corpus?: string;
   cwd?: string;
+}
+
+/** BT011-BT020 — the Hardest Tasks subset (waste-maximizing). */
+function isHardestId(id: string): boolean {
+  return /^BT0(1[1-9]|20)$/.test(id);
 }
 
 export interface BenchmarkDeps {
@@ -102,6 +108,8 @@ export async function runBenchmark(
       return { exitCode: 1 };
     }
     tasks = [single];
+  } else if (opts.hardest) {
+    tasks = tasks.filter((t) => isHardestId(t.id));
   } else if (opts.quick) {
     tasks = pickQuickTasks(tasks, 3);
   }
@@ -162,6 +170,10 @@ export async function runBenchmark(
   if (opts.json) {
     stdout(formatJson(rendered));
   } else {
+    if (opts.hardest) {
+      stdout("sipcode benchmark · 10 hardest tasks · canonical waste-maximizing corpus");
+      stdout("");
+    }
     stdout(formatTerminal(rendered));
     if (ageDays > 30) {
       stderr("");
@@ -170,7 +182,8 @@ export async function runBenchmark(
   }
 
   if (opts.html) {
-    const outPath = path.join(cwd, ".sipcode", "benchmark.html");
+    const htmlName = opts.hardest ? "benchmark-hardest.html" : "benchmark.html";
+    const outPath = path.join(cwd, ".sipcode", htmlName);
     await writeFile(outPath, formatHtml(rendered));
     if (!opts.json) {
       stdout("");

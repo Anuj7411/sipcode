@@ -18,7 +18,18 @@ export type TaskCategory =
   | "migration"
   | "onboarding"
   | "optimization"
-  | "bugfix-cross-file";
+  | "bugfix-cross-file"
+  // BT011-BT020 — Hardest Tasks subset categories
+  | "exploration"
+  | "dependency-trace"
+  | "api-discovery"
+  | "test-failure-triage"
+  | "config-archaeology"
+  | "type-inference"
+  | "rename-everything"
+  | "dead-code"
+  | "security-review"
+  | "dependency-update";
 
 /**
  * A benchmark task as discovered on disk. Each is a self-contained directory

@@ -156,11 +156,12 @@ program
 
 program
   .command("benchmark")
-  .description("Reproducible token-savings benchmark over a locked 10-task corpus.")
-  .option("--task <id>", "run a single task (BT001-BT010)")
+  .description("Reproducible token-savings benchmark over a locked 20-task corpus.")
+  .option("--task <id>", "run a single task (BT001-BT020)")
   .option("--list", "list available tasks instead of running")
   .option("--quick", "smoke test: run only the 3 fastest tasks")
-  .option("--html", "also write .sipcode/benchmark.html")
+  .option("--hardest", "scope to the Hardest Tasks subset (BT011-BT020) — the canonical waste-maximizing corpus")
+  .option("--html", "also write .sipcode/benchmark.html (or .sipcode/benchmark-hardest.html with --hardest)")
   .option("--json", "machine-readable output")
   .option("--corpus <dir>", "override the corpus directory (default: <repo>/benchmark/corpus)")
   .action(async (opts) => {

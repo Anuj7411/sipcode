@@ -29,6 +29,17 @@ const VALID_CATEGORIES: ReadonlySet<TaskCategory> = new Set([
   "onboarding",
   "optimization",
   "bugfix-cross-file",
+  // BT011-BT020 — Hardest Tasks subset categories
+  "exploration",
+  "dependency-trace",
+  "api-discovery",
+  "test-failure-triage",
+  "config-archaeology",
+  "type-inference",
+  "rename-everything",
+  "dead-code",
+  "security-review",
+  "dependency-update",
 ]);
 
 /**
