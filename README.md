@@ -3,7 +3,7 @@
 > **Sip your tokens. Don't gulp them.**
 > Token optimization for Claude Code and other AI coding agents.
 
-[![npm version](https://img.shields.io/npm/v/@sipcode/cli.svg)](https://www.npmjs.com/package/@sipcode/cli)
+[![npm version](https://img.shields.io/npm/v/sipcode.svg)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
 
@@ -66,7 +66,7 @@ The PNG ships with brand typography (Inter Tight + JetBrains Mono), a five-color
 
 ```bash
 # Run once, save forever — no signup
-npm install -g @sipcode/cli
+npm install -g sipcode
 sipcode init                        # interactive, three prompts max
 ```
 

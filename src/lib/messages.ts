@@ -60,7 +60,7 @@ export const MESSAGES = {
       ``,
       `why: anthropic's pricing may have changed since this pricing file shipped. cost numbers below are an estimate, not a guarantee.`,
       ``,
-      `fix: update sipcode (npm i -g @sipcode/cli@latest) for the freshest pricing.`,
+      `fix: update sipcode (npm i -g sipcode@latest) for the freshest pricing.`,
       ``,
       `next: npx sipcode why`,
     ].join("\n"),

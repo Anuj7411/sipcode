@@ -1,5 +1,5 @@
 {
-  "name": "@sipcode/cli",
+  "name": "sipcode",
   "version": "1.0.0-rc.1",
   "description": "Sip your tokens. Don't gulp them. — Unified token optimization for AI coding agents.",
   "keywords": [
