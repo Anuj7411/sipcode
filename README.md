@@ -91,7 +91,7 @@ sipcode receipt --html-only         # skip PNG, faster
 | **`sipcode receipt`** | HTML + PNG receipt + system clipboard + tweet intent URL | ✅ v0.1.0-alpha |
 | **`sipcode init`** | Interactive setup (three prompts max) — runs manifest + injects CLAUDE.md | ✅ v0.1.0-alpha |
 | **`sipcode rules`** | Output Compression (S020) — diff edits + no-preamble rules in CLAUDE.md, three modes (default/strict/verbose) | ✅ v0.2.0 |
-| Session Hygiene (S030) | Hook-based read-once cache, context-pressure warnings, smart `/compact` | 🛠️ v0.3.0 |
+| **`sipcode hygiene`** | Session Hygiene (S030/S031/S032) — read-once rule pack in CLAUDE.md + PreToolUse pressure-band hook (50/70/90%) + PostToolUse smart-`/compact` breakpoint hook | ✅ v0.3.0 |
 | **`sipcode estimate "<task>"`** | Predicts session cost per model (opus / sonnet / haiku) before you run — heuristic + historical anchors, zero LLM calls | ✅ v0.2.0 |
 | **`sipcode score`** | Static-analysis audit of any repo for "agent-friendliness" — 24 checks, 5 categories, shields.io badge, GitHub Action included | ✅ v0.2.0 |
 | Hardest Tasks Benchmark | Canonical waste-maximizing corpus — the cited cost-waste benchmark | 🛠️ v0.4.0 |
@@ -152,7 +152,7 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 
 ## Project status
 
-**v0.2.0-alpha** — nine features shipped of twelve planned for v1.0:
+**v0.3.0-alpha** — ten features shipped of twelve planned for v1.0:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map
@@ -163,10 +163,23 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 - ✅ `sipcode stats` — Analytics Dashboard (S040) — cross-session totals, daily-spend sparkline, top-N expensive sessions, per-project breakdown, optional standalone HTML at `.sipcode/stats.html`.
 - ✅ `sipcode score` — Sipcode Score (S060) — 24-check static audit of any repo for agent-friendliness across 5 categories (manifest, shape, naming, docs, predictability), tier badge, shields.io endpoint json, composite GitHub Action.
 - ✅ `sipcode benchmark` — Reproducible Benchmark Suite (S110) — 10-task locked corpus, median 62.1% savings, published methodology, `--quick`/`--task`/`--html`/`--json`/`--list`.
+- ✅ `sipcode hygiene` — Session Hygiene (S030/S031/S032) — read-once rule pack in CLAUDE.md + PreToolUse pressure-band hook (50/70/90%) + PostToolUse breakpoint hook (smart `/compact` suggestions after tests, commits, test-file writes). Honest limit: hooks warn, the model decides — no forced compaction.
 
-Active development. **707 tests passing.** Solo dev, MIT, free forever.
+Active development. **778 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
+
+---
+
+## Session hygiene
+
+`sipcode hygiene --install` does three things:
+
+1. Writes a named sub-block to `CLAUDE.md` with read-once discipline rules (under 400 tokens — load-bearing in every prompt forever).
+2. Generates a `~/.claude/hooks/sipcode-pressure.mjs` and registers it as a **PreToolUse** hook in `~/.claude/settings.json`. Before each tool call, it samples the latest transcript and emits one stderr line if utilization is past 50% / 70% / 90%.
+3. Generates a `~/.claude/hooks/sipcode-breakpoint.mjs` and registers it as a **PostToolUse** hook. After a successful `npm test` / `pytest` / `git commit` / test-file write, it suggests `/compact` on stderr.
+
+Honest limit: hooks emit text on stderr. The model decides whether to act. We cannot force a compaction, intercept Read content, or guarantee any agent behavior. The rules + the warnings together are the discipline. `--uninstall` reverses everything; settings.json is byte-identical to its pre-install state modulo the sipcode entries themselves.
 
 ---
 
