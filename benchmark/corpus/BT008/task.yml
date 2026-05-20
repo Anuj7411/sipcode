@@ -1,0 +1,8 @@
+# BT008 — locked task metadata. Stable ID; do not rename.
+id: BT008
+title: "explain the codebase to a new contributor"
+category: onboarding
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "manifest savings showcase — answer is mostly synthesizable from a manifest."

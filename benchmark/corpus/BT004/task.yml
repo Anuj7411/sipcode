@@ -1,0 +1,8 @@
+# BT004 — locked task metadata. Stable ID; do not rename.
+id: BT004
+title: "write Vitest tests for a pure utility module"
+category: test
+difficulty: small
+model_recommended: claude-sonnet-4
+estimated_cost_band: low
+notes: "small canonical test-writing task; mostly output tokens."

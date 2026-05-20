@@ -1,0 +1,8 @@
+# BT001 — locked task metadata. Stable ID; do not rename.
+id: BT001
+title: "rename a function and update all call sites in 12 files"
+category: refactor
+difficulty: large
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "high duplicate-read potential — agent re-reads files to confirm signatures."

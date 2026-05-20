@@ -1,0 +1,8 @@
+# BT007 — locked task metadata. Stable ID; do not rename.
+id: BT007
+title: "migrate a config schema across 8 files"
+category: migration
+difficulty: large
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "dup-read worst case; agent re-reads schema + loader repeatedly to keep mappings consistent."

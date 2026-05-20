@@ -1,0 +1,8 @@
+# BT010 — locked task metadata. Stable ID; do not rename.
+id: BT010
+title: "fix a bug that requires touching 4 unrelated files"
+category: bugfix-cross-file
+difficulty: large
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "hardest case for read-once-cache — files are unrelated, so manifest doesn't help much."

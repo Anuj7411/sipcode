@@ -1,0 +1,8 @@
+# BT006 — locked task metadata. Stable ID; do not rename.
+id: BT006
+title: "update README and add a CONTRIBUTING.md"
+category: docs
+difficulty: small
+model_recommended: claude-sonnet-4
+estimated_cost_band: low
+notes: "low-savings baseline — docs work has little duplicate-read or output-bloat headroom."

@@ -1,0 +1,8 @@
+# BT002 — locked task metadata. Stable ID; do not rename.
+id: BT002
+title: "fix a null-pointer bug in a 3-file payment pipeline"
+category: debug
+difficulty: small
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "small but realistic debug session — guarded null + re-run targeted test."

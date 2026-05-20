@@ -1,0 +1,8 @@
+# BT009 — locked task metadata. Stable ID; do not rename.
+id: BT009
+title: "add caching to a hot path"
+category: optimization
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "reads-then-edits pattern; agent benchmarks before and after."

@@ -1,0 +1,1 @@
+{ "name": "onboard-target", "version": "0.0.0", "scripts": { "start": "node src/index.js", "test": "vitest" } }

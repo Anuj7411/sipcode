@@ -1,0 +1,8 @@
+# BT003 — locked task metadata. Stable ID; do not rename.
+id: BT003
+title: "add a new REST endpoint to an Express app"
+category: feature
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "typical exploration-heavy feature: scan routes, pick a pattern, write a new one."

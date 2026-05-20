@@ -1,0 +1,8 @@
+# BT005 — locked task metadata. Stable ID; do not rename.
+id: BT005
+title: "code review a 200-line PR diff"
+category: review
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "output-token heavy — verbose review comments dominate."

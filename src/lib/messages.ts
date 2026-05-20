@@ -324,4 +324,50 @@ export const MESSAGES = {
       ``,
       `next: npx sipcode init --agent auto`,
     ].join("\n"),
+
+  // ---- benchmark milestone (v0.2.0-alpha.6 / S110) ----
+
+  benchmarkTaskNotFound: (id: string) =>
+    [
+      `no benchmark task matches "${id}".`,
+      ``,
+      `why: task ids are stable (BT001 through BT010). they never get renamed or renumbered.`,
+      ``,
+      `fix: list available tasks and pick a real id.`,
+      ``,
+      `next: npx sipcode benchmark --list`,
+    ].join("\n"),
+
+  benchmarkEmptyCorpus: (dir: string) =>
+    [
+      `no tasks loaded from ${dir}.`,
+      ``,
+      `why: the corpus directory exists but contains no task subdirectories.`,
+      ``,
+      `fix: re-clone the sipcode repo or run from a sipcode checkout.`,
+      ``,
+      `next: npx sipcode benchmark --list`,
+    ].join("\n"),
+
+  benchmarkTranscriptMissing: (taskId: string) =>
+    [
+      `[E003] ${taskId}: couldn't read transcript pair.`,
+      ``,
+      `why: each task ships baseline-transcript.jsonl and optimized-transcript.jsonl. one or both is missing.`,
+      ``,
+      `fix: verify benchmark/corpus/${taskId}/ has both files.`,
+      ``,
+      `next: ls benchmark/corpus/${taskId}/`,
+    ].join("\n"),
+
+  benchmarkAllFailed: () =>
+    [
+      `every task failed to run.`,
+      ``,
+      `why: the transcripts couldn't be parsed or the corpus is corrupt.`,
+      ``,
+      `fix: re-clone the sipcode repo — the corpus is locked in git.`,
+      ``,
+      `next: git status benchmark/corpus`,
+    ].join("\n"),
 } as const;
