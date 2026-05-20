@@ -33,6 +33,10 @@ export type SipcodeErrorCode =
   // NOTE: AUDIT-FRAMEWORK.md table update for E011 is pending (S060 milestone;
   // tracked separately — planning docs locked).
   | "E011"; // invalid score flag input / threshold not met
+  // E012 reserved for S090 — privacy violation; surfaced via privacy guard
+  // test (tests/privacy/no-network.test.ts), not at runtime. if we ever do
+  // surface it at runtime, add it to the union above and document in
+  // PRIVACY.md.
 
 export interface SipcodeIssue {
   readonly code: SipcodeErrorCode;
