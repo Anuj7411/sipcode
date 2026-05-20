@@ -87,7 +87,7 @@ sipcode receipt --html-only         # skip PNG, faster
 | Feature | What it does | Shipped? |
 |---|---|---|
 | **Privacy guarantee** | Local-first, zero-telemetry, asserted by a test that fails CI if a network module is ever imported in a core path. Full audit: [PRIVACY.md](PRIVACY.md). | ✅ v0.3.0 |
-| **Cost framing** | "How much does this actually save you?" — specific dollar comparisons from the 62.1% median savings number. | ✅ v0.3.0 |
+| **Cost framing** | "How much does this actually save you?" — specific dollar comparisons from the 62.6% median savings number. | ✅ v0.3.0 |
 | **`sipcode why`** | Forensic audit of any past Claude Code session — no install required | ✅ v0.1.0-alpha |
 | **`sipcode manifest`** | Static-analysis project map injected into `CLAUDE.md` — zero LLM calls | ✅ v0.1.0-alpha |
 | **`sipcode receipt`** | HTML + PNG receipt + system clipboard + tweet intent URL | ✅ v0.1.0-alpha |
@@ -96,8 +96,8 @@ sipcode receipt --html-only         # skip PNG, faster
 | **`sipcode hygiene`** | Session Hygiene (S030/S031/S032) — read-once rule pack in CLAUDE.md + PreToolUse pressure-band hook (50/70/90%) + PostToolUse smart-`/compact` breakpoint hook | ✅ v0.3.0 |
 | **`sipcode estimate "<task>"`** | Predicts session cost per model (opus / sonnet / haiku) before you run — heuristic + historical anchors, zero LLM calls | ✅ v0.2.0 |
 | **`sipcode score`** | Static-analysis audit of any repo for "agent-friendliness" — 24 checks, 5 categories, shields.io badge, GitHub Action included | ✅ v0.2.0 |
-| Hardest Tasks Benchmark | Canonical waste-maximizing corpus — the cited cost-waste benchmark | 🛠️ v0.4.0 |
-| **`sipcode benchmark`** | Reproducible benchmark suite (S110) — 10-task locked corpus, median 62.1% savings, published methodology | ✅ v0.2.0 |
+| **Hardest Tasks Benchmark** | Canonical 10-task waste-maximizing subset of the benchmark corpus (BT011-BT020). MIT, version-locked, available via `sipcode benchmark --hardest`. Run by any agent for cross-tool comparison. | ✅ v0.3.0 |
+| **`sipcode benchmark`** | Reproducible benchmark suite (S110/S080) — median 62.6% savings, published methodology · 20-task corpus including the canonical Hardest Tasks subset (BT011-BT020) for industry citation | ✅ v0.3.0 |
 | **Multi-agent (Cursor)** | `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc` — same wedge, now in Cursor. Codex / Gemini / Aider planned. | ✅ v0.2.0 (cursor; rules + manifest only — transcript parsing is claude-code-only for now) |
 
 ---
@@ -106,13 +106,14 @@ sipcode receipt --html-only         # skip PNG, faster
 
 Other tools quote 65–90% savings by only counting output tokens — but output is 20–30% of your bill. Sipcode targets **input** (file reads, idle context, repetition), which is 70–80% of the spend.
 
-**Realistic stack savings (measured, not asserted):** **62.1% median** token reduction across a locked 10-task corpus that covers refactor, debug, feature, test, review, docs, migration, onboarding, optimization, and cross-file bugfix work. Range: 37.4% (pure docs) to 80.6% (codebase onboarding). Reproducible — run it yourself:
+**Realistic stack savings (measured, not asserted):** **62.6% median** token reduction across a locked 20-task corpus. Range: 37.4% (pure docs) to 80.6% (codebase onboarding). The corpus is split into two clusters: 10 representative everyday Claude Code workflows (BT001-BT010) and 10 canonical **Hardest Tasks** (BT011-BT020) — categories specifically chosen to maximize token waste, with a 64.1% median for the subset. Reproducible — run it yourself:
 
 ```bash
-npx sipcode benchmark
+npx sipcode benchmark            # full 20-task corpus
+npx sipcode benchmark --hardest  # the 10-task Hardest Tasks subset (cross-tool citation set)
 ```
 
-Methodology, corpus, and aggregation formula are published in [`benchmark/METHODOLOGY.md`](benchmark/METHODOLOGY.md) — including a section on how to challenge a number. Per-module attribution from the latest run: S001 manifest 31.8% · S021 output compression 37.5% · S030 read-once cache 30.7%.
+Methodology, corpus, and aggregation formula are published in [`benchmark/METHODOLOGY.md`](benchmark/METHODOLOGY.md) — including a section on how to challenge a number, and an invitation for other agents (Cursor, Codex, Aider) to publish their numbers against the same Hardest Tasks corpus. Per-module attribution from the latest run: S001 manifest 30.2% · S021 output compression 34.1% · S030 read-once cache 35.6%.
 
 **Source data for the claims above:**
 - [Claude Code Pricing 2026 — Anthropic](https://code.claude.com/docs/en/costs) — $13/dev/active day enterprise benchmark
@@ -125,7 +126,7 @@ Methodology, corpus, and aggregation formula are published in [`benchmark/METHOD
 
 Anthropic's enterprise benchmark is **$13/dev/active day** on Claude Code. For a 5-person engineering team, that's **~$16,250/year** in token spend.
 
-At Sipcode's measured 62.1% median savings, that team recovers **~$10,090/year** without changing how they work. The $20/month Claude Pro plan (the one Anthropic removed Claude Code from) is now effectively a $5–7/month plan in token economy terms.
+At Sipcode's measured 62.6% median savings (over the full 20-task corpus; 64.1% on the Hardest Tasks subset), that team recovers **~$10,180/year** without changing how they work. The $20/month Claude Pro plan (the one Anthropic removed Claude Code from) is now effectively a $5–7/month plan in token economy terms.
 
 **More specifically:**
 
@@ -133,7 +134,7 @@ At Sipcode's measured 62.1% median savings, that team recovers **~$10,090/year**
 - A 10-person team at the $13/day benchmark saves ~$30,000/year. Sipcode is MIT — that's $30,000/year for the cost of `npm install`.
 - The 0.6% study finding gets concrete here: of every $100 you spend on Claude Code, only 60¢ is actual code output. Sipcode targets the other $99.40.
 
-Run `npx sipcode benchmark` to verify the 62.1% number against the locked corpus. Run `npx sipcode why` against your own session to see what YOUR ratio is — and how much money your specific workflow is leaving on the table.
+Run `npx sipcode benchmark` to verify the 62.6% number against the locked 20-task corpus, or `npx sipcode benchmark --hardest` for the 64.1% number against the canonical Hardest Tasks subset. Run `npx sipcode why` against your own session to see what YOUR ratio is — and how much money your specific workflow is leaving on the table.
 
 ---
 
@@ -180,12 +181,13 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 - ✅ Multi-agent: Cursor (S043) — `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc`. Rules + manifest cross-agent; transcript parsing for Cursor lands later.
 - ✅ `sipcode stats` — Analytics Dashboard (S040) — cross-session totals, daily-spend sparkline, top-N expensive sessions, per-project breakdown, optional standalone HTML at `.sipcode/stats.html`.
 - ✅ `sipcode score` — Sipcode Score (S060) — 24-check static audit of any repo for agent-friendliness across 5 categories (manifest, shape, naming, docs, predictability), tier badge, shields.io endpoint json, composite GitHub Action.
-- ✅ `sipcode benchmark` — Reproducible Benchmark Suite (S110) — 10-task locked corpus, median 62.1% savings, published methodology, `--quick`/`--task`/`--html`/`--json`/`--list`.
+- ✅ `sipcode benchmark` — Reproducible Benchmark Suite (S110) — 20-task locked corpus, median 62.6% savings, published methodology, `--quick`/`--task`/`--html`/`--json`/`--list`/`--hardest`.
+- ✅ Hardest Tasks Benchmark (S080) — canonical 10-task waste-maximizing subset (BT011-BT020): exploration, dependency-trace, api-discovery, test-failure-triage, config-archaeology, type-inference, rename-everything, dead-code, security-review, dependency-update. Median 64.1% savings. Available via `sipcode benchmark --hardest`. MIT, version-locked — the industry-citation set.
 - ✅ `sipcode hygiene` — Session Hygiene (S030/S031/S032) — read-once rule pack in CLAUDE.md + PreToolUse pressure-band hook (50/70/90%) + PostToolUse breakpoint hook (smart `/compact` suggestions after tests, commits, test-file writes). Honest limit: hooks warn, the model decides — no forced compaction.
 - ✅ Privacy guarantee (S090) — local-first, zero-telemetry, asserted by `tests/privacy/no-network.test.ts`. Fails CI if a network module is ever imported in a core path. Full audit: [PRIVACY.md](PRIVACY.md).
-- ✅ Cost framing (S100) — README's "How much does this actually save you?" turns the 62.1% number into a $1k/year solo / $10k/year team / $30k/year ten-person dollar comparison.
+- ✅ Cost framing (S100) — README's "How much does this actually save you?" turns the 62.6% number into a $1k/year solo / $10k/year team / $30k/year ten-person dollar comparison.
 
-Active development. **785 tests passing.** Solo dev, MIT, free forever.
+Active development. **787 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
