@@ -141,6 +141,21 @@ program
     if (r?.exitCode) process.exit(r.exitCode);
   });
 
+program
+  .command("benchmark")
+  .description("Reproducible token-savings benchmark over a locked 10-task corpus.")
+  .option("--task <id>", "run a single task (BT001-BT010)")
+  .option("--list", "list available tasks instead of running")
+  .option("--quick", "smoke test: run only the 3 fastest tasks")
+  .option("--html", "also write .sipcode/benchmark.html")
+  .option("--json", "machine-readable output")
+  .option("--corpus <dir>", "override the corpus directory (default: <repo>/benchmark/corpus)")
+  .action(async (opts) => {
+    const { runBenchmark } = await import("./commands/benchmark.js");
+    const r = await runBenchmark(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);
   process.exit(1);
