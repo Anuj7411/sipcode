@@ -95,6 +95,7 @@ sipcode receipt --html-only         # skip PNG, faster
 | **`sipcode estimate "<task>"`** | Predicts session cost per model (opus / sonnet / haiku) before you run — heuristic + historical anchors, zero LLM calls | ✅ v0.2.0 |
 | **`sipcode score`** | Static-analysis audit of any repo for "agent-friendliness" — 24 checks, 5 categories, shields.io badge, GitHub Action included | ✅ v0.2.0 |
 | Hardest Tasks Benchmark | Canonical waste-maximizing corpus — the cited cost-waste benchmark | 🛠️ v0.4.0 |
+| **`sipcode benchmark`** | Reproducible benchmark suite (S110) — 10-task locked corpus, median 62.1% savings, published methodology | ✅ v0.2.0 |
 | **Multi-agent (Cursor)** | `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc` — same wedge, now in Cursor. Codex / Gemini / Aider planned. | ✅ v0.2.0 (cursor; rules + manifest only — transcript parsing is claude-code-only for now) |
 
 ---
@@ -103,7 +104,13 @@ sipcode receipt --html-only         # skip PNG, faster
 
 Other tools quote 65–90% savings by only counting output tokens — but output is 20–30% of your bill. Sipcode targets **input** (file reads, idle context, repetition), which is 70–80% of the spend.
 
-**Realistic stack savings (measured, not asserted):** 40–50% total token reduction with the full v1.0 toolkit active. The exact number ships as a reproducible benchmark with v1.0 — whatever the suite says is the headline.
+**Realistic stack savings (measured, not asserted):** **62.1% median** token reduction across a locked 10-task corpus that covers refactor, debug, feature, test, review, docs, migration, onboarding, optimization, and cross-file bugfix work. Range: 37.4% (pure docs) to 80.6% (codebase onboarding). Reproducible — run it yourself:
+
+```bash
+npx sipcode benchmark
+```
+
+Methodology, corpus, and aggregation formula are published in [`benchmark/METHODOLOGY.md`](benchmark/METHODOLOGY.md) — including a section on how to challenge a number. Per-module attribution from the latest run: S001 manifest 31.8% · S021 output compression 37.5% · S030 read-once cache 30.7%.
 
 **Source data for the claims above:**
 - [Claude Code Pricing 2026 — Anthropic](https://code.claude.com/docs/en/costs) — $13/dev/active day enterprise benchmark
@@ -145,7 +152,7 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 
 ## Project status
 
-**v0.2.0-alpha** — eight features shipped of twelve planned for v1.0:
+**v0.2.0-alpha** — nine features shipped of twelve planned for v1.0:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map
@@ -155,8 +162,9 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 - ✅ Multi-agent: Cursor (S043) — `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc`. Rules + manifest cross-agent; transcript parsing for Cursor lands later.
 - ✅ `sipcode stats` — Analytics Dashboard (S040) — cross-session totals, daily-spend sparkline, top-N expensive sessions, per-project breakdown, optional standalone HTML at `.sipcode/stats.html`.
 - ✅ `sipcode score` — Sipcode Score (S060) — 24-check static audit of any repo for agent-friendliness across 5 categories (manifest, shape, naming, docs, predictability), tier badge, shields.io endpoint json, composite GitHub Action.
+- ✅ `sipcode benchmark` — Reproducible Benchmark Suite (S110) — 10-task locked corpus, median 62.1% savings, published methodology, `--quick`/`--task`/`--html`/`--json`/`--list`.
 
-Active development. **682 tests passing.** Solo dev, MIT, free forever.
+Active development. **707 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
