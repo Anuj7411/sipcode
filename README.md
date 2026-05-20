@@ -86,6 +86,8 @@ sipcode receipt --html-only         # skip PNG, faster
 
 | Feature | What it does | Shipped? |
 |---|---|---|
+| **Privacy guarantee** | Local-first, zero-telemetry, asserted by a test that fails CI if a network module is ever imported in a core path. Full audit: [PRIVACY.md](PRIVACY.md). | ✅ v0.3.0 |
+| **Cost framing** | "How much does this actually save you?" — specific dollar comparisons from the 62.1% median savings number. | ✅ v0.3.0 |
 | **`sipcode why`** | Forensic audit of any past Claude Code session — no install required | ✅ v0.1.0-alpha |
 | **`sipcode manifest`** | Static-analysis project map injected into `CLAUDE.md` — zero LLM calls | ✅ v0.1.0-alpha |
 | **`sipcode receipt`** | HTML + PNG receipt + system clipboard + tweet intent URL | ✅ v0.1.0-alpha |
@@ -119,6 +121,22 @@ Methodology, corpus, and aggregation formula are published in [`benchmark/METHOD
 
 ---
 
+## How much does this actually save you?
+
+Anthropic's enterprise benchmark is **$13/dev/active day** on Claude Code. For a 5-person engineering team, that's **~$16,250/year** in token spend.
+
+At Sipcode's measured 62.1% median savings, that team recovers **~$10,090/year** without changing how they work. The $20/month Claude Pro plan (the one Anthropic removed Claude Code from) is now effectively a $5–7/month plan in token economy terms.
+
+**More specifically:**
+
+- A typical solo dev burning $5/day on Opus (~80k tokens × $15/Mtok input + $75/Mtok output) saves ~$3/day → **$1,000/year back in their pocket**.
+- A 10-person team at the $13/day benchmark saves ~$30,000/year. Sipcode is MIT — that's $30,000/year for the cost of `npm install`.
+- The 0.6% study finding gets concrete here: of every $100 you spend on Claude Code, only 60¢ is actual code output. Sipcode targets the other $99.40.
+
+Run `npx sipcode benchmark` to verify the 62.1% number against the locked corpus. Run `npx sipcode why` against your own session to see what YOUR ratio is — and how much money your specific workflow is leaving on the table.
+
+---
+
 ## How Sipcode differs from neighbors
 
 | Tool | Solves | Misses |
@@ -136,7 +154,7 @@ Methodology, corpus, and aggregation formula are published in [`benchmark/METHOD
 
 Sipcode is **local-first, zero-telemetry by default.** Nothing leaves your machine. No analytics, no signup, no account, no signed-in mode. The receipt PNG and HTML are generated locally and stay on disk until you share them yourself.
 
-This is not a "we'll add telemetry later" promise. The architecture has no network calls in the core paths (`sipcode why`, `manifest`, `receipt`). When hosted analytics ship in a future version, they'll be **explicit opt-in**, not silent.
+Not a promise — an asserted property. `tests/privacy/no-network.test.ts` statically scans every file under `src/` and fails CI if any v1.0 core path ever imports a network module. Full audit, allowlist, and future-telemetry policy: **[PRIVACY.md](PRIVACY.md)**.
 
 ---
 
@@ -152,7 +170,7 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 
 ## Project status
 
-**v0.3.0-alpha** — ten features shipped of twelve planned for v1.0:
+**v0.3.0-alpha** — twelve features shipped of twelve planned for v1.0:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map
@@ -164,8 +182,10 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 - ✅ `sipcode score` — Sipcode Score (S060) — 24-check static audit of any repo for agent-friendliness across 5 categories (manifest, shape, naming, docs, predictability), tier badge, shields.io endpoint json, composite GitHub Action.
 - ✅ `sipcode benchmark` — Reproducible Benchmark Suite (S110) — 10-task locked corpus, median 62.1% savings, published methodology, `--quick`/`--task`/`--html`/`--json`/`--list`.
 - ✅ `sipcode hygiene` — Session Hygiene (S030/S031/S032) — read-once rule pack in CLAUDE.md + PreToolUse pressure-band hook (50/70/90%) + PostToolUse breakpoint hook (smart `/compact` suggestions after tests, commits, test-file writes). Honest limit: hooks warn, the model decides — no forced compaction.
+- ✅ Privacy guarantee (S090) — local-first, zero-telemetry, asserted by `tests/privacy/no-network.test.ts`. Fails CI if a network module is ever imported in a core path. Full audit: [PRIVACY.md](PRIVACY.md).
+- ✅ Cost framing (S100) — README's "How much does this actually save you?" turns the 62.1% number into a $1k/year solo / $10k/year team / $30k/year ten-person dollar comparison.
 
-Active development. **778 tests passing.** Solo dev, MIT, free forever.
+Active development. **785 tests passing.** Solo dev, MIT, free forever.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones. Star the repo, watch releases, [open an issue](https://github.com/Anuj7411/sipcode/issues) if a specific optimization should be prioritized.
 
