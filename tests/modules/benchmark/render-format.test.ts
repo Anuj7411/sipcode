@@ -38,7 +38,7 @@ describe("renderBenchmark", () => {
   it("produces a stable RenderedBenchmark over the live corpus", () => {
     const suite = liveSuite();
     const rendered = renderBenchmark(suite);
-    expect(rendered.tasks.length).toBe(10);
+    expect(rendered.tasks.length).toBe(20);
     expect(rendered.headline.medianSavingsPct).toBeGreaterThan(0);
     expect(rendered.headline.medianSavingsPct).toBeLessThanOrEqual(100);
   });
@@ -52,7 +52,7 @@ describe("formatters", () => {
     const json = formatJson(rendered);
     const parsed = JSON.parse(json);
     expect(parsed.schemaVersion).toBe("sipcode-benchmark-rendered/1");
-    expect(parsed.taskCount).toBe(10);
+    expect(parsed.taskCount).toBe(20);
     expect(Array.isArray(parsed.tasks)).toBe(true);
   });
 

@@ -27,7 +27,7 @@ describe("parseFlatYaml", () => {
 });
 
 describe("loadCorpus", () => {
-  it("discovers all 10 BT tasks from the locked corpus", () => {
+  it("discovers all 20 BT tasks from the locked corpus", () => {
     const r = loadCorpus(defaultCorpusDir());
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -43,6 +43,16 @@ describe("loadCorpus", () => {
       "BT008",
       "BT009",
       "BT010",
+      "BT011",
+      "BT012",
+      "BT013",
+      "BT014",
+      "BT015",
+      "BT016",
+      "BT017",
+      "BT018",
+      "BT019",
+      "BT020",
     ]);
   });
 

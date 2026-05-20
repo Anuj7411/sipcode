@@ -41,7 +41,11 @@ We also compute **per-module attribution** — how many of the saved tokens came
 
 ## How the corpus was built
 
-10 tasks (BT001 through BT010) covering refactor, debug, feature, test, review, docs, migration, onboarding, optimization, and cross-file bugfix work — the workflow categories that actually drive Claude Code spend in our user research.
+20 tasks (BT001 through BT020) covering the workflow categories that actually drive Claude Code spend in our user research.
+
+The corpus has two clusters by design — see [The Hardest Tasks subset](#the-hardest-tasks-subset) below.
+
+The first 10 (BT001-BT010) cover refactor, debug, feature, test, review, docs, migration, onboarding, optimization, and cross-file bugfix work.
 
 Each task ships:
 
@@ -68,7 +72,35 @@ Median is more honest than mean for this kind of corpus because:
 - Mean is skewed by tasks like BT001 (large refactor, high dup-read win) and BT006 (small docs task, low ceiling).
 - Median tells you the savings you should expect on a *typical* task, not the average lifted by outliers.
 
-The total dollar amount saved is computed by summing baseline costs minus optimized costs across all 10 tasks at current pricing.
+The total dollar amount saved is computed by summing baseline costs minus optimized costs across all 20 tasks at current pricing.
+
+## The Hardest Tasks subset
+
+The corpus has two clusters by design:
+
+- **BT001-BT010** — representative sample of real Claude Code workflows (refactor, debug, feature, test, review, docs, migration, onboarding, optimization, cross-file bugfix). These are what a "typical" session looks like.
+- **BT011-BT020 — the Hardest Tasks** — categories specifically chosen to *maximize* token waste. Exploration in unfamiliar codebases, dependency tracing, API discovery, test-failure triage, config archaeology, type inference, mass renames, dead-code identification, security review, dependency upgrades. These aren't "harder to do correctly" — they're harder to do *cheaply*.
+
+Run the Hardest Tasks subset on its own:
+
+```bash
+npx sipcode benchmark --hardest
+```
+
+The Hardest Tasks subset is also the **industry-citation set**. When Cursor, Codex, Aider, or any other agent publishes a token-economy claim, our ask is: **run the same Hardest Tasks corpus and publish your number alongside ours**. Different agents will get different ratios depending on their built-in optimizations, system prompt size, and tool fan-out behavior. The corpus is MIT-licensed and version-locked; the comparison is fair if everyone runs the same locked transcripts as the baseline and the same optimization framework attribution.
+
+Why these categories were chosen as the canonical waste-maximizing set:
+
+- **exploration** (BT011) — manifest savings ceiling test. An agent without a map fans out across packages.
+- **dependency-trace** (BT012) — duplicate-read trap. The chain is walked by re-reading the same files.
+- **api-discovery** (BT013) — reads-without-writes worst case. The agent reads everything to enumerate exports.
+- **test-failure-triage** (BT014) — partial-information re-reads triggered by verbose test output.
+- **config-archaeology** (BT015) — idle-context accumulator. Large diffs and git history sit in context.
+- **type-inference** (BT016) — high cache-creation overhead. TS types compound across imports.
+- **rename-everything** (BT017) — scale stress test. 18 files exercise the read-once cache.
+- **dead-code** (BT018) — full-tree scan worst case. Honest low-savings task because writes are minimal.
+- **security-review** (BT019) — output-token heavy. Every finding gets an exploitation walkthrough.
+- **dependency-update** (BT020) — read + edit + retest cycle. Several round-trips before all sites converge.
 
 ## How to reproduce
 
@@ -88,7 +120,7 @@ If a published Sipcode savings claim doesn't match what you measure on your own 
 
 ## What we commit to
 
-- **Corpus version stability.** BT001 through BT010 never get renamed or renumbered. New tasks are appended (BT011+) when the corpus refreshes.
+- **Corpus version stability.** BT001 through BT020 never get renamed or renumbered. New tasks are appended (BT021+) when the corpus refreshes.
 - **Pricing transparency.** Every release ships with a dated pricing file. Receipts and benchmarks always cite which one they used.
 - **Honest variance.** Whatever the suite says — 28%, 62%, 51% — is what ships in the README. We don't tune the headline.
 - **Quarterly refresh.** The corpus is reviewed every quarter for relevance. Community PRs that add credible new tasks (with proper baseline + optimized transcript pairs) get merged.

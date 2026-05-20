@@ -15,7 +15,7 @@ function capture() {
 }
 
 describe("sipcode benchmark integration", () => {
-  it("--list prints all 10 task ids and exits 0", async () => {
+  it("--list prints all 20 task ids and exits 0", async () => {
     const c = capture();
     const r = await runBenchmark(
       { list: true },
@@ -27,7 +27,7 @@ describe("sipcode benchmark integration", () => {
     );
     expect(r.exitCode).toBe(0);
     const joined = c.out.join("\n");
-    for (let n = 1; n <= 10; n++) {
+    for (let n = 1; n <= 20; n++) {
       expect(joined).toContain(`BT${String(n).padStart(3, "0")}`);
     }
   });
@@ -44,10 +44,57 @@ describe("sipcode benchmark integration", () => {
     );
     expect(r.exitCode).toBe(0);
     const json = JSON.parse(c.out.join("\n"));
-    expect(json.taskCount).toBe(10);
+    expect(json.taskCount).toBe(20);
     const median = json.headline.medianSavingsPct;
     expect(median).toBeGreaterThan(25);
     expect(median).toBeLessThan(80);
+  });
+
+  it("--hardest scopes to BT011-BT020 only", async () => {
+    const c = capture();
+    const r = await runBenchmark(
+      { hardest: true, json: true },
+      {
+        stdout: c.stdout,
+        stderr: c.stderr,
+        clock: new FakeClock(new Date("2026-05-20T00:00:00Z")),
+      },
+    );
+    expect(r.exitCode).toBe(0);
+    const json = JSON.parse(c.out.join("\n"));
+    expect(json.taskCount).toBe(10);
+    const ids = json.tasks.map((t: { id: string }) => t.id).sort();
+    expect(ids).toEqual([
+      "BT011",
+      "BT012",
+      "BT013",
+      "BT014",
+      "BT015",
+      "BT016",
+      "BT017",
+      "BT018",
+      "BT019",
+      "BT020",
+    ]);
+    const median = json.headline.medianSavingsPct;
+    expect(median).toBeGreaterThan(45);
+    expect(median).toBeLessThan(80);
+  });
+
+  it("--hardest (non-JSON) prints the canonical-waste-maximizing banner", async () => {
+    const c = capture();
+    const r = await runBenchmark(
+      { hardest: true },
+      {
+        stdout: c.stdout,
+        stderr: c.stderr,
+        clock: new FakeClock(new Date("2026-05-20T00:00:00Z")),
+      },
+    );
+    expect(r.exitCode).toBe(0);
+    const joined = c.out.join("\n");
+    expect(joined).toContain("10 hardest tasks");
+    expect(joined).toContain("canonical waste-maximizing corpus");
   });
 
   it("--task BT001 runs a single task and exits 0", async () => {
