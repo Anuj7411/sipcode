@@ -89,7 +89,32 @@ jobs:
       - name: run tests (last safety net before publish)
         run: npm test
 
+      - name: skip if this version is already on npm
+        # Defensive guard. If sipcode@<this-version> already exists on the
+        # registry (e.g. it was manually published before the tag push, OR
+        # the workflow is re-running on the same tag), there's nothing to
+        # do — exit cleanly with a friendly message instead of letting
+        # npm publish fail loudly with a 403 or 404.
+        id: already_published
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          echo "checking npm for sipcode@$PKG_VERSION..."
+          # 'npm view <pkg>@<version> version' prints the version if it
+          # exists and exits empty / non-zero if not. We don't want set -e
+          # to kill the whole step on the not-found case.
+          set +e
+          EXISTING="$(npm view "sipcode@$PKG_VERSION" version 2>/dev/null)"
+          set -e
+          if [ -n "$EXISTING" ]; then
+            echo "sipcode@$PKG_VERSION is already on npm — skipping publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sipcode@$PKG_VERSION not on npm yet — proceeding to publish."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: publish to npm
+        if: steps.already_published.outputs.skip != 'true'
         # With Trusted Publishers configured + permissions.id-token=write +
         # setup-node's registry-url, npm publish auto-uses OIDC and
         # auto-generates provenance attestations. No tokens, no flags.
