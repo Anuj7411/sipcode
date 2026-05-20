@@ -360,6 +360,57 @@ export const MESSAGES = {
       `next: ls benchmark/corpus/${taskId}/`,
     ].join("\n"),
 
+  // ---- session hygiene milestone (v0.3.0, S030/S031/S032) ----
+
+  hygieneInstalled: (claudeMdPath: string, hooksDir: string) =>
+    [
+      `installed session hygiene.`,
+      `  rules block -> ${claudeMdPath}`,
+      `  hook scripts -> ${hooksDir}`,
+      `  registered: PreToolUse (pressure) + PostToolUse (breakpoint).`,
+      ``,
+      `honest limit: sipcode hooks warn — they can't force /compact.`,
+      `the model still decides. that's the design.`,
+    ].join("\n"),
+
+  hygieneAlreadyInstalled: () =>
+    "session hygiene already installed. no changes.",
+
+  hygieneUninstalled: (claudeMdPath: string) =>
+    `removed session hygiene block + hook entries (settings.json restored modulo our entries). ${claudeMdPath} cleaned.`,
+
+  hygieneNotInstalled:
+    "session hygiene not installed. run `npx sipcode hygiene --install` to add it.",
+
+  hygieneStatus: (state: {
+    blockInstalled: boolean;
+    blockMode?: string;
+    pressureHookInstalled: boolean;
+    breakpointHookInstalled: boolean;
+  }) =>
+    [
+      `session hygiene status:`,
+      `  CLAUDE.md block:     ${state.blockInstalled ? `installed (mode = ${state.blockMode ?? "unknown"})` : "not installed"}`,
+      `  pressure hook:       ${state.pressureHookInstalled ? "registered" : "not registered"}`,
+      `  breakpoint hook:     ${state.breakpointHookInstalled ? "registered" : "not registered"}`,
+    ].join("\n"),
+
+  hygieneDiffIdentical: "no changes — hygiene is already in the requested state.",
+
+  hygieneCheckBand: (band: string, util: number, message: string) =>
+    [
+      `dry-run pressure check on your latest claude code transcript:`,
+      `  utilization: ~${Math.round(util * 100)}% of approx context window`,
+      `  band: ${band}`,
+      `  hook would print: ${message}`,
+    ].join("\n"),
+
+  hygieneCheckNoTranscript: (path: string) =>
+    `no claude code transcripts at ${path} — nothing to check yet.`,
+
+  hygieneMcpDeferred:
+    "[planned] S033 mcp-server pruning detector lands in v1.1+. hooks shipped today cover S030/S031/S032.",
+
   benchmarkAllFailed: () =>
     [
       `every task failed to run.`,

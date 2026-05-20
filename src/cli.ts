@@ -142,6 +142,19 @@ program
   });
 
 program
+  .command("hygiene")
+  .description("Install Sipcode Session Hygiene: read-once rules + context-pressure hooks.")
+  .option("--install", "install the hygiene block + register PreToolUse/PostToolUse hooks (idempotent)")
+  .option("--uninstall", "remove the block + hook entries from settings.json")
+  .option("--diff", "show what would change without writing")
+  .option("--check", "dry-run: classify pressure band against the latest transcript")
+  .action(async (opts) => {
+    const { runHygiene } = await import("./commands/hygiene.js");
+    const r = await runHygiene(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("benchmark")
   .description("Reproducible token-savings benchmark over a locked 10-task corpus.")
   .option("--task <id>", "run a single task (BT001-BT010)")
