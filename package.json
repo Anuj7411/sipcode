@@ -31,8 +31,11 @@
   "main": "./dist/index.js",
   "files": [
     "dist",
+    "benchmark/corpus",
+    "benchmark/METHODOLOGY.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "PRIVACY.md"
   ],
   "engines": {
     "node": ">=20"
