@@ -1,2 +1,13 @@
 # synthetic fixture repos used by sipcode's own tests — not real source.
 tests/fixtures/repos
+
+# benchmark corpus — 20 synthetic projects authored as test fixtures for the
+# reproducible-savings benchmark. these are deliberately small and uncommented;
+# scoring them against our own real-code rubric would be a category error.
+benchmark/corpus
+
+# one-shot scaffolding scripts that built the corpus. not production code.
+benchmark/_gen
+
+# generated artifacts — sipcode writes here, no need to score itself.
+.sipcode
