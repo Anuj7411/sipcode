@@ -397,13 +397,22 @@ export const MESSAGES = {
 
   hygieneDiffIdentical: "no changes — hygiene is already in the requested state.",
 
-  hygieneCheckBand: (band: string, util: number, message: string) =>
-    [
+  hygieneCheckBand: (band: string, util: number, message: string) => {
+    // Cap visual display at ">100%" past saturation. Real value stays
+    // in JSON for power users; humans don't need to read "328%".
+    // Fix introduced in v1.0.2 — Finding 2 from v1.0.1 dogfood report.
+    const pct = util * 100;
+    const utilText =
+      pct > 100
+        ? `>100% (raw ${Math.round(pct)}%, exceeded ~200k approximation)`
+        : `~${Math.round(pct)}%`;
+    return [
       `dry-run pressure check on your latest claude code transcript:`,
-      `  utilization: ~${Math.round(util * 100)}% of approx context window`,
+      `  utilization: ${utilText} of approx context window`,
       `  band: ${band}`,
       `  hook would print: ${message}`,
-    ].join("\n"),
+    ].join("\n");
+  },
 
   hygieneCheckNoTranscript: (path: string) =>
     `no claude code transcripts at ${path} — nothing to check yet.`,

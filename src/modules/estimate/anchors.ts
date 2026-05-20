@@ -29,6 +29,16 @@ import type { ComplexityTier, HistoricalAnchors } from "./types.js";
 
 const MAX_SESSIONS_TO_SCAN = 120;
 
+/**
+ * Reject sessions over ~5M tokens as anchors. Multi-day "agent left running"
+ * sessions skew the median wildly upward; they aren't representative of any
+ * single task. 5M is generous (a typical large refactor lands ~500k-2M);
+ * anything above is almost always a long-running ambient session, not a task.
+ *
+ * Fix introduced in v1.0.2 — see "Finding 1" in the v1.0.1 dogfood report.
+ */
+const MAX_ANCHOR_TOKENS = 5_000_000;
+
 export interface AnchorOptions {
   /** Skip entirely (CLI flag --no-anchors). */
   readonly skip?: boolean;
@@ -171,7 +181,11 @@ export async function loadAnchors(
       continue;
     }
     const shape = shapeFor(content);
-    if (tierMatchesShape(tier, shape) && shape.totalTokens > 0) {
+    if (
+      tierMatchesShape(tier, shape) &&
+      shape.totalTokens > 0 &&
+      shape.totalTokens <= MAX_ANCHOR_TOKENS
+    ) {
       matched.push(shape.totalTokens);
     }
   }
