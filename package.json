@@ -1,6 +1,6 @@
 {
   "name": "sipcode",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sip your tokens. Don't gulp them. — Unified token optimization for AI coding agents.",
   "keywords": [
     "claude-code",
@@ -45,7 +45,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
