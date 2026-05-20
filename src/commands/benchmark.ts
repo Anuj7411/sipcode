@@ -7,6 +7,8 @@
  * NO live model calls. The benchmark measures a static analysis over locked
  * transcript fixtures. Reproducibility comes from the locked corpus.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs, readFileSync } from "node:fs";
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";

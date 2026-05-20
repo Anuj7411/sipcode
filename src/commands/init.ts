@@ -11,6 +11,8 @@
  * injects the manifest sub-block into CLAUDE.md, and — if not skipped —
  * also installs the output-compression sub-block.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 import promptsLib from "prompts";

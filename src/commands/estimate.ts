@@ -7,6 +7,8 @@
  *
  * All I/O via seams; zero LLM calls; zero network.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";

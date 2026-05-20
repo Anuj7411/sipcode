@@ -5,6 +5,8 @@
  *
  * Routes through the Agent abstraction so future agents are first-class.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";

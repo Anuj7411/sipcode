@@ -12,6 +12,8 @@
  * pre-filled tweet intent URL. Optionally copies the PNG to the system
  * clipboard.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 

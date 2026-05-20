@@ -10,6 +10,8 @@
  *   --check              dry-run pressure check against latest transcript
  *   (no flags)           inspect: show current state
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import os from "node:os";
 import { promises as nodeFs } from "node:fs";

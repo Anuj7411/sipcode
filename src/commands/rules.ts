@@ -9,6 +9,8 @@
  *   --diff               show what would change without writing
  *   (no flags)           inspect: show currently active rules + mode
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 import { MESSAGES } from "../lib/messages.js";

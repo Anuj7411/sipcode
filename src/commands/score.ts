@@ -5,6 +5,8 @@
  *
  * Thin orchestrator: buildSnapshot → runScore → format → print/write.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 import { readFileSync } from "node:fs";

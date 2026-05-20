@@ -2,6 +2,8 @@
  * `sipcode why` — past-tense session auditor.
  * Thin orchestrator: discover → parse → analyze → render → print.
  */
+import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
