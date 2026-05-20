@@ -1,0 +1,107 @@
+name: release
+
+# Publishes sipcode to npm via OIDC (Trusted Publishers).
+#
+# How it works:
+#   1. You push a git tag matching v*.*.* (e.g. v1.0.0-rc.1, v1.0.0, v1.1.0).
+#   2. This workflow runs on the tagged commit.
+#   3. GitHub mints a short-lived OIDC token and hands it to npm.
+#   4. npm verifies the token matches the trusted publisher configured at
+#      https://www.npmjs.com/package/sipcode/access  (Anuj7411/sipcode + release.yml).
+#   5. npm publish runs with --provenance, which embeds a verifiable
+#      "published from this commit by this workflow" attestation in the tarball.
+#
+# Prerequisites (done once via the npm.org website):
+#   - Package "sipcode" has GitHub Actions configured as a Trusted Publisher with:
+#       Organization or user:  Anuj7411
+#       Repository name:       sipcode
+#       Workflow filename:     release.yml
+#       Environment name:      (leave blank)
+#
+# No npm tokens. No 2FA prompts. No machine state. The provenance badge
+# shows up on npm.org automatically because of --provenance below.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  # Allow manual re-runs from the Actions tab if something needs replaying.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (must already exist, e.g. v1.0.0-rc.1)"
+        required: true
+        type: string
+
+# Required so GitHub can mint the OIDC token that npm exchanges for publish auth.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: npm publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: checkout (tag)
+        uses: actions/checkout@v4
+        with:
+          # On tag pushes, the ref IS the tag — no extra step needed.
+          # On workflow_dispatch, take the user-supplied tag.
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          # npm publish reads this to talk to the public registry.
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: verify tag matches package.json version
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          # Strip leading 'v' from the tag for comparison.
+          TAG="${GITHUB_REF#refs/tags/}"
+          TAG_VERSION="${TAG#v}"
+          # Manual dispatch path also lands here.
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG_VERSION="${{ inputs.tag }}"
+            TAG_VERSION="${TAG_VERSION#v}"
+          fi
+          echo "package.json version: $PKG_VERSION"
+          echo "tag version:          $TAG_VERSION"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match tag ($TAG_VERSION). bump package.json before tagging."
+            exit 1
+          fi
+
+      - name: install dependencies (clean)
+        run: npm ci
+
+      - name: build
+        run: npm run build
+
+      - name: run tests (last safety net before publish)
+        run: npm test
+
+      - name: publish to npm with provenance
+        # --provenance embeds a signed attestation that this exact tarball was
+        # built by this exact workflow at this exact commit. npm.org will show
+        # the "Published with provenance" badge on the package page.
+        # publishConfig.access in package.json already pins us to public.
+        run: npm publish --provenance
+        env:
+          # NODE_AUTH_TOKEN is intentionally NOT set. With permissions.id-token
+          # = write and setup-node's registry-url, npm publish auto-uses the
+          # OIDC flow when the package has a configured Trusted Publisher.
+          NPM_CONFIG_PROVENANCE: "true"
+
+      - name: smoke-test the just-published package
+        run: |
+          # Wait a moment for registry CDN to propagate.
+          sleep 10
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          echo "npm view sipcode@$PKG_VERSION"
+          npm view "sipcode@$PKG_VERSION" version dist.tarball dist.unpackedSize
