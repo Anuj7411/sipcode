@@ -1,0 +1,7 @@
+region: us-west-2
+log_level: debug
+retry_max: 3
+cache_ttl: 60
+queue_depth: 10
+sampling_rate: 1.0
+concurrency: 32

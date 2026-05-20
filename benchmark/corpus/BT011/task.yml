@@ -1,0 +1,8 @@
+# BT011 — locked task metadata. Stable ID; do not rename.
+id: BT011
+title: "find one function in an unfamiliar 100-file monorepo"
+category: exploration
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "manifest savings ceiling test — without a map, the agent fans out across packages."

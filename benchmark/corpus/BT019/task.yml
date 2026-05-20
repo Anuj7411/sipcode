@@ -1,0 +1,8 @@
+# BT019 — locked task metadata. Stable ID; do not rename.
+id: BT019
+title: "audit an auth pipeline for bypass risks"
+category: security-review
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "output-token heavy — every finding gets an exploitation walkthrough."

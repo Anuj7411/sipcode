@@ -1,0 +1,8 @@
+# BT013 — locked task metadata. Stable ID; do not rename.
+id: BT013
+title: "discover the public API of an undocumented library"
+category: api-discovery
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "reads-without-writes worst case; output-heavy if the agent enumerates verbosely."

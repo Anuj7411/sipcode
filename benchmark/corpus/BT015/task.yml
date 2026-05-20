@@ -1,0 +1,8 @@
+# BT015 — locked task metadata. Stable ID; do not rename.
+id: BT015
+title: "reconcile prod vs staging config drift"
+category: config-archaeology
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "idle-context accumulator — large diffs and git logs sit in context."

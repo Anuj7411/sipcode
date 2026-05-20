@@ -1,0 +1,8 @@
+# BT017 — locked task metadata. Stable ID; do not rename.
+id: BT017
+title: "mass-rename Customer to Account across 18 files"
+category: rename-everything
+difficulty: large
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "scale stress test — 18 files, including tests and docs, surface big duplicate-read wins."

@@ -1,0 +1,8 @@
+# BT012 — locked task metadata. Stable ID; do not rename.
+id: BT012
+title: "trace a runtime import-chain crash"
+category: dependency-trace
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "duplicate-read trap — the agent walks the chain by re-reading the same files."

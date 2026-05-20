@@ -1,0 +1,8 @@
+# BT020 — locked task metadata. Stable ID; do not rename.
+id: BT020
+title: "upgrade express 4 → 5, fix 7 breaking-change sites"
+category: dependency-update
+difficulty: large
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "read + edit + retest cycle; tsc output round-trips before all sites converge."

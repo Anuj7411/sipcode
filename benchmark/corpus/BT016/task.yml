@@ -1,0 +1,8 @@
+# BT016 — locked task metadata. Stable ID; do not rename.
+id: BT016
+title: "resolve a TypeScript inference loop across 4 files"
+category: type-inference
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: high
+notes: "high cache-creation overhead because TS types compound across imports."

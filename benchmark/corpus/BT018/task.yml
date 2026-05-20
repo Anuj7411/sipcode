@@ -1,0 +1,8 @@
+# BT018 — locked task metadata. Stable ID; do not rename.
+id: BT018
+title: "identify and remove dead code in a tangled legacy module"
+category: dead-code
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "full-tree scan worst case; honest low-savings task because writes are minimal."

@@ -1,0 +1,7 @@
+region: us-east-1
+log_level: warn
+retry_max: 7
+cache_ttl: 600
+queue_depth: 50
+sampling_rate: 0.01
+concurrency: 32

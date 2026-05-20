@@ -1,0 +1,9 @@
+{
+  "name": "config-archaeology",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo 'fixture — no tests'"
+  }
+}

@@ -1,0 +1,8 @@
+# BT014 — locked task metadata. Stable ID; do not rename.
+id: BT014
+title: "stabilize 6 flaky tests across 3 test files"
+category: test-failure-triage
+difficulty: medium
+model_recommended: claude-opus-4
+estimated_cost_band: medium
+notes: "partial-information re-reads — output of npm test sends the agent back to the same files."

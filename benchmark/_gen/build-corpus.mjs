@@ -635,4 +635,426 @@ function grepStep(pattern, inputTokens, outputTokens, cacheRead = 0) {
   });
 }
 
+// ====================== BT011-BT020 — Hardest Tasks subset ======================
+// These 10 tasks are specifically designed to maximize token waste.
+// Categories chosen because they're the hardest to do *cheaply*, not the
+// hardest to do correctly. Reuses the same recipe shape as BT001-BT010.
+
+// BT011 — exploration: navigate a 100-file monorepo to find one function.
+// Manifest savings ceiling test — baseline does a wide ls/grep sweep + 16
+// reads to triangulate; optimized reads the manifest then 2 surgical reads.
+{
+  const cwd = "/work/projects/monorepo-explore";
+  const baselineFiles = [
+    "packages/core/src/index.ts", "packages/core/src/dispatcher.ts",
+    "packages/core/src/scheduler.ts", "packages/api/src/server.ts",
+    "packages/api/src/routes.ts", "packages/api/src/handlers.ts",
+    "packages/workers/src/queue.ts", "packages/workers/src/runner.ts",
+    "packages/workers/src/registry.ts", "packages/ui/src/main.ts",
+    "packages/ui/src/store.ts", "packages/db/src/client.ts",
+    "packages/db/src/migrations.ts", "packages/shared/src/types.ts",
+    "packages/shared/src/util.ts", "packages/shared/src/log.ts",
+  ];
+  const baseline = [
+    bashStep("ls -R packages/", 2200, 9000, 0),
+    grepStep("scheduleJob", 4500, 1500, 4500),
+    bashStep("find packages -name '*.ts' | head -40", 1500, 5000, 5500),
+  ];
+  // baseline reads 11 of the 16 files (slightly less catastrophic than reading all)
+  for (const f of baselineFiles.slice(0, 11)) baseline.push(readStep(f, 5000, 4000, 7500));
+
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    grepStep("scheduleJob", 1800, 500, 1900),
+    readStep("packages/workers/src/queue.ts", 4500, 0, 3500),
+    readStep("packages/workers/src/runner.ts", 3800, 0, 5000),
+    readStep("packages/core/src/dispatcher.ts", 3200, 0, 6000),
+    readStep("packages/api/src/handlers.ts", 3000, 0, 6800),
+  ];
+  buildPair("BT011", cwd, {
+    prompt: "find where scheduleJob is defined and trace how it gets invoked from the api package.",
+    baseline,
+    optimized,
+    baselineFinalText: "Located scheduleJob in packages/workers/src/queue.ts. It's invoked from packages/api/src/handlers.ts via the dispatcher. Walk-through of the full call chain across 11 files I read to triangulate this...",
+    baselineFinalUsage: usage(2800, 5500, 24000, 0),
+    optimizedFinalText: "scheduleJob defined: packages/workers/src/queue.ts:24. Called from api/handlers via core/dispatcher. Two-hop chain.",
+    optimizedFinalUsage: usage(900, 150, 9500, 0),
+  });
+}
+
+// BT012 — dependency-trace: trace why an import chain causes a crash.
+// Duplicate-read trap — baseline re-reads the same 3 files 3 times each
+// while peeling back the chain. Optimized reads once + uses summaries.
+{
+  const cwd = "/work/projects/import-crash";
+  const baseline = [
+    bashStep("npm start", 1500, 4500, 0),
+    grepStep("Cannot find module", 1500, 800, 4500),
+    readStep("src/app.ts", 4500, 3600, 5500),
+    readStep("src/services/auth.ts", 5000, 4000, 6500),
+    readStep("src/services/db.ts", 4500, 3600, 7500),
+    // re-read app + auth + db twice to walk the chain
+    readStep("src/app.ts", 4500, 0, 8500),
+    readStep("src/services/auth.ts", 5000, 0, 9000),
+    readStep("src/app.ts", 4500, 0, 9500),
+    readStep("src/services/db.ts", 4500, 0, 10000),
+    readStep("src/services/auth.ts", 5000, 0, 10500),
+    readStep("package.json", 2000, 1600, 11000),
+    editStep("src/services/auth.ts", 2500, 4500, 11500),
+    bashStep("npm start", 1500, 3500, 12000),
+  ];
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    bashStep("npm start", 1500, 2000, 1900),
+    readStep("src/app.ts", 4500, 0, 3500),
+    readStep("src/services/auth.ts", 5000, 0, 4500),
+    readStep("src/services/db.ts", 4500, 0, 5500),
+    readStep("package.json", 2000, 0, 6500),
+    editStep("src/services/auth.ts", 1500, 400, 7500),
+    bashStep("npm start", 1500, 1200, 8000),
+  ];
+  buildPair("BT012", cwd, {
+    prompt: "the app crashes on startup with a module-not-found chain. find the broken import and fix it.",
+    baseline,
+    optimized,
+    baselineFinalText: "Found broken import: auth.ts imports db from the wrong path, which silently fails when db re-exports a renamed type. Detailed walkthrough of the chain across all three files and why the error surface is misleading...",
+    baselineFinalUsage: usage(2500, 4800, 24000, 0),
+    optimizedFinalText: "fixed: auth.ts had a stale import path to db. updated. starts clean.",
+    optimizedFinalUsage: usage(600, 70, 8500, 0),
+  });
+}
+
+// BT013 — api-discovery: discover the public API surface of an undocumented library.
+// Reads-without-writes worst case. Pure exploration, zero edits.
+{
+  const cwd = "/work/projects/undocumented-lib";
+  const files = [
+    "src/index.ts", "src/client.ts", "src/types.ts",
+    "src/internal/transport.ts", "src/internal/retry.ts",
+    "src/internal/auth.ts", "src/internal/serialize.ts",
+    "src/errors.ts", "src/constants.ts", "src/util.ts",
+    "tests/client.test.ts", "tests/transport.test.ts",
+  ];
+  const baseline = [bashStep("ls -R src/", 1500, 4000, 0)];
+  for (const f of files) baseline.push(readStep(f, 5500, 4400, 5500));
+  // re-read entry points to remember exported surface
+  baseline.push(readStep("src/index.ts", 5500, 0, 12000));
+  baseline.push(readStep("src/client.ts", 5500, 0, 12500));
+  baseline.push(readStep("src/types.ts", 5500, 0, 13000));
+
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    readStep("src/index.ts", 5500, 0, 3500),
+    readStep("src/client.ts", 5500, 0, 4500),
+    readStep("src/types.ts", 5500, 0, 5500),
+    readStep("src/errors.ts", 3500, 0, 6500),
+    readStep("src/internal/transport.ts", 3500, 0, 7000),
+    readStep("src/constants.ts", 2500, 0, 7500),
+  ];
+  buildPair("BT013", cwd, {
+    prompt: "this library has no docs. document its public API: exported types, client methods, error classes, configuration options.",
+    baseline,
+    optimized,
+    baselineFinalText: "Public API surface mapped. Detailed enumeration of every export, every method signature, every error class, with prose explanations for each...\n\n## Client class\n- constructor(opts)...\n- get/post/put/delete...\n- ...long form...".repeat(8),
+    baselineFinalUsage: usage(3500, 14000, 35000, 0),
+    optimizedFinalText: "## Public API\n\n- `Client(opts)`, `.request(method, path, body?)`, `.close()`\n- Types: `RequestOpts`, `Response`, `RetryPolicy`\n- Errors: `TransportError`, `AuthError`, `SerializeError`\n- Config: timeout, retries, auth.token",
+    optimizedFinalUsage: usage(900, 220, 10000, 0),
+  });
+}
+
+// BT014 — test-failure-triage: 6 flaky tests across 3 test files.
+// Partial-information re-read pattern.
+{
+  const cwd = "/work/projects/flaky-tests";
+  const baseline = [
+    bashStep("npm test", 1500, 14000, 0),
+    readStep("tests/auth.test.ts", 5500, 4400, 4500),
+    readStep("tests/payment.test.ts", 6000, 4800, 5500),
+    readStep("tests/inventory.test.ts", 5500, 4400, 6500),
+    readStep("src/auth.ts", 4500, 3600, 7500),
+    readStep("src/payment.ts", 5000, 4000, 8500),
+    readStep("src/inventory.ts", 4500, 3600, 9500),
+    // re-read tests after looking at source
+    readStep("tests/auth.test.ts", 5500, 0, 10500),
+    readStep("tests/payment.test.ts", 6000, 0, 11000),
+    bashStep("npm test -- --reporter=verbose", 1500, 11000, 11500),
+    readStep("tests/inventory.test.ts", 5500, 0, 12000),
+    editStep("tests/auth.test.ts", 2500, 3500, 12500),
+    editStep("tests/payment.test.ts", 2500, 3500, 13000),
+    editStep("tests/inventory.test.ts", 2500, 3500, 13500),
+    bashStep("npm test", 1500, 6000, 14000),
+  ];
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    bashStep("npm test", 1500, 6000, 1900),
+    readStep("tests/auth.test.ts", 5500, 0, 4500),
+    readStep("tests/payment.test.ts", 6000, 0, 5500),
+    readStep("tests/inventory.test.ts", 5500, 0, 6500),
+    readStep("src/auth.ts", 4500, 0, 7500),
+    editStep("tests/auth.test.ts", 1500, 400, 8500),
+    editStep("tests/payment.test.ts", 1500, 400, 9000),
+    editStep("tests/inventory.test.ts", 1500, 400, 9500),
+    bashStep("npm test", 1500, 2200, 10000),
+  ];
+  buildPair("BT014", cwd, {
+    prompt: "6 tests are flaky across 3 files. diagnose root cause and stabilize them.",
+    baseline,
+    optimized,
+    baselineFinalText: "Stabilized 6 flaky tests. Root causes: 2 timing races in auth, 2 unmocked clock calls in payment, 2 shared-state leaks in inventory. Detailed walkthrough of each fix...",
+    baselineFinalUsage: usage(2800, 6000, 28000, 0),
+    optimizedFinalText: "fixed 6 flakes: 2 timing races, 2 clock mocks, 2 state leaks. tests green.",
+    optimizedFinalUsage: usage(700, 90, 9000, 0),
+  });
+}
+
+// BT015 — config-archaeology: prod config differs from staging.
+// Idle-context accumulator — baseline holds large diffs in context.
+{
+  const cwd = "/work/projects/config-archaeology";
+  const baseline = [
+    bashStep("diff config/prod.yml config/staging.yml", 2000, 14000, 0),
+    readStep("config/prod.yml", 5000, 4000, 5500),
+    readStep("config/staging.yml", 5000, 4000, 6500),
+    readStep("config/defaults.yml", 3500, 2800, 7500),
+    readStep("config/schema.ts", 4500, 3600, 8500),
+    grepStep("CONFIG_OVERRIDE", 2000, 1500, 9500),
+    bashStep("git log -- config/", 1500, 9000, 10500),
+    // re-read prod after looking at history
+    readStep("config/prod.yml", 5000, 0, 11500),
+    readStep("config/schema.ts", 4500, 0, 12000),
+    bashStep("git log -- config/prod.yml", 1500, 8000, 12500),
+  ];
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    bashStep("diff config/prod.yml config/staging.yml", 2000, 5500, 1900),
+    readStep("config/prod.yml", 5000, 0, 3500),
+    readStep("config/staging.yml", 5000, 0, 4500),
+    readStep("config/schema.ts", 4500, 0, 5500),
+    bashStep("git log --oneline -- config/", 1500, 2200, 6500),
+  ];
+  buildPair("BT015", cwd, {
+    prompt: "prod config drifts from staging in subtle ways. enumerate every difference, explain which are intentional vs accidental, recommend reconciliation.",
+    baseline,
+    optimized,
+    baselineFinalText: "Found 14 differences between prod and staging. Of those, 9 are intentional (region-specific endpoints, scale-out concurrency), 5 are accidental drift. Detailed reconciliation plan per key, with git-blame attribution for each accidental drift...",
+    baselineFinalUsage: usage(2400, 5500, 24000, 0),
+    optimizedFinalText: "14 differences: 9 intentional, 5 drift. Drift keys: log_level, retry_max, cache_ttl, queue_depth, sampling_rate. Recommend syncing the 5 to staging values.",
+    optimizedFinalUsage: usage(700, 200, 8500, 0),
+  });
+}
+
+// BT016 — type-inference: resolve a TS inference error across 4 files.
+// High cache-creation overhead because TS types compound.
+{
+  const cwd = "/work/projects/ts-inference";
+  const baseline = [
+    bashStep("tsc --noEmit", 1500, 8500, 0),
+    readStep("src/types.ts", 4500, 3600, 4500),
+    readStep("src/api/handler.ts", 5500, 4400, 5500),
+    readStep("src/lib/wrap.ts", 4500, 3600, 6500),
+    readStep("src/lib/result.ts", 4000, 3200, 7500),
+    // re-read types twice — TS inference is hard to hold in context
+    readStep("src/types.ts", 4500, 0, 8500),
+    readStep("src/lib/result.ts", 4000, 0, 9000),
+    readStep("src/types.ts", 4500, 0, 9500),
+    editStep("src/types.ts", 2500, 3500, 10000),
+    bashStep("tsc --noEmit", 1500, 6500, 10500),
+    editStep("src/lib/wrap.ts", 2500, 3000, 11000),
+    bashStep("tsc --noEmit", 1500, 2000, 11500),
+  ];
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    bashStep("tsc --noEmit", 1500, 3500, 1900),
+    readStep("src/types.ts", 4500, 0, 3500),
+    readStep("src/lib/result.ts", 4000, 0, 4500),
+    readStep("src/lib/wrap.ts", 4500, 0, 5500),
+    editStep("src/types.ts", 1500, 450, 6500),
+    editStep("src/lib/wrap.ts", 1500, 400, 7000),
+    bashStep("tsc --noEmit", 1500, 1200, 7500),
+  ];
+  buildPair("BT016", cwd, {
+    prompt: "tsc complains about an inference loop between Result<T,E> and wrap(). fix the type signature so inference flows through both.",
+    baseline,
+    optimized,
+    baselineFinalText: "Fixed by introducing a phantom-type witness on Result so wrap can narrow correctly. Detailed walkthrough of why the original generic constraint caused a loop and why the new shape breaks the cycle...",
+    baselineFinalUsage: usage(2600, 5500, 26000, 0),
+    optimizedFinalText: "added phantom-type witness on Result; wrap now infers cleanly. tsc passes.",
+    optimizedFinalUsage: usage(700, 100, 9000, 0),
+  });
+}
+
+// BT017 — rename-everything: mass rename a concept used in 18 files + tests + docs.
+// Scale stress test — extends BT001 to twice the surface area.
+{
+  const cwd = "/work/projects/mass-rename";
+  const files = [
+    "src/core/Customer.ts", "src/core/CustomerRepo.ts", "src/core/CustomerService.ts",
+    "src/api/customer-routes.ts", "src/api/customer-handler.ts",
+    "src/db/customer-table.ts", "src/db/customer-queries.ts",
+    "src/jobs/customer-sync.ts", "src/jobs/customer-billing.ts",
+    "src/util/customer-format.ts", "src/util/customer-validate.ts",
+    "src/types/customer.ts", "tests/customer.test.ts",
+    "tests/customer-repo.test.ts", "tests/customer-service.test.ts",
+    "docs/customer.md", "docs/customer-api.md", "README.md",
+  ];
+  const baseline = [grepStep("Customer", 8000, 3000, 0)];
+  for (const f of files) baseline.push(readStep(f, 5000, 4000, 7500));
+  // re-read 6 files after fanning out — agent forgets earlier files
+  for (const f of files.slice(0, 6)) baseline.push(readStep(f, 5000, 0, 14000));
+  for (const f of files) baseline.push(editStep(f, 2800, 5500, 16000));
+
+  const optimized = [readStep(".sipcode/manifest.md", 1800, 1900, 0)];
+  optimized.push(grepStep("Customer", 1800, 500, 1900));
+  for (const f of files) optimized.push(readStep(f, 5000, 0, 4500));
+  for (const f of files) optimized.push(editStep(f, 1500, 500, 6500));
+
+  buildPair("BT017", cwd, {
+    prompt: "rename Customer → Account everywhere: source, tests, docs. 18 files. preserve external API names.",
+    baseline,
+    optimized,
+    baselineFinalText: "Renamed Customer → Account across 18 files. Full per-file changelog with reasoning for each substitution decision, including the 3 places where the external API name was preserved...",
+    baselineFinalUsage: usage(3500, 9000, 40000, 0),
+    optimizedFinalText: "renamed Customer → Account in 18 files. external API names preserved.",
+    optimizedFinalUsage: usage(800, 90, 12000, 0),
+  });
+}
+
+// BT018 — dead-code: identify and remove dead code in a tangled module.
+// Full-tree scan worst case. Low-savings honest task — minimal writes.
+{
+  const cwd = "/work/projects/dead-code-hunt";
+  const tangledFiles = [
+    "src/legacy/parser.ts", "src/legacy/printer.ts", "src/legacy/walker.ts",
+    "src/legacy/helpers.ts", "src/legacy/types.ts", "src/legacy/util.ts",
+    "src/legacy/old-cache.ts", "src/legacy/old-store.ts",
+    "src/current/api.ts", "src/current/main.ts",
+  ];
+  const baseline = [bashStep("ls src/legacy/", 800, 500, 0)];
+  for (const f of tangledFiles) baseline.push(readStep(f, 5000, 4000, 4500));
+  baseline.push(grepStep("import .* from.*legacy", 3000, 2500, 11000));
+  // re-read parser + helpers — needs to chase usages
+  baseline.push(readStep("src/legacy/parser.ts", 5000, 0, 12000));
+  baseline.push(readStep("src/legacy/helpers.ts", 5000, 0, 12500));
+  baseline.push(readStep("src/current/api.ts", 5000, 0, 13000));
+  // small number of edits — mostly deletions
+  baseline.push(editStep("src/legacy/old-cache.ts", 2000, 1500, 13500));
+  baseline.push(editStep("src/legacy/old-store.ts", 2000, 1500, 14000));
+  baseline.push(editStep("src/legacy/walker.ts", 2500, 2500, 14500));
+  baseline.push(bashStep("npm test", 1500, 5000, 15000));
+
+  const optimized = [readStep(".sipcode/manifest.md", 1800, 1900, 0)];
+  for (const f of tangledFiles) optimized.push(readStep(f, 5000, 0, 4500));
+  optimized.push(grepStep("import .* from.*legacy", 1500, 800, 8500));
+  optimized.push(editStep("src/legacy/old-cache.ts", 1500, 500, 9500));
+  optimized.push(editStep("src/legacy/old-store.ts", 1500, 500, 10000));
+  optimized.push(editStep("src/legacy/walker.ts", 1800, 800, 10500));
+  optimized.push(bashStep("npm test", 1500, 2500, 11000));
+
+  buildPair("BT018", cwd, {
+    prompt: "identify all dead code in src/legacy/ and remove it. preserve anything imported from src/current/.",
+    baseline,
+    optimized,
+    baselineFinalText: "Removed 3 dead files and partial-dead code in walker.ts. Detailed accounting of every export checked, every import traced, and why each removal is safe...",
+    baselineFinalUsage: usage(2400, 4500, 24000, 0),
+    optimizedFinalText: "removed old-cache.ts, old-store.ts, dead branches in walker.ts. tests pass.",
+    optimizedFinalUsage: usage(700, 110, 9500, 0),
+  });
+}
+
+// BT019 — security-review: identify auth bypass risk across a request pipeline.
+// Output-token heavy — every finding gets explained.
+{
+  const cwd = "/work/projects/auth-pipeline";
+  const baseline = [
+    grepStep("authenticate\\|authorize\\|jwt", 4000, 3500, 0),
+    readStep("src/auth/middleware.ts", 5500, 4400, 5000),
+    readStep("src/auth/jwt.ts", 5000, 4000, 6000),
+    readStep("src/auth/session.ts", 4500, 3600, 7000),
+    readStep("src/api/router.ts", 5500, 4400, 8000),
+    readStep("src/api/handlers.ts", 6000, 4800, 9000),
+    readStep("src/api/admin.ts", 4500, 3600, 10000),
+    // re-read middleware to trace bypass path
+    readStep("src/auth/middleware.ts", 5500, 0, 11000),
+  ];
+  // verbose findings doc
+  baseline.push({
+    tool: "Write",
+    input: { file_path: "security-review.md", content: "<verbose>" },
+    input_tokens: 4500,
+    output_tokens: 28000,
+    cache_read_input_tokens: 11500,
+    cache_creation_input_tokens: 0,
+    tool_result_text: "wrote.",
+  });
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    grepStep("authenticate\\|authorize\\|jwt", 1500, 800, 1900),
+    readStep("src/auth/middleware.ts", 5500, 0, 3500),
+    readStep("src/auth/jwt.ts", 5000, 0, 4500),
+    readStep("src/api/router.ts", 5500, 0, 5500),
+    readStep("src/api/admin.ts", 4500, 0, 6500),
+    {
+      tool: "Write",
+      input: { file_path: "security-review.md", content: "<diff>" },
+      input_tokens: 2200,
+      output_tokens: 7000,
+      cache_read_input_tokens: 7500,
+      cache_creation_input_tokens: 0,
+      tool_result_text: "wrote.",
+    },
+  ];
+  buildPair("BT019", cwd, {
+    prompt: "audit the auth pipeline for bypass risks. identify every code path where a request could reach a privileged handler without a valid token.",
+    baseline,
+    optimized,
+    baselineFinalText: "Identified 4 bypass risks. Detailed exploitation walk-through for each, ranked by CVSS, with recommended fixes...\n\nFinding 1: ... Finding 2: ... ".repeat(15),
+    baselineFinalUsage: usage(3500, 10000, 28000, 0),
+    optimizedFinalText: "4 findings written to security-review.md: 1 high (admin route mounts before auth mw), 2 medium (jwt clock-skew + missing aud check), 1 low (verbose error leaks).",
+    optimizedFinalUsage: usage(800, 220, 9500, 0),
+  });
+}
+
+// BT020 — dependency-update: upgrade a major dependency that breaks 7 places.
+// Read + edit + retest cycle.
+{
+  const cwd = "/work/projects/dep-upgrade";
+  const broken = [
+    "src/server/index.ts", "src/server/middleware.ts", "src/server/error.ts",
+    "src/util/http.ts", "src/util/log.ts", "tests/server.test.ts",
+    "tests/http.test.ts",
+  ];
+  const baseline = [
+    bashStep("npm install express@5", 1500, 7000, 0),
+    bashStep("tsc --noEmit", 1500, 12000, 4500),
+    grepStep("express", 3500, 2500, 5500),
+  ];
+  for (const f of broken) baseline.push(readStep(f, 5000, 4000, 7500));
+  // re-read after first round of edits to verify
+  baseline.push(readStep("src/server/index.ts", 5000, 0, 13500));
+  baseline.push(readStep("src/server/middleware.ts", 5000, 0, 14000));
+  baseline.push(bashStep("tsc --noEmit", 1500, 6500, 14500));
+  for (const f of broken) baseline.push(editStep(f, 2500, 3500, 15000));
+  baseline.push(bashStep("npm test", 1500, 8500, 16000));
+
+  const optimized = [
+    readStep(".sipcode/manifest.md", 1800, 1900, 0),
+    bashStep("npm install express@5", 1500, 3500, 1900),
+    bashStep("tsc --noEmit", 1500, 5000, 3500),
+    grepStep("express", 1500, 600, 4500),
+  ];
+  for (const f of broken) optimized.push(readStep(f, 5000, 0, 5500));
+  for (const f of broken) optimized.push(editStep(f, 1500, 400, 7500));
+  optimized.push(bashStep("npm test", 1500, 2800, 9000));
+
+  buildPair("BT020", cwd, {
+    prompt: "upgrade express from v4 to v5. fix all 7 breaking-change sites. tests must stay green.",
+    baseline,
+    optimized,
+    baselineFinalText: "Upgraded express 4 → 5. Fixed 7 breaking changes: async error handler signature, removed req.param, removed res.json default callback, query parser change, removed body-parser bundling, removed bound res.send chaining, sub-app mounting change. Detailed per-site walk-through...",
+    baselineFinalUsage: usage(2800, 7000, 28000, 0),
+    optimizedFinalText: "upgraded express to v5. 7 breaking-change sites fixed (async handlers, req.param, res.json cb, query parser, body-parser, res.send chain, sub-app mount). tests green.",
+    optimizedFinalUsage: usage(800, 220, 10500, 0),
+  });
+}
+
 console.log("corpus built at", CORPUS);
