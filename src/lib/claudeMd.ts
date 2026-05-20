@@ -320,5 +320,7 @@ function subBlockLooksOurs(s: SubBlock): boolean {
   if (s.name === "manifest") return s.body.includes("## Sipcode");
   if (s.name === "output-compression")
     return s.body.includes("Sipcode Output Compression");
+  if (s.name === "session-hygiene")
+    return s.body.includes("Sipcode Session Hygiene");
   return true;
 }
