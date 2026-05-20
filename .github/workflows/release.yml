@@ -55,12 +55,21 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          # npm Trusted Publishers requires npm >=11.5.1 (per npm docs).
-          # Node 22.14+ ships with npm 11+. Node 20's bundled npm is 10.x
-          # which silently falls back to non-OIDC auth and fails.
+          # Setup-node's "22" channel ships npm 10.x at the time of this
+          # workflow, which silently skips OIDC. We explicitly upgrade npm
+          # to >= 11.5.1 below.
           node-version: "22"
-          # npm publish reads this to talk to the public registry.
+          # npm publish reads this to know where to talk to.
           registry-url: "https://registry.npmjs.org/"
+
+      - name: upgrade npm to OIDC-capable version (>=11.5.1)
+        # npm Trusted Publishers (OIDC) requires npm >= 11.5.1 per npm docs.
+        # Without this step, npm 10.x runs and silently bypasses OIDC; the
+        # publish then 404s because no token is present either.
+        # v1.0.2 tag burned discovering this — see v1.0.3 fix.
+        run: |
+          npm install -g npm@latest
+          echo "npm version: $(npm --version)"
 
       - name: verify tag matches package.json version
         run: |
@@ -116,10 +125,8 @@ jobs:
       - name: publish to npm
         if: steps.already_published.outputs.skip != 'true'
         # With Trusted Publishers configured + permissions.id-token=write +
-        # setup-node's registry-url, npm publish auto-uses OIDC and
-        # auto-generates provenance attestations. No tokens, no flags.
-        # (Per npm docs: --provenance is implicit once OIDC trusted
-        # publishing is in effect.)
+        # setup-node's registry-url + npm >= 11.5.1, npm publish auto-uses
+        # OIDC and auto-generates provenance attestations.
         run: npm publish
 
       - name: smoke-test the just-published package
