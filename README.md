@@ -171,7 +171,7 @@ run `sipcode score --badge` to emit a shields.io-compatible `badge.json` at `.si
 
 ## Project status
 
-**v0.3.0-alpha** — twelve features shipped of twelve planned for v1.0:
+**v1.0.0** — all twelve features in the v1.0 scope shipped:
 
 - ✅ `sipcode why` — install-free Claude Code session auditor
 - ✅ `sipcode manifest` — static-analysis project map

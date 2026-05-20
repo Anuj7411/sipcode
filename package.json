@@ -1,6 +1,6 @@
 {
   "name": "sipcode",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0",
   "description": "Sip your tokens. Don't gulp them. — Unified token optimization for AI coding agents.",
   "keywords": [
     "claude-code",
@@ -26,9 +26,9 @@
   },
   "type": "module",
   "bin": {
-    "sipcode": "./dist/cli.js"
+    "sipcode": "dist/cli.js"
   },
-  "main": "./dist/index.js",
+  "main": "dist/index.js",
   "files": [
     "dist",
     "benchmark/corpus",
