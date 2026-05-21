@@ -147,6 +147,14 @@ export function formatTerminal(report: ImpactReport): string {
     return parts.filter((p) => p.length > 0).join("\n");
   }
 
+  // status === "measured" implies delta is non-null per the runImpact
+  // contract — see types.ts. Assert here so TypeScript narrows correctly.
+  if (report.delta === null) {
+    // Defensive: status was "measured" but delta is null — runImpact bug.
+    parts.push(renderHeadline(report));
+    parts.push(renderNotes(report));
+    return parts.filter((p) => p.length > 0).join("\n");
+  }
   parts.push(renderBucketTable(report.before, report.after, report.delta));
   parts.push(renderHeadline(report));
   parts.push(renderNotes(report));

@@ -114,19 +114,107 @@ describe("runImpact", () => {
     expect(report.delta.tokenDeltaPct).toBe(-75);
   });
 
-  it("emits a meaningful headline in the measured case (tokens leading, $ secondary)", () => {
+  it("emits a meaningful headline in the measured case (output ratio leading, $ secondary)", () => {
+    // Two before-window sessions, two after-window sessions — symmetric enough
+    // to satisfy the window-asymmetry check (post-window is May 1 → May 22 =
+    // 21 days; before-window starts April 1 → May 1 = 30 days; 21/30 > 0.25).
     const report = runImpact({
       sessions: [
         mkSession({ startedAt: "2026-04-01T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-04-15T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-05-10T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
         mkSession({ startedAt: "2026-05-15T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
       ],
       installedAtIso: "2026-05-01T00:00:00.000Z",
       markerSource: "--since flag",
       nowIso: "2026-05-22T00:00:00.000Z",
     });
-    expect(report.headline).toMatch(/saved 75\.0K tokens/);
-    expect(report.headline).toMatch(/75\.0%/);
-    expect(report.headline).toMatch(/about \$0\.75/);
+    expect(report.status).toBe("measured");
+    // Output ratio leads the headline — it's the normalization-resistant metric.
+    expect(report.headline).toMatch(/output ratio/);
+    expect(report.headline).toMatch(/normalization-resistant/);
+    // Token + $ figures appear as secondary clauses.
+    expect(report.headline).toMatch(/saved 150\.0K tokens/);
+    expect(report.headline).toMatch(/\$1\.50/);
+    // Window-length caveat is explicit.
+    expect(report.headline).toMatch(/window lengths/);
+  });
+
+  it("delta is null when status is not 'measured' [misleading-deltas regression guard]", () => {
+    // No install marker → status should suppress delta numbers entirely.
+    const noMarker = runImpact({
+      sessions: [],
+      installedAtIso: null,
+      markerSource: "none",
+      nowIso: "2026-05-22T00:00:00.000Z",
+    });
+    expect(noMarker.delta).toBeNull();
+    expect(noMarker.warningReason).toBe("no-install-marker");
+
+    // Insufficient post-data → also null.
+    const insufficient = runImpact({
+      sessions: [
+        mkSession({ startedAt: "2026-04-01T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-05-21T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
+      ],
+      installedAtIso: "2026-05-21T00:00:00.000Z",
+      markerSource: "install-state.json (rules)",
+      nowIso: "2026-05-22T00:00:00.000Z",
+      minPostDays: 3,
+    });
+    expect(insufficient.delta).toBeNull();
+    expect(insufficient.warningReason).toMatch(/insufficient-post-data/);
+  });
+
+  it("detects severe window asymmetry even when minPostDays is satisfied [Claude-Desktop-feedback regression guard]", () => {
+    // 39 days of before-history, 2 days of after-history — exactly the case
+    // Claude Desktop flagged. Even though postDays=2 and minPostDays would
+    // be the trigger, this test forces minPostDays=1 so we hit the OTHER
+    // gate: window-asymmetry-{preDays}d-vs-{postDays}d.
+    // Earliest session 2026-04-13, pivot 2026-05-20, now 2026-05-22 →
+    //   preDays = 37, postDays = 2 → ratio 0.054 (< 0.25 threshold).
+    const sessions = [];
+    for (let i = 0; i < 5; i++) {
+      sessions.push(
+        mkSession({
+          startedAt: `2026-04-${13 + i * 5}T00:00:00.000Z`,
+          totalTokens: 100_000,
+          estCostUSD: 1.0,
+        }),
+      );
+    }
+    sessions.push(
+      mkSession({ startedAt: "2026-05-21T00:00:00.000Z", totalTokens: 5_000, estCostUSD: 0.05 }),
+    );
+
+    const report = runImpact({
+      sessions,
+      installedAtIso: "2026-05-20T00:00:00.000Z",
+      markerSource: "install-state.json (rules)",
+      nowIso: "2026-05-22T00:00:00.000Z",
+      minPostDays: 1, // satisfied — forces the asymmetry path to fire
+    });
+    expect(report.status).toBe("insufficient-post-data");
+    expect(report.warningReason).toMatch(/^window-asymmetry-\d+d-vs-\d+d$/);
+    expect(report.delta).toBeNull();
+    expect(report.headline).toMatch(/window asymmetry/);
+  });
+
+  it("warningReason is null only when status is 'measured'", () => {
+    const report = runImpact({
+      sessions: [
+        mkSession({ startedAt: "2026-04-01T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-04-15T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-05-10T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
+        mkSession({ startedAt: "2026-05-15T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
+      ],
+      installedAtIso: "2026-05-01T00:00:00.000Z",
+      markerSource: "install-state.json (rules)",
+      nowIso: "2026-05-22T00:00:00.000Z",
+    });
+    expect(report.status).toBe("measured");
+    expect(report.warningReason).toBeNull();
+    expect(report.delta).not.toBeNull();
   });
 
   it("schema version is stable", () => {

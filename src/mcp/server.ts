@@ -95,10 +95,67 @@ function fail(message: string): CallToolResult {
 
 async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): Promise<CallToolResult> {
   const { runImpactCommand } = await import("../commands/impact.js");
+  const { existsSync, readdirSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { homedir } = await import("node:os");
+
+  // Claude Desktop spawns sipcode-mcp with a cwd that is NOT the user's
+  // project directory — typically the Claude install dir or %USERPROFILE%.
+  // The default behavior of `process.cwd()` fails to find
+  // .sipcode/install-state.json. Walk known locations in order so the
+  // tool works without the caller having to know the right path.
+  const triedPaths: string[] = [];
+  function hasMarker(p: string): boolean {
+    triedPaths.push(p);
+    return existsSync(join(p, ".sipcode", "install-state.json"));
+  }
+
+  let resolvedCwd: string | undefined = opts.cwd;
+  if (!resolvedCwd) {
+    // 1. process.cwd() — the legacy default; still try it first.
+    const here = process.cwd();
+    if (hasMarker(here)) {
+      resolvedCwd = here;
+    } else {
+      // 2. Walk ~/.claude/projects/* — these are projects where Claude Code
+      //    has run. The project-hash dir name decodes to an absolute path
+      //    ("C--Projects-Sipcode" → "C:\Projects\Sipcode"). Pick the first
+      //    decoded path that contains an install-state.json. Claude only
+      //    sees one MCP server, but it's reasonable to scan all projects.
+      const projectsDir = join(homedir(), ".claude", "projects");
+      if (existsSync(projectsDir)) {
+        let entries: string[] = [];
+        try {
+          entries = readdirSync(projectsDir);
+        } catch {
+          /* unreadable — skip */
+        }
+        for (const entry of entries) {
+          // Decode hash: dashes → original separators. Windows is special:
+          // "C--Projects-Sipcode" → "C:\Projects\Sipcode" (first dash-dash
+          // becomes ":\", others become "\").
+          const decoded =
+            process.platform === "win32"
+              ? entry.replace(/^([A-Za-z])--/, "$1:\\").replace(/-/g, "\\")
+              : "/" + entry.replace(/-/g, "/");
+          if (hasMarker(decoded)) {
+            resolvedCwd = decoded;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Fall back to process.cwd() so we still produce a report (with
+  // no-install-marker status), but include the tried paths in the
+  // output so the user knows what we looked at.
+  const finalCwd = resolvedCwd ?? process.cwd();
+
   let captured = "";
   const cmdOpts: { since?: string; json: true; cwd: string } = {
     json: true,
-    cwd: opts.cwd ?? process.cwd(),
+    cwd: finalCwd,
   };
   if (opts.since !== undefined) cmdOpts.since = opts.since;
   const result = await runImpactCommand(cmdOpts, {
@@ -110,6 +167,25 @@ async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): 
     },
   });
   if (result.exitCode !== 0) return fail(captured.trim());
+
+  // If we couldn't find a marker even after walking known locations, append
+  // a friendly diagnostic so the user understands why and can pass `cwd:`
+  // explicitly or use `since:` as a workaround.
+  if (!resolvedCwd && !opts.since) {
+    const diagnostic = [
+      "",
+      "---",
+      "Could not auto-locate .sipcode/install-state.json. Tried:",
+      ...triedPaths.map((p) => `  • ${p}`),
+      "",
+      "Workarounds:",
+      "  • Pass cwd: \"/absolute/path/to/your/project\" to point at the right directory.",
+      "  • Pass since: \"YYYY-MM-DD\" to set the pivot manually (e.g., when you started using Sipcode).",
+      "  • Run `sipcode rules --install` in your project to create the marker going forward.",
+    ].join("\n");
+    return ok(captured.trim() + diagnostic);
+  }
+
   return ok(captured.trim());
 }
 

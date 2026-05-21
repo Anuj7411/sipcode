@@ -126,22 +126,51 @@ function computeDelta(before: ImpactBucket, after: ImpactBucket): ImpactDelta {
   };
 }
 
+/** Severe asymmetry threshold: post-window must be ≥ 25% of pre-window length. */
+const ASYMMETRY_RATIO_THRESHOLD = 0.25;
+
+interface StatusResult {
+  readonly status: ImpactStatus;
+  readonly warningReason: string | null;
+}
+
 function statusFor(
   before: ImpactBucket,
   after: ImpactBucket,
   installedAtIso: string | null,
   nowIso: string,
   minPostDays: number,
-): ImpactStatus {
-  if (!installedAtIso) return "no-install-marker";
-  const postDays = daysBetween(installedAtIso, nowIso);
-  if (postDays < minPostDays) return "insufficient-post-data";
-  if (before.sessionCount === 0 && after.sessionCount === 0) {
-    return "no-install-marker";
+): StatusResult {
+  if (!installedAtIso) {
+    return { status: "no-install-marker", warningReason: "no-install-marker" };
   }
-  if (before.sessionCount === 0) return "no-baseline";
-  if (after.sessionCount === 0) return "no-post-sessions";
-  return "measured";
+  const postDays = daysBetween(installedAtIso, nowIso);
+  if (postDays < minPostDays) {
+    return {
+      status: "insufficient-post-data",
+      warningReason: `insufficient-post-data-${postDays}d-vs-min-${minPostDays}d`,
+    };
+  }
+  if (before.sessionCount === 0 && after.sessionCount === 0) {
+    return { status: "no-install-marker", warningReason: "no-sessions" };
+  }
+  if (before.sessionCount === 0) {
+    return { status: "no-baseline", warningReason: "no-baseline" };
+  }
+  if (after.sessionCount === 0) {
+    return { status: "no-post-sessions", warningReason: "no-post-sessions" };
+  }
+  // Severe window asymmetry: even if both buckets have data and minPostDays
+  // is satisfied, comparing wildly mismatched windows is misleading.
+  // Example: 39 days before vs 2 days after is not a fair A/B.
+  const preDays = before.days;
+  if (preDays > 0 && postDays / preDays < ASYMMETRY_RATIO_THRESHOLD) {
+    return {
+      status: "insufficient-post-data",
+      warningReason: `window-asymmetry-${preDays}d-vs-${postDays}d`,
+    };
+  }
+  return { status: "measured", warningReason: null };
 }
 
 function fmtTokensCompact(n: number): string {
@@ -156,18 +185,37 @@ function renderHeadline(
   delta: ImpactDelta,
   before: ImpactBucket,
   after: ImpactBucket,
+  warningReason: string | null,
 ): string {
   void before;
   switch (status) {
     case "measured": {
-      const direction = delta.tokenDeltaAbs < 0 ? "saved" : "spent extra";
+      // Output ratio is the normalization-resistant metric — it's a ratio,
+      // not an absolute, so it doesn't shift with window length. Lead with it.
+      const ratioBefore = before.outputRatioPct;
+      const ratioAfter = after.outputRatioPct;
+      const ratioRelPct =
+        ratioBefore > 0
+          ? Math.round(((ratioAfter - ratioBefore) / ratioBefore) * 1000) / 10
+          : 0;
+      const ratioDir = ratioRelPct >= 0 ? "improved" : "regressed";
+      const ratioArrow = ratioRelPct >= 0 ? "↑" : "↓";
+
+      const tokenDir = delta.tokenDeltaAbs < 0 ? "saved" : "spent extra";
       const absTokens = fmtTokensCompact(Math.abs(delta.tokenDeltaAbs));
-      const absPct = Math.abs(delta.tokenDeltaPct).toFixed(1);
-      const arrow = delta.tokenDeltaAbs < 0 ? "↓" : "↑";
       const dollars = Math.abs(delta.costDeltaAbsUSD).toFixed(2);
-      return `${direction} ${absTokens} tokens (${absPct}% ${arrow}) — about $${dollars} — across ${after.sessionCount} post-install sessions`;
+
+      return (
+        `output ratio ${ratioDir} ${Math.abs(ratioRelPct).toFixed(1)}% ${ratioArrow} `
+        + `(${ratioBefore.toFixed(1)}% → ${ratioAfter.toFixed(1)}%, the normalization-resistant signal); `
+        + `${tokenDir} ${absTokens} tokens (≈ $${dollars}) across ${after.sessionCount} post-install sessions — `
+        + `interpret the absolute numbers against the window lengths`
+      );
     }
     case "insufficient-post-data":
+      if (warningReason?.startsWith("window-asymmetry-")) {
+        return `window asymmetry — ${warningReason.replace("window-asymmetry-", "").replace("-", " before vs ")} after. Comparison would be misleading; come back when both windows are comparable.`;
+      }
       return "not enough post-install data yet — come back after a few more sessions";
     case "no-baseline":
       return "no pre-install sessions found — Sipcode can't show before/after without a baseline";
@@ -220,7 +268,7 @@ export function runImpact(input: RunImpactInput): ImpactReport {
   if (!pivot) {
     const empty = emptyBucket(earliestIso, latestIso);
     const status: ImpactStatus = "no-install-marker";
-    const delta = computeDelta(empty, empty);
+    const computedDelta = computeDelta(empty, empty);
     return {
       schemaVersion: SCHEMA_VERSION,
       status,
@@ -228,8 +276,9 @@ export function runImpact(input: RunImpactInput): ImpactReport {
       markerSource: input.markerSource,
       before: empty,
       after: empty,
-      delta,
-      headline: renderHeadline(status, delta, empty, empty),
+      delta: null, // gated — see types.ts contract
+      warningReason: "no-install-marker",
+      headline: renderHeadline(status, computedDelta, empty, empty, "no-install-marker"),
       notes: noteFor(status),
     };
   }
@@ -243,8 +292,8 @@ export function runImpact(input: RunImpactInput): ImpactReport {
 
   const beforeBucket = summarize(earliestIso, pivot, before);
   const afterBucket = summarize(pivot, latestIso, after);
-  const delta = computeDelta(beforeBucket, afterBucket);
-  const status = statusFor(
+  const computedDelta = computeDelta(beforeBucket, afterBucket);
+  const { status, warningReason } = statusFor(
     beforeBucket,
     afterBucket,
     pivot,
@@ -259,8 +308,12 @@ export function runImpact(input: RunImpactInput): ImpactReport {
     markerSource: input.markerSource,
     before: beforeBucket,
     after: afterBucket,
-    delta,
-    headline: renderHeadline(status, delta, beforeBucket, afterBucket),
+    // Null-gate: delta numbers only present when status is "measured".
+    // This is the contract that prevents misleading "97% savings!" output
+    // from windows that aren't comparable.
+    delta: status === "measured" ? computedDelta : null,
+    warningReason,
+    headline: renderHeadline(status, computedDelta, beforeBucket, afterBucket, warningReason),
     notes: noteFor(status),
   };
 }

@@ -61,7 +61,20 @@ export interface ImpactReport {
     | "none";
   readonly before: ImpactBucket;
   readonly after: ImpactBucket;
-  readonly delta: ImpactDelta;
+  /**
+   * Before/after delta. **Null when `status !== "measured"`** — consumers
+   * MUST NOT render delta numbers when the status field signals they are
+   * unreliable. This null-gate is the contract that prevents misleading
+   * "you saved 97%!" output from windows that aren't comparable.
+   */
+  readonly delta: ImpactDelta | null;
+  /**
+   * Why `delta` is null (when it is). One of:
+   *   "no-install-marker" / "no-baseline" / "no-post-sessions" /
+   *   "insufficient-post-data" / "window-asymmetry-<preDays>d-vs-<postDays>d"
+   * `null` only when `status === "measured"`.
+   */
+  readonly warningReason: string | null;
   /** Human-readable headline already rendered (one line). */
   readonly headline: string;
   /** Hints / next steps for the user. */
