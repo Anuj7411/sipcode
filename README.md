@@ -193,7 +193,7 @@ Then in Claude Desktop:
   "mcpServers": {
     "sipcode": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "sipcode-mcp@latest"]
+      "args": ["/c", "sipcode-mcp"]
     }
   }
 }
@@ -219,7 +219,7 @@ Same as above, except in step 4 use:
   "mcpServers": {
     "sipcode": {
       "command": "npx",
-      "args": ["-y", "sipcode-mcp@latest"]
+      "args": ["-y", "-p", "sipcode", "sipcode-mcp"]
     }
   }
 }
@@ -257,32 +257,32 @@ If all four return real data — Sipcode is live in your Claude Desktop. Full se
 
 ---
 
-### 🔄 Updates — how to stay on the latest version (TL;DR: zero work if you use `@latest`)
+### 🔄 Updates — how to stay on the latest version
 
-**The config above uses `sipcode-mcp@latest`**, which means `npx` checks npm for the newest version every time you restart Claude Desktop and auto-fetches it. **Zero manual action required between releases.**
+How updates reach you depends on which install path you used:
 
-**Concretely — say Anuj ships v1.2.0 next Tuesday:**
+**Path A — global install + direct binary in config (recommended for reliability):**
 
-| Time | What happens | What YOU do |
-|---|---|---|
-| Tuesday 2:00pm | New version pushed to npm via auto-publish | Nothing |
-| Tuesday 9:00pm | You happen to quit & reopen Claude Desktop for any reason | Nothing |
-| Tuesday 9:00pm | Claude Desktop spawns `npx sipcode-mcp@latest`; npx pulls v1.2.0 from npm; v1.2.0 starts | **You're now on v1.2.0.** You didn't open a terminal, edit a config, or click anything. |
+You used `npm install -g sipcode` and your Claude Desktop config calls `sipcode-mcp` directly. To update:
 
-| You installed via | How updates work |
-|---|---|
-| Only the Claude Desktop config (no `npm install -g`) | ✅ **Auto-update.** Each Claude Desktop restart fetches the latest. Slight ~3s startup cost on the first MCP call. |
-| `npm install -g sipcode` + Claude Desktop config with `@latest` | ✅ **Auto-update.** `npx` ignores the older global install and fetches latest from npm. |
-| `npm install -g sipcode` + Claude Desktop config WITHOUT `@latest` | ⚠️ **Manual.** Run `npm install -g sipcode@latest` periodically. |
-
-You never need to re-paste the JSON config. The `mcpServers.sipcode` block in `claude_desktop_config.json` is the same for v1.1.0, v1.1.5, v2.0, v3.0 — sipcode adds tools, fixes bugs, ships new features, and your config doesn't notice. Tools auto-appear because MCP servers self-describe their tools to Claude at runtime.
-
-**For the CLI** (`sipcode why`, `sipcode benchmark`, etc., when you run them in your terminal): if you installed globally, update with:
 ```bash
 npm install -g sipcode@latest
 ```
 
-Or use `npx sipcode@latest why` for always-fresh one-off runs.
+Run this monthly (or whenever you notice a new release). **Pros:** instant Claude Desktop startup, no surprises. **Cons:** manual updates.
+
+**Path B — pure npx in config (slower startup, automatic eventual updates):**
+
+You used `"args": ["-y", "-p", "sipcode", "sipcode-mcp"]` in your config. npx caches the `sipcode` package and refreshes it periodically. Updates happen automatically within a few days of a release.
+
+**The config never needs re-pasting** — even when Sipcode adds new MCP tools. Claude Desktop asks the server "what tools do you have?" every time it connects, so new tools just appear.
+
+| Setup | Update story |
+|---|---|
+| `npm install -g sipcode` + config `"command": "cmd", "args": ["/c", "sipcode-mcp"]` | **Reliable + fast.** Run `npm install -g sipcode@latest` monthly. Claude Desktop startup is instant. |
+| No install + config `"command": "cmd", "args": ["/c", "npx", "-y", "-p", "sipcode", "sipcode-mcp"]` | **Zero install + eventual auto-update.** npx caches the package and refreshes within days of a new release. First-run startup is slower (~15s). |
+
+**For the CLI** (`sipcode why`, `sipcode benchmark`, etc., in your terminal): use `npx sipcode <cmd>` for always-fresh one-off runs, or `npm install -g sipcode@latest` if you installed globally.
 
 ---
 

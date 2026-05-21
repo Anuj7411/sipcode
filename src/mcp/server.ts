@@ -64,8 +64,15 @@ import { runEstimate } from "../commands/estimate.js";
 
 // ---- Server metadata ----
 
+import { readFileSync as _readFileSync } from "node:fs";
+import { fileURLToPath as _fileURLToPath } from "node:url";
+import { dirname as _dirname, join as _join } from "node:path";
+
 const SERVER_NAME = "sipcode";
-const SERVER_VERSION = "1.1.0";
+const _serverDir = _dirname(_fileURLToPath(import.meta.url));
+const SERVER_VERSION = (JSON.parse(
+  _readFileSync(_join(_serverDir, "..", "..", "package.json"), "utf-8"),
+) as { version: string }).version;
 
 // ---- Helpers ----
 
