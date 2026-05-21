@@ -156,7 +156,7 @@ describe("sipcode estimate (integration)", () => {
       .split("\n")
       .filter((l) => /\bopus 4|sonnet 4|haiku 4\b/.test(l) && /\$/.test(l));
     expect(tableLines.length).toBeGreaterThan(0);
-    expect(tableLines.every((l) => /opus 4/.test(l))).toBe(true);
+    expect(tableLines.every((l) => /opus 4.7/.test(l))).toBe(true);
   });
 
   it("falls back to quick scan when no manifest", async () => {

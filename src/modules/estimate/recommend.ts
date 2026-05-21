@@ -26,15 +26,15 @@ export function recommend(
   complexity: ComplexityScore,
   anchors: HistoricalAnchors,
 ): Recommendation {
-  const opus = predictions.find((p) => p.model === "claude-opus-4");
-  const sonnet = predictions.find((p) => p.model === "claude-sonnet-4");
-  const haiku = predictions.find((p) => p.model === "claude-haiku-4");
+  const opus = predictions.find((p) => p.model === "claude-opus-4-7");
+  const sonnet = predictions.find((p) => p.model === "claude-sonnet-4-6");
+  const haiku = predictions.find((p) => p.model === "claude-haiku-4-5");
 
   // Fallback safeties — if the pricing layer didn't return a model row,
   // those predictions still exist with cost 0; we just route to sonnet.
   const fallback = sonnet ?? opus ?? haiku;
   if (!fallback) {
-    return { model: "claude-sonnet-4", reason: "default", costCenter: 0 };
+    return { model: "claude-sonnet-4-6", reason: "default", costCenter: 0 };
   }
 
   let chosen: ModelPrediction = fallback;

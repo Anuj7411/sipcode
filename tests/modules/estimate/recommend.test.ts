@@ -53,7 +53,7 @@ describe("recommend", () => {
     it("low tier → haiku", () => {
       const preds = predictFor("rename foo");
       const r = recommend(preds, classifyTask("rename foo"), goodAnchors);
-      expect(r.model).toBe("claude-haiku-4");
+      expect(r.model).toBe("claude-haiku-4-5");
     });
 
     it("explain (review verb) → haiku", () => {
@@ -63,7 +63,7 @@ describe("recommend", () => {
         classifyTask("explain how the cache works"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-haiku-4");
+      expect(r.model).toBe("claude-haiku-4-5");
     });
 
     it("medium implement → sonnet", () => {
@@ -73,7 +73,7 @@ describe("recommend", () => {
         classifyTask("implement a healthz endpoint"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-sonnet-4");
+      expect(r.model).toBe("claude-sonnet-4-6");
     });
 
     it("high refactor → opus", () => {
@@ -83,7 +83,7 @@ describe("recommend", () => {
         classifyTask("refactor the auth module"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-opus-4");
+      expect(r.model).toBe("claude-opus-4-7");
     });
 
     it("high debug → sonnet (iterates a lot)", () => {
@@ -95,7 +95,7 @@ describe("recommend", () => {
         classifyTask("fix the broken parser across the codebase"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-sonnet-4");
+      expect(r.model).toBe("claude-sonnet-4-6");
     });
 
     it("test verb → sonnet", () => {
@@ -105,7 +105,7 @@ describe("recommend", () => {
       expect(c.verb).toBe("test");
       const r = recommend(preds, c, goodAnchors);
       // test is low tier → haiku (since low tier wins)
-      expect(r.model).toBe("claude-haiku-4");
+      expect(r.model).toBe("claude-haiku-4-5");
     });
   });
 
