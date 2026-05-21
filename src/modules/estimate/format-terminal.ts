@@ -38,9 +38,9 @@ function money(n: number): string {
 
 /** Short label for a model id — used in the table. */
 function modelLabel(m: string): string {
-  if (m.includes("opus")) return "opus 4    ";
-  if (m.includes("sonnet")) return "sonnet 4  ";
-  if (m.includes("haiku")) return "haiku 4   ";
+  if (m.includes("opus")) return "opus 4.7  ";
+  if (m.includes("sonnet")) return "sonnet 4.6";
+  if (m.includes("haiku")) return "haiku 4.5 ";
   return m.padEnd(10);
 }
 

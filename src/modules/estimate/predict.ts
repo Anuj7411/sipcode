@@ -31,9 +31,9 @@ import type {
 
 /** The three canonical models we always predict against. */
 export const PREDICTION_MODELS: ReadonlyArray<string> = [
-  "claude-opus-4",
-  "claude-sonnet-4",
-  "claude-haiku-4",
+  "claude-opus-4-7",
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5",
 ];
 
 /** Output ratio: canonical 0.6% from the wedge stat. */

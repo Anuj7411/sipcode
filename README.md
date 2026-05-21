@@ -165,7 +165,111 @@ Writes a standalone HTML and a **1200×630 PNG** to `.sipcode/receipts/<id>/`, c
 
 ---
 
-## NEW in v1.1 — Sipcode inside Claude desktop chat (MCP server)
+## NEW in v1.1 — Sipcode inside Claude Desktop chat (MCP server)
+
+> Run Sipcode tools live inside the Anthropic Claude Desktop app. Ask Claude *"audit my last session"* and it calls Sipcode in the chat.
+
+### 🪟 Windows install (verified end-to-end)
+
+```powershell
+# 1. Install Sipcode (one-time)
+npm install -g sipcode
+
+# 2. Verify the MCP binary works (you should see "[sipcode-mcp] connected")
+sipcode-mcp        # Ctrl+C to exit after the connected line prints
+```
+
+Then in Claude Desktop:
+
+3. Click **☰ menu → Settings → Developer → Edit Config**
+4. Paste this exact JSON (or add `"sipcode"` to your existing `mcpServers`):
+
+```json
+{
+  "mcpServers": {
+    "sipcode": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "sipcode-mcp"]
+    }
+  }
+}
+```
+
+> **⚠️ Critical Windows-only detail:** the `"command": "cmd"` with `["/c", ...]` wrapper is required. Without it, Claude Desktop registers the server but fails to launch it. macOS/Linux users use `"command": "npx"` directly — Windows must use `cmd /c`.
+
+5. **Fully quit Claude Desktop:** system tray (bottom-right) → right-click Claude icon → **Quit**. Closing the window is not enough — the app keeps running in the tray.
+6. Reopen Claude Desktop. Open a new chat. Ask:
+
+```
+What MCP tools do you have from sipcode?
+```
+
+You should see Claude list the four tools: `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`.
+
+### 🍎 macOS / 🐧 Linux install
+
+Same as above, except in step 4 use:
+
+```json
+{
+  "mcpServers": {
+    "sipcode": {
+      "command": "npx",
+      "args": ["-y", "sipcode-mcp"]
+    }
+  }
+}
+```
+
+The config file lives at:
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux:** `~/.config/Claude/claude_desktop_config.json`
+
+### 4 prompts to verify it's working end-to-end
+
+Once you've reopened Claude Desktop, paste these one at a time into a new chat:
+
+```
+Use sipcode to list my 5 most recent Claude Code sessions.
+```
+*Expected: a table with real session IDs and timestamps.*
+
+```
+Run sipcode's audit_latest_session and show me the output ratio, top 3 leaks, and dollar cost.
+```
+*Expected: a forensic breakdown like 0.3% output ratio, top leaks named by file, real $ amount.*
+
+```
+Use sipcode to estimate what refactoring 5 files in C:\Projects\YourProject would cost on Opus 4.7, Sonnet 4.6, and Haiku 4.5.
+```
+*Expected: three specific dollar predictions per model.*
+
+```
+Read my Sipcode manifest at C:\Projects\YourProject and tell me the architecture.
+```
+*Expected: Claude summarizes the architecture without grepping any source files.*
+
+If all four return real data — Sipcode is live in your Claude Desktop. Full setup guide and troubleshooting: [docs/MCP.md](docs/MCP.md).
+
+---
+
+## What Sipcode does — and doesn't do — to your Claude
+
+Trust matters. Here's what changes (and what doesn't) when you install Sipcode.
+
+| Command | Effect on your Claude sessions |
+|---|---|
+| `sipcode why`, `stats`, `receipt`, `score`, `estimate`, `benchmark` | **🟢 Zero effect.** Read-only on your local transcripts. Claude Code behaves identically with or without these. |
+| `sipcode manifest` (no `--inject`) | **🟢 Zero effect.** Writes only to `.sipcode/manifest.md` — Claude Code doesn't auto-read this. |
+| `sipcode init`, `rules --install`, `hygiene --install` | **🟡 Explicit, transparent modifications.** Adds clearly-marked sipcode blocks to your `CLAUDE.md` and (for hygiene) hooks to `~/.claude/settings.json`. Fully reversible with `--uninstall`. |
+| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 4 tools — which only happens when you ask a question Claude thinks the tool can help with. |
+| Anything else | Doesn't exist. There's no background daemon, no telemetry, no auto-updater, no network call. |
+
+**Bottom line:** read-only commands change nothing about Claude. Modification commands always require an explicit `--install` flag and are 100% reversible. Privacy guard test ([`tests/privacy/no-network.test.ts`](tests/privacy/no-network.test.ts)) asserts there are zero `node:http/https/net/dns` imports in any core path — fails CI if anyone ever tries to add one.
+
+---
+
+## (Original quick MCP overview — kept for reference)
 
 ```json
 // add to claude_desktop_config.json
