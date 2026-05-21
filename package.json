@@ -1,6 +1,6 @@
 {
   "name": "sipcode",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Sip your tokens. Don't gulp them. — Unified token optimization for AI coding agents.",
   "keywords": [
     "claude-code",
@@ -48,11 +48,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
     "dev": "tsx src/cli.ts",
-    "test": "vitest run",
+    "test": "vitest run --exclude tests/e2e/",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit",
-    "clean": "rimraf dist coverage"
+    "clean": "rimraf dist coverage",
+    "test:e2e": "vitest run tests/e2e/"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

@@ -143,6 +143,22 @@ jobs:
         if: steps.already_published.outputs.skip != 'true'
         run: npm test
 
+      - name: end-to-end release smoke test (THE release gate)
+        if: steps.already_published.outputs.skip != 'true'
+        # This is the gate that catches the bugs that `npm test` can't.
+        # Builds the exact tarball that would be published, installs it
+        # in a clean tmpdir, verifies:
+        #   - both binaries (sipcode, sipcode-mcp) install correctly
+        #   - sipcode --version reports the actual package.json version
+        #     (catches hardcoded-version bugs like v1.0.0–v1.1.4)
+        #   - sipcode-mcp boots, completes MCP handshake, registers all
+        #     4 documented tools (catches the @latest 404 bug)
+        #   - tarball contains pricing JSON + fonts (catches v1.0.0 bug)
+        #   - tests/ NOT included
+        #   - privacy guard preserved in compiled dist/
+        # ANY failure here BLOCKS the publish.
+        run: npm run test:e2e
+
       - name: publish to npm
         if: steps.already_published.outputs.skip != 'true'
         # With Trusted Publishers configured + permissions.id-token=write +
