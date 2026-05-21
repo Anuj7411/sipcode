@@ -185,6 +185,19 @@ export async function runRules(
 
     const before = inspectRules(existing);
     await writeFile(claudeMdPath, result.value);
+
+    // Record install timestamp for `sipcode impact` to use as the
+    // before/after pivot. Best-effort — never fail the install over it.
+    try {
+      const { writeInstallState } = await import("../lib/install-state.js");
+      await writeInstallState(cwd, {
+        rulesInstalledAt: clock.now().toISOString(),
+        rulesMode: targetMode,
+      });
+    } catch {
+      /* best-effort — impact will fall back to --since if this fails */
+    }
+
     if (before.installed && before.mode !== undefined && before.mode !== targetMode) {
       stdout(
         MESSAGES.rulesSwitchedMode(before.mode, targetMode, claudeMdRel),

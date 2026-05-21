@@ -251,6 +251,17 @@ export async function runHygiene(
     if (pressureChanged) await writeFile(p.pressureScript, newPressure);
     if (breakpointChanged) await writeFile(p.breakpointScript, newBreakpoint);
 
+    // Record install timestamp for `sipcode impact` to pivot the
+    // before/after bucket. Best-effort — never fail install over it.
+    try {
+      const { writeInstallState } = await import("../lib/install-state.js");
+      await writeInstallState(cwd, {
+        hygieneInstalledAt: new Date().toISOString(),
+      });
+    } catch {
+      /* best-effort — impact will fall back to --since if this fails */
+    }
+
     stdout(MESSAGES.hygieneInstalled(p.claudeMdRel, p.hooksDir));
     return { exitCode: 0 };
   }

@@ -77,7 +77,7 @@ Claude will discover the `estimate_task_cost` tool, call it with your task descr
 
 ## What the MCP server exposes
 
-Five tools, all backed by Sipcode's existing zero-LLM analyzers:
+Six tools, all backed by Sipcode's existing zero-LLM analyzers:
 
 ### `get_sipcode_info`
 
@@ -115,6 +115,14 @@ Predicts the cost of a coding task across Opus / Sonnet / Haiku before the user 
 
 **Required arguments:** `task` (string, ≥3 chars) and `cwd` (string).
 
+### `verify_sipcode_impact`
+
+A/B-compares the user's token spend before vs after Sipcode's optimizers were installed. Reads Claude Code sessions from `~/.claude/projects/` and the install marker from `.sipcode/install-state.json`. Returns a JSON impact report with before/after totals (sessions, tokens, cost, output ratio) and a delta block. **The on-your-own-data proof-of-savings tool.**
+
+**When Claude uses it:** when the user asks "is sipcode actually saving me tokens?", "show me the impact", or "prove sipcode is working."
+
+**Optional arguments:** `cwd` (absolute path; defaults to the server's cwd) and `since` (YYYY-MM-DD override for the install date, skipping the install-state lookup).
+
 ---
 
 ## Privacy
@@ -150,7 +158,7 @@ The MCP server is a standard MCP stdio server. It works with:
 
 ### "Tool not found" / "MCP server failed to start"
 
-Check that you can run `sipcode-mcp` from your terminal directly (after `npm install -g sipcode`). If it prints `[sipcode-mcp] connected (sipcode vX.Y.Z, 5 tools)` and then waits for input, the server is healthy. Press `Ctrl+C` to exit.
+Check that you can run `sipcode-mcp` from your terminal directly (after `npm install -g sipcode`). If it prints `[sipcode-mcp] connected (sipcode vX.Y.Z, 6 tools)` and then waits for input, the server is healthy. Press `Ctrl+C` to exit.
 
 If `npx sipcode-mcp` fails: confirm `npm install -g sipcode` succeeded with `sipcode --version` showing `1.1.0` or later.
 

@@ -93,6 +93,26 @@ function fail(message: string): CallToolResult {
 
 // ---- Tool implementations ----
 
+async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): Promise<CallToolResult> {
+  const { runImpactCommand } = await import("../commands/impact.js");
+  let captured = "";
+  const cmdOpts: { since?: string; json: true; cwd: string } = {
+    json: true,
+    cwd: opts.cwd ?? process.cwd(),
+  };
+  if (opts.since !== undefined) cmdOpts.since = opts.since;
+  const result = await runImpactCommand(cmdOpts, {
+    stdout: (s) => {
+      captured += s + "\n";
+    },
+    stderr: (s) => {
+      captured += s + "\n";
+    },
+  });
+  if (result.exitCode !== 0) return fail(captured.trim());
+  return ok(captured.trim());
+}
+
 async function toolGetSipcodeInfo(): Promise<CallToolResult> {
   const lines = [
     `Sipcode v${SERVER_VERSION}`,
@@ -250,6 +270,30 @@ const TOOL_DEFS = [
     schema: z.object({}),
   },
   {
+    name: "verify_sipcode_impact",
+    description:
+      "Prove that Sipcode is actually saving the user tokens by A/B-comparing their token spend before vs after they installed Sipcode's optimizers. Reads the user's local Claude Code sessions and the install-state.json marker. Returns a JSON impact report with before/after totals + a delta block. Use this when the user asks 'is sipcode actually working?', 'is sipcode really saving me tokens?', or 'show me the impact'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        cwd: {
+          type: "string",
+          description:
+            "Optional. Absolute path to the project root where .sipcode/install-state.json lives. Defaults to the server's cwd.",
+        },
+        since: {
+          type: "string",
+          description:
+            "Optional override for the install date in YYYY-MM-DD form. Skips the install-state.json lookup.",
+        },
+      },
+    },
+    schema: z.object({
+      cwd: z.string().min(1).optional(),
+      since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    }),
+  },
+  {
     name: "list_recent_sessions",
     description:
       "List the user's most recent Claude Code sessions from ~/.claude/projects, sorted newest first. Returns session id, timestamp, project hash, and file size for each. Use this when the user wants to see what sessions they have available, OR before calling audit_latest_session with a specific id.",
@@ -374,6 +418,14 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     switch (name) {
       case "get_sipcode_info": {
         return await toolGetSipcodeInfo();
+      }
+      case "verify_sipcode_impact": {
+        const impactOpts: { cwd?: string; since?: string } = {};
+        const cwdArg = args["cwd"] as string | undefined;
+        const sinceArg = args["since"] as string | undefined;
+        if (cwdArg !== undefined) impactOpts.cwd = cwdArg;
+        if (sinceArg !== undefined) impactOpts.since = sinceArg;
+        return await toolVerifySipcodeImpact(impactOpts);
       }
       case "list_recent_sessions": {
         const limit = (args["limit"] as number | undefined) ?? 10;

@@ -8,7 +8,7 @@
 
 [![npm version](https://img.shields.io/npm/v/sipcode.svg?color=3DDC97&label=npm)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-808%20passing-success)](#)
+[![Tests](https://img.shields.io/badge/tests-828%20passing-success)](#)
 [![Benchmark](https://img.shields.io/badge/measured%20savings-62.6%25-3DDC97)](benchmark/METHODOLOGY.md)
 
 </div>
@@ -244,6 +244,7 @@ Writes a standalone HTML and a **1200×630 PNG** to `.sipcode/receipts/<id>/`, c
 | **`sipcode stats`** | Cross-session analytics — totals, sparkline, top-N expensive sessions, optional standalone HTML. |
 | **`sipcode score`** | 24-check static audit of your codebase's "agent-friendliness." Tier badge + Shields.io endpoint + composite GitHub Action. |
 | **`sipcode benchmark`** | Reproducible 20-task benchmark suite. 62.6% median savings. Published methodology. |
+| **`sipcode impact`** *(NEW in v1.2)* | A/B compares your token spend before vs after Sipcode was installed — on your own sessions. Answers "is sipcode actually working for me?". Also available as the `verify_sipcode_impact` MCP tool in Claude Desktop. |
 | **Multi-agent: `--agent cursor`** | `sipcode init --agent cursor` writes `.cursor/rules/sipcode.mdc`. |
 | **Privacy guarantee** | Local-first by engineering. Asserted by a static test that fails CI if a network module is ever imported in a core path. |
 
@@ -322,9 +323,11 @@ If the file already has other MCP servers, add `"sipcode"` as a sibling key insi
 What MCP tools do you have from sipcode?
 ```
 
-Claude should list 5 tools: `get_sipcode_info`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`.
+Claude should list 6 tools: `get_sipcode_info`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`, `verify_sipcode_impact`.
 
-> **Quick self-check:** once it's installed, ask Claude *"what version of sipcode is installed?"* — Claude will call `get_sipcode_info` and return the exact installed version, your Node version, the host platform, and the full tool list. The fastest way to confirm everything wired up correctly.
+> **Quick self-check:** once it's installed, ask Claude *"what version of sipcode is installed?"* — Claude will call `get_sipcode_info` and return the exact installed version, your Node version, the host platform, and the full tool list.
+
+> **Prove it's saving you tokens:** ask Claude *"is sipcode actually saving me tokens?"* — Claude will call `verify_sipcode_impact`, compare your sessions from before vs after you installed Sipcode, and return a JSON delta. The on-your-own-data A/B test.
 
 ### 4 prompts to verify it's working end-to-end
 
@@ -385,7 +388,7 @@ Trust matters. Here's what changes (and what doesn't) when you install Sipcode.
 | `sipcode why`, `stats`, `receipt`, `score`, `estimate`, `benchmark` | **🟢 Zero effect.** Read-only on your local transcripts. Claude Code behaves identically with or without these. |
 | `sipcode manifest` (no `--inject`) | **🟢 Zero effect.** Writes only to `.sipcode/manifest.md` — Claude Code doesn't auto-read this. |
 | `sipcode init`, `rules --install`, `hygiene --install` | **🟡 Explicit, transparent modifications.** Adds clearly-marked sipcode blocks to your `CLAUDE.md` and (for hygiene) hooks to `~/.claude/settings.json`. Fully reversible with `--uninstall`. |
-| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 5 tools — which only happens when you ask a question Claude thinks the tool can help with. |
+| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 6 tools — which only happens when you ask a question Claude thinks the tool can help with. |
 | Anything else | Doesn't exist. There's no background daemon, no telemetry, no auto-updater, no network call. |
 
 **Bottom line:** read-only commands change nothing about Claude. Modification commands always require an explicit `--install` flag and are 100% reversible. Privacy guard test ([`tests/privacy/no-network.test.ts`](tests/privacy/no-network.test.ts)) asserts there are zero `node:http/https/net/dns` imports in any core path — fails CI if anyone ever tries to add one.

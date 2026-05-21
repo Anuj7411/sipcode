@@ -170,6 +170,18 @@ program
     if (r?.exitCode) process.exit(r.exitCode);
   });
 
+program
+  .command("impact")
+  .description("A/B compare your token spend before vs after Sipcode was installed — on your own sessions.")
+  .option("--since <YYYY-MM-DD>", "override the install date (defaults to .sipcode/install-state.json)")
+  .option("--json", "machine-readable output")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .action(async (opts) => {
+    const { runImpactCommand } = await import("./commands/impact.js");
+    const r = await runImpactCommand(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);
   process.exit(1);

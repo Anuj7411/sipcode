@@ -138,14 +138,15 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.serverVersion?.startsWith("1.")).toBe(true);
     });
 
-    it("registers exactly the five documented tools", () => {
+    it("registers exactly the six documented tools", () => {
       expect(result.tools).toBeDefined();
       expect(result.tools).toContain("get_sipcode_info");
       expect(result.tools).toContain("list_recent_sessions");
       expect(result.tools).toContain("audit_latest_session");
       expect(result.tools).toContain("get_project_manifest");
       expect(result.tools).toContain("estimate_task_cost");
-      expect(result.tools).toHaveLength(5);
+      expect(result.tools).toContain("verify_sipcode_impact");
+      expect(result.tools).toHaveLength(6);
     });
   },
 );
