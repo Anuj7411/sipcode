@@ -495,7 +495,12 @@ For curious developers — eight non-negotiable rules:
 7. **Zero LLM calls in static analysis paths.** Static-only. This is the line that separates Sipcode from Graphify.
 8. **DX-cost accounting.** Every optimization carries a `dx_cost` rating alongside `est_savings`. We never trade silent quality loss for token savings.
 
-**Test coverage:** 787 tests passing. ≥85% coverage on every shipped module. `tsc --noEmit` clean. No `any`, no `@ts-ignore`.
+**Test coverage:** 814 tests passing across 5 categories — unit, integration, e2e release smoke, privacy guard, post-publish CDN verify. ≥85% coverage on every shipped module. `tsc --noEmit` clean. No `any`, no `@ts-ignore`.
+
+**Release gate:** Every tag pushed to GitHub runs a blocking end-to-end smoke test (12 assertions) BEFORE publishing to npm. If any of those fail — wrong version, missing assets, MCP server crash, network violation in core paths — the publish is blocked and no bug reaches users. The exact pipeline + every historical bug postmortem is documented in:
+
+- **[`docs/TESTING.md`](docs/TESTING.md)** — every test category, what it catches, when it runs, plus the bug postmortems and regression-guard pattern
+- **[`docs/ENGINEERING-PIPELINE.md`](docs/ENGINEERING-PIPELINE.md)** — the 5 CI gates a change passes through before reaching users
 
 ---
 
