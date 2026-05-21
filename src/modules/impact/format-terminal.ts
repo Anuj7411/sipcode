@@ -134,6 +134,21 @@ function renderNotes(report: ImpactReport): string {
   return "\n" + report.notes.map((n) => `  • ${n}`).join("\n") + "\n";
 }
 
+function renderAllTimeBlock(allTime: ImpactBucket): string {
+  // Surface the user's total session count + total cost when no marker
+  // exists. Closes the "0 sessions in both windows" UX confusion.
+  const lines: string[] = [];
+  lines.push("all-time totals (across every Claude Code session on disk):");
+  lines.push("─".repeat(74));
+  lines.push(`  sessions:       ${allTime.sessionCount}`);
+  lines.push(`  total tokens:   ${fmtTokens(allTime.totalTokens)}`);
+  lines.push(`  total spend:    ${fmtUSDPlain(allTime.estCostUSD)}`);
+  lines.push(`  output ratio:   ${allTime.outputRatioPct.toFixed(1)}%`);
+  lines.push("─".repeat(74));
+  lines.push("(no install marker = no before/after split possible)");
+  return lines.join("\n");
+}
+
 export function formatTerminal(report: ImpactReport): string {
   const parts = [renderHeader(report)];
   if (
@@ -142,6 +157,11 @@ export function formatTerminal(report: ImpactReport): string {
     || report.status === "no-post-sessions"
     || report.status === "insufficient-post-data"
   ) {
+    // Show the all-time bucket when available (no-install-marker case)
+    // so the user sees their data even when no comparison is possible.
+    if (report.allTime !== null && report.allTime.sessionCount > 0) {
+      parts.push(renderAllTimeBlock(report.allTime));
+    }
     parts.push(renderHeadline(report));
     parts.push(renderNotes(report));
     return parts.filter((p) => p.length > 0).join("\n");

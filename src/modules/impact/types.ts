@@ -75,6 +75,15 @@ export interface ImpactReport {
    * `null` only when `status === "measured"`.
    */
   readonly warningReason: string | null;
+  /**
+   * Set ONLY when `status === "no-install-marker"`. Contains an all-time
+   * summary of every session the tool found across all of the user's
+   * Claude Code projects. Gives the user confidence the tool can SEE their
+   * data even when it can't compute a before/after delta (because no install
+   * marker exists). Closes the v1.2.2 UX gap where the tool reported
+   * "0 sessions" in both windows for users with hundreds of sessions on disk.
+   */
+  readonly allTime: ImpactBucket | null;
   /** Human-readable headline already rendered (one line). */
   readonly headline: string;
   /** Hints / next steps for the user. */

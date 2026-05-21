@@ -54,7 +54,10 @@ describe("formatTerminal", () => {
   it("renders a string with the lead savings line", () => {
     const out = formatTerminal(sample(), { useColor: false, verbose: false });
     expect(out).toContain("sipcode why");
-    expect(out).toContain("if sipcode had been on");
+    // Lead savings line must include "potential, not yet realized" framing
+    // — closes the v1.2.3 "is this estimated or actual?" credibility gap.
+    expect(out).toMatch(/RECOVERABLE/);
+    expect(out).toMatch(/potential, not yet realized/);
     expect(out).toContain("top leaks");
     expect(out).toContain("duplicate reads");
     expect(out).toContain("idle context");
@@ -72,7 +75,7 @@ describe("formatTerminal", () => {
 
   it("savings lead before totals", () => {
     const out = formatTerminal(sample(), { useColor: false, verbose: true });
-    const savingsIdx = out.indexOf("if sipcode had been on");
+    const savingsIdx = out.indexOf("RECOVERABLE");
     const totalsIdx = out.indexOf("totals:");
     expect(savingsIdx).toBeGreaterThan(-1);
     expect(totalsIdx).toBeGreaterThan(-1);

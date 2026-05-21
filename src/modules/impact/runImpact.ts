@@ -180,6 +180,20 @@ function fmtTokensCompact(n: number): string {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
+function renderHeadlineNoMarker(allTime: ImpactBucket): string {
+  if (allTime.sessionCount === 0) {
+    return "no install marker found AND no sessions on disk yet — run `claude` in a project to create some, then `sipcode rules --install` to start measuring.";
+  }
+  const tokens = fmtTokensCompact(allTime.totalTokens);
+  const dollars = allTime.estCostUSD.toFixed(2);
+  return (
+    `found ${allTime.sessionCount} sessions across all time `
+    + `(${tokens} tokens, $${dollars} total) — `
+    + `but no install marker, so no before/after split is possible. `
+    + `Run \`sipcode rules --install\` in your project, or pass since=YYYY-MM-DD, to enable a real comparison.`
+  );
+}
+
 function renderHeadline(
   status: ImpactStatus,
   delta: ImpactDelta,
@@ -269,6 +283,9 @@ export function runImpact(input: RunImpactInput): ImpactReport {
     const empty = emptyBucket(earliestIso, latestIso);
     const status: ImpactStatus = "no-install-marker";
     const computedDelta = computeDelta(empty, empty);
+    // Populate allTime so the user sees their actual session count — closes
+    // the "0 sessions" confusion from the user-test playbook results.
+    const allTime = summarize(earliestIso, latestIso, sortedByStart);
     return {
       schemaVersion: SCHEMA_VERSION,
       status,
@@ -278,7 +295,8 @@ export function runImpact(input: RunImpactInput): ImpactReport {
       after: empty,
       delta: null, // gated — see types.ts contract
       warningReason: "no-install-marker",
-      headline: renderHeadline(status, computedDelta, empty, empty, "no-install-marker"),
+      allTime,
+      headline: renderHeadlineNoMarker(allTime),
       notes: noteFor(status),
     };
   }
@@ -313,6 +331,8 @@ export function runImpact(input: RunImpactInput): ImpactReport {
     // from windows that aren't comparable.
     delta: status === "measured" ? computedDelta : null,
     warningReason,
+    // allTime is only populated in the no-install-marker case (above).
+    allTime: null,
     headline: renderHeadline(status, computedDelta, beforeBucket, afterBucket, warningReason),
     notes: noteFor(status),
   };

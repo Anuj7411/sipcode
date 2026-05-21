@@ -37,11 +37,14 @@ export function formatTerminal(
   );
   lines.push("");
 
-  // Savings (LEAD with this).
+  // Savings (LEAD with this). Wording is deliberate: "estimated POTENTIAL"
+  // not "saved" — this is what Sipcode would have recovered IF the
+  // optimizers had been active. Realized savings only show up after
+  // `sipcode rules --install` + a few new sessions, then `sipcode impact`.
   const saved = report.estimatedSavings.totalTokens;
   lines.push(
     c.bold(
-      `if sipcode had been on, you could have saved ~${formatNum(saved)} tokens this session.`,
+      `sipcode estimates ~${formatNum(saved)} tokens were RECOVERABLE this session — potential, not yet realized. (Run \`sipcode rules --install\` to start capturing this for real, then \`sipcode impact\` to measure.)`,
     ),
   );
   const b = report.estimatedSavings.breakdown;

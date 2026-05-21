@@ -46,6 +46,49 @@ describe("runImpact", () => {
     expect(report.installedAtIso).toBeNull();
   });
 
+  it("populates allTime with full session count when no marker exists [user-test-playbook regression guard]", () => {
+    // User-test playbook surfaced the bug: tool returned 0/0/0 for both
+    // before and after windows when the user had 660 sessions on disk.
+    // Confusing because list_recent_sessions clearly found those sessions.
+    // Fix: allTime is non-null and shows the real totals.
+    const sessions = [
+      mkSession({ startedAt: "2026-04-01T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+      mkSession({ startedAt: "2026-04-15T00:00:00.000Z", totalTokens: 200_000, estCostUSD: 3.0 }),
+      mkSession({ startedAt: "2026-05-10T00:00:00.000Z", totalTokens: 50_000, estCostUSD: 0.5 }),
+    ];
+    const report = runImpact({
+      sessions,
+      installedAtIso: null,
+      markerSource: "none",
+      nowIso: "2026-05-22T00:00:00.000Z",
+    });
+    expect(report.status).toBe("no-install-marker");
+    expect(report.allTime).not.toBeNull();
+    expect(report.allTime?.sessionCount).toBe(3);
+    expect(report.allTime?.totalTokens).toBe(350_000);
+    expect(report.allTime?.estCostUSD).toBeCloseTo(4.5, 2);
+    expect(report.headline).toMatch(/found 3 sessions/);
+    expect(report.headline).toMatch(/no install marker/);
+    // delta still null — the contract is preserved.
+    expect(report.delta).toBeNull();
+  });
+
+  it("allTime is null when status is 'measured' (only populated in no-marker case)", () => {
+    const report = runImpact({
+      sessions: [
+        mkSession({ startedAt: "2026-04-01T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-04-15T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
+        mkSession({ startedAt: "2026-05-10T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
+        mkSession({ startedAt: "2026-05-15T00:00:00.000Z", totalTokens: 25_000, estCostUSD: 0.25 }),
+      ],
+      installedAtIso: "2026-05-01T00:00:00.000Z",
+      markerSource: "install-state.json (rules)",
+      nowIso: "2026-05-22T00:00:00.000Z",
+    });
+    expect(report.status).toBe("measured");
+    expect(report.allTime).toBeNull();
+  });
+
   it("returns 'insufficient-post-data' when install was less than minPostDays ago", () => {
     const now = "2026-05-22T00:00:00.000Z";
     const yesterday = "2026-05-21T00:00:00.000Z";
