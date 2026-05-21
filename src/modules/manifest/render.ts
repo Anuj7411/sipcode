@@ -36,6 +36,13 @@ export interface RenderOptions {
    * Roughly halves the file tree section size.
    */
   readonly compactFileTree?: boolean;
+  /**
+   * Tightening step: when true, render the file tree as directories
+   * only (no individual files listed). Catastrophically smaller than
+   * compact mode on medium+ repos. Used by --tighten as a fallback
+   * before dropping the section entirely. Introduced v1.1.1.
+   */
+  readonly directoryTreeOnly?: boolean;
 }
 
 const DEFAULT_SECTIONS: ReadonlyArray<ManifestSection> = [
@@ -67,7 +74,7 @@ export function renderManifest(
         break;
       case "fileTree":
         parts.push(
-          renderFileTree(inputs.files, inputs.parsed, opts.compactFileTree ?? false),
+          renderFileTree(inputs.files, inputs.parsed, opts.compactFileTree ?? false, opts.directoryTreeOnly ?? false),
         );
         break;
       case "hotFiles":
@@ -153,6 +160,7 @@ function renderFileTree(
   scanned: ReadonlyArray<ScannedFile>,
   parsed: ReadonlyArray<ParsedFile>,
   compact: boolean,
+  directoryOnly: boolean,
 ): string {
   const purposes = new Map<string, string>();
   for (const p of parsed) purposes.set(p.path, p.purpose);
@@ -165,6 +173,21 @@ function renderFileTree(
 
   const lines: string[] = ["## File tree", ""];
   const tree = groupByDir(filtered);
+  // directoryOnly: render only directory headings + counts, no files.
+  if (directoryOnly) {
+    const dirsOnly = [...tree.keys()].sort();
+    for (const dir of dirsOnly) {
+      if (dir === "") {
+        const rootCount = (tree.get("") ?? []).length;
+        if (rootCount > 0) lines.push("- `./` (" + rootCount + " file(s) at repo root)");
+      } else {
+        const dirCount = (tree.get(dir) ?? []).length;
+        lines.push("- `" + dir + "/` (" + dirCount + " file(s))");
+      }
+    }
+    lines.push("");
+    return lines.join("\n");
+  }
   // Render in alphabetical order, dir-first.
   const dirs = [...tree.keys()].sort();
   for (const dir of dirs) {

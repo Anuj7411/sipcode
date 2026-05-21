@@ -83,15 +83,58 @@ export function renderWithBudget(
     return ok({ rendered, sectionsUsed: sections, tightened: true, warnings });
   }
 
-  // Tighten step 2+: drop sections in order, retry (also keep tree compact).
+  // Tighten step 2: try directory-only mode for the file tree first.
+  // Preserves the directory shape (most useful summary) when individual
+  // files won't fit. Introduced v1.1.1 — fixes the over-aggressive
+  // tighten that was stripping the file tree entirely on 250+-file repos.
+  rendered = renderManifest(inputs, {
+    sections,
+    compactFileTree: true,
+    directoryTreeOnly: true,
+  });
+  if (rendered.tokenCount <= budget) {
+    warnings.push(
+      issue(
+        "E001",
+        `manifest tightened to fit ${budget}-token budget (was ${originalTokens}, now ${rendered.tokenCount}); file tree shown as directories only`,
+      ),
+    );
+    return ok({ rendered, sectionsUsed: sections, tightened: true, warnings });
+  }
+
+  // Tighten step 2: from here on, ALSO render file tree as directory-only
+  // (dirs + counts, no individual files). For 250+ file repos, the file
+  // tree dominates token cost — this fits the budget while still giving
+  // the agent the directory shape. Introduced v1.1.1.
+  rendered = renderManifest(inputs, {
+    sections,
+    compactFileTree: true,
+    directoryTreeOnly: true,
+  });
+  if (rendered.tokenCount <= budget) {
+    warnings.push(
+      issue(
+        "E001",
+        `manifest tightened to fit ${budget}-token budget (was ${originalTokens}, now ${rendered.tokenCount}); file tree shown as directories only`,
+      ),
+    );
+    return ok({ rendered, sectionsUsed: sections, tightened: true, warnings });
+  }
+
+  // Tighten step 3+: still over budget — drop sections in order, retaining
+  // the directory-only file tree.
   for (const drop of TIGHTEN_DROP_ORDER) {
     sections = sections.filter((s) => s !== drop);
-    rendered = renderManifest(inputs, { sections, compactFileTree: true });
+    rendered = renderManifest(inputs, {
+      sections,
+      compactFileTree: true,
+      directoryTreeOnly: true,
+    });
     if (rendered.tokenCount <= budget) {
       warnings.push(
         issue(
           "E001",
-          `manifest tightened to fit ${budget}-token budget (was ${originalTokens}, now ${rendered.tokenCount}); compacted file tree and dropped sections beyond '${drop}'`,
+          `manifest tightened to fit ${budget}-token budget (was ${originalTokens}, now ${rendered.tokenCount}); compacted file tree (directories only), dropped sections beyond '${drop}'`,
         ),
       );
       return ok({
