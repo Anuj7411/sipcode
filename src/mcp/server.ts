@@ -93,6 +93,23 @@ function fail(message: string): CallToolResult {
 
 // ---- Tool implementations ----
 
+async function toolGetSipcodeInfo(): Promise<CallToolResult> {
+  const lines = [
+    `Sipcode v${SERVER_VERSION}`,
+    `MCP server: ${SERVER_NAME}`,
+    `Node: ${process.version}`,
+    `Platform: ${process.platform}-${process.arch}`,
+    `Tools registered: ${TOOL_DEFS.length}`,
+    "",
+    "Available tools:",
+    ...TOOL_DEFS.map((t) => `  • ${t.name}`),
+    "",
+    "Update with: npm install -g sipcode@latest",
+    "Source: https://github.com/Anuj7411/sipcode",
+  ];
+  return ok(lines.join("\n"));
+}
+
 async function toolListRecentSessions(limit: number): Promise<CallToolResult> {
   const fs = new RealFileSystem();
   const env = new RealProcessEnv();
@@ -223,6 +240,16 @@ async function toolEstimateTaskCost(opts: {
 
 const TOOL_DEFS = [
   {
+    name: "get_sipcode_info",
+    description:
+      "Return the installed Sipcode version, the list of registered MCP tools, the Node runtime version, and the host platform. Use this whenever the user asks 'what version of sipcode is installed?', 'what sipcode tools do you have?', or 'is sipcode working?'. Takes no arguments.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    schema: z.object({}),
+  },
+  {
     name: "list_recent_sessions",
     description:
       "List the user's most recent Claude Code sessions from ~/.claude/projects, sorted newest first. Returns session id, timestamp, project hash, and file size for each. Use this when the user wants to see what sessions they have available, OR before calling audit_latest_session with a specific id.",
@@ -345,6 +372,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
   try {
     switch (name) {
+      case "get_sipcode_info": {
+        return await toolGetSipcodeInfo();
+      }
       case "list_recent_sessions": {
         const limit = (args["limit"] as number | undefined) ?? 10;
         return await toolListRecentSessions(limit);

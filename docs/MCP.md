@@ -77,7 +77,13 @@ Claude will discover the `estimate_task_cost` tool, call it with your task descr
 
 ## What the MCP server exposes
 
-Four tools, all backed by Sipcode's existing zero-LLM analyzers:
+Five tools, all backed by Sipcode's existing zero-LLM analyzers:
+
+### `get_sipcode_info`
+
+Returns the installed Sipcode version, the full list of registered MCP tools, the Node runtime version, and the host platform. No arguments.
+
+**When Claude uses it:** when you ask "what version of sipcode is installed?", "what tools do you have from sipcode?", or "is sipcode working?". The fastest sanity check that the MCP server is wired up correctly.
 
 ### `list_recent_sessions`
 
@@ -144,7 +150,7 @@ The MCP server is a standard MCP stdio server. It works with:
 
 ### "Tool not found" / "MCP server failed to start"
 
-Check that you can run `npx -y sipcode-mcp` from your terminal directly. If it prints `[sipcode-mcp] connected (sipcode v1.1.0, 4 tools)` and then waits for input, the server is healthy. Press `Ctrl+C` to exit.
+Check that you can run `sipcode-mcp` from your terminal directly (after `npm install -g sipcode`). If it prints `[sipcode-mcp] connected (sipcode vX.Y.Z, 5 tools)` and then waits for input, the server is healthy. Press `Ctrl+C` to exit.
 
 If `npx sipcode-mcp` fails: confirm `npm install -g sipcode` succeeded with `sipcode --version` showing `1.1.0` or later.
 

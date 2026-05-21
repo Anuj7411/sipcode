@@ -322,7 +322,9 @@ If the file already has other MCP servers, add `"sipcode"` as a sibling key insi
 What MCP tools do you have from sipcode?
 ```
 
-Claude should list 4 tools: `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`.
+Claude should list 5 tools: `get_sipcode_info`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`.
+
+> **Quick self-check:** once it's installed, ask Claude *"what version of sipcode is installed?"* — Claude will call `get_sipcode_info` and return the exact installed version, your Node version, the host platform, and the full tool list. The fastest way to confirm everything wired up correctly.
 
 ### 4 prompts to verify it's working end-to-end
 
@@ -383,7 +385,7 @@ Trust matters. Here's what changes (and what doesn't) when you install Sipcode.
 | `sipcode why`, `stats`, `receipt`, `score`, `estimate`, `benchmark` | **🟢 Zero effect.** Read-only on your local transcripts. Claude Code behaves identically with or without these. |
 | `sipcode manifest` (no `--inject`) | **🟢 Zero effect.** Writes only to `.sipcode/manifest.md` — Claude Code doesn't auto-read this. |
 | `sipcode init`, `rules --install`, `hygiene --install` | **🟡 Explicit, transparent modifications.** Adds clearly-marked sipcode blocks to your `CLAUDE.md` and (for hygiene) hooks to `~/.claude/settings.json`. Fully reversible with `--uninstall`. |
-| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 4 tools — which only happens when you ask a question Claude thinks the tool can help with. |
+| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 5 tools — which only happens when you ask a question Claude thinks the tool can help with. |
 | Anything else | Doesn't exist. There's no background daemon, no telemetry, no auto-updater, no network call. |
 
 **Bottom line:** read-only commands change nothing about Claude. Modification commands always require an explicit `--install` flag and are 100% reversible. Privacy guard test ([`tests/privacy/no-network.test.ts`](tests/privacy/no-network.test.ts)) asserts there are zero `node:http/https/net/dns` imports in any core path — fails CI if anyone ever tries to add one.
