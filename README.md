@@ -165,6 +165,35 @@ Writes a standalone HTML and a **1200×630 PNG** to `.sipcode/receipts/<id>/`, c
 
 ---
 
+## NEW in v1.1 — Sipcode inside Claude desktop chat (MCP server)
+
+```json
+// add to claude_desktop_config.json
+{
+  "mcpServers": {
+    "sipcode": {
+      "command": "npx",
+      "args": ["-y", "sipcode-mcp"]
+    }
+  }
+}
+```
+
+Restart Claude desktop. Now in any chat, you can ask:
+
+> **"How expensive would it be to refactor my auth pipeline?"**
+> *(Claude calls Sipcode's `estimate_task_cost` tool → returns a real cost band)*
+
+> **"Where did my tokens go in yesterday's session?"**
+> *(Claude calls `audit_latest_session` → returns the same forensic report `sipcode why` gives)*
+
+> **"Read my project manifest before exploring."**
+> *(Claude calls `get_project_manifest` → gets the <2k-token map instead of grepping)*
+
+**Sipcode is the first token-optimization tool that lives inside the Anthropic chat experience itself.** Works in Claude desktop, Claude Code, Cursor, Continue, and any MCP-aware client. Full setup + tool reference: [docs/MCP.md](docs/MCP.md).
+
+---
+
 ## The killer numbers (all sourced)
 
 | Number | Meaning | Source |
