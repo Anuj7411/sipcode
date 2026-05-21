@@ -374,6 +374,48 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 });
 
 // ---- Boot ----
+//
+// Process-level safety nets. The MCP server runs as a long-lived stdio
+// child of Claude Desktop. A SINGLE unhandled error here surfaces to
+// the user as "MCP sipcode: Server disconnected" — the exact failure
+// shape that triggered the v1.1.3–v1.1.5 bug streak. Belt + suspenders:
+//   • uncaughtException / unhandledRejection — log + exit non-zero so
+//     Claude Desktop's auto-restart kicks in (vs. silent zombie).
+//   • SIGINT / SIGTERM — clean exit 0 so the parent shutdown is graceful.
+//   • stdin 'end' — parent closed the pipe; nothing to serve. Exit 0.
+
+function logFatal(scope: string, err: unknown): void {
+  const msg = err instanceof Error ? (err.stack ?? err.message) : String(err);
+  // stdout is the MCP JSON-RPC channel — log to stderr only.
+  process.stderr.write(`[sipcode-mcp] ${scope}: ${msg}\n`);
+}
+
+process.on("uncaughtException", (err) => {
+  logFatal("uncaughtException", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  logFatal("unhandledRejection", reason);
+  process.exit(1);
+});
+
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+  process.on(sig, () => {
+    process.stderr.write(`[sipcode-mcp] received ${sig}, shutting down\n`);
+    process.exit(0);
+  });
+}
+
+// Parent died / disconnected the stdio pipe — we have no work left.
+process.stdin.on("end", () => {
+  process.stderr.write(`[sipcode-mcp] stdin closed, shutting down\n`);
+  process.exit(0);
+});
+process.stdin.on("error", (err) => {
+  logFatal("stdin error", err);
+  process.exit(1);
+});
 
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
@@ -385,8 +427,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  process.stderr.write(
-    `[sipcode-mcp] fatal: ${err instanceof Error ? err.message : String(err)}\n`,
-  );
+  logFatal("fatal during boot", err);
   process.exit(1);
 });

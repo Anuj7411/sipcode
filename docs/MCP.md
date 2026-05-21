@@ -10,7 +10,7 @@ This means: when you're chatting with Claude in the desktop app and you ask *"ho
 
 ## Quick setup (Claude desktop app)
 
-### 1. Install Sipcode globally if you haven't:
+### 1. Install Sipcode globally (same command on every OS):
 
 ```bash
 npm install -g sipcode
@@ -24,22 +24,48 @@ npm install -g sipcode
 | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
 | Linux | `~/.config/Claude/claude_desktop_config.json` |
 
-### 3. Add the Sipcode MCP server:
+### 3. Add the Sipcode MCP server. Pick the snippet for your OS:
+
+**🪟 Windows:**
 
 ```json
 {
   "mcpServers": {
     "sipcode": {
-      "command": "npx",
-      "args": ["-y", "-p", "sipcode", "sipcode-mcp"]
+      "command": "cmd",
+      "args": ["/c", "sipcode-mcp"]
     }
   }
 }
 ```
 
+**🍎 macOS / 🐧 Linux:**
+
+```json
+{
+  "mcpServers": {
+    "sipcode": {
+      "command": "sipcode-mcp"
+    }
+  }
+}
+```
+
+> Why the difference: on Windows, `npm install -g` registers `sipcode-mcp` as a `.cmd` batch shim. Claude Desktop can't launch `.cmd` files directly, so the `cmd /c` wrapper is required. macOS and Linux register `sipcode-mcp` as a real executable.
+
 If the file already has other MCP servers, add `"sipcode"` as a sibling key inside `mcpServers`. Don't replace the whole file.
 
-### 4. Restart Claude desktop.
+### 4. Fully quit and reopen Claude Desktop.
+
+On Windows that means system tray → right-click Claude → **Quit** (closing the window keeps the app running). On macOS press ⌘ + Q. On Linux quit from the application menu.
+
+### 5. Updates work the same way on every OS:
+
+```bash
+npm install -g sipcode@latest
+```
+
+There's no auto-updater — every platform updates with the same explicit command. The MCP config never needs to be re-pasted; Claude Desktop asks the server "what tools do you have?" on every reconnect, so new tools just appear.
 
 That's it. Open any chat and ask:
 

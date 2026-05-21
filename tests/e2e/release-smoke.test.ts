@@ -38,6 +38,24 @@ import { tmpdir, platform } from "node:os";
 import path from "node:path";
 
 const IS_WINDOWS = platform() === "win32";
+// Bypass `.cmd` shims entirely. Three reasons:
+//   1. DEP0190 — `spawn(cmd, [args], { shell: true })` is deprecated in
+//      Node 22 and will hard-error in a future major. The old workaround
+//      (`shell: IS_WINDOWS`) is the deprecated path.
+//   2. `spawnSync('npm.cmd', [...], { shell: false })` returns EINVAL on
+//      Windows — Node can't natively launch .cmd batch shims.
+//   3. Direct `node + script.js` is faster (no cmd.exe startup) and
+//      identical on every platform — better test signal.
+// `process.execPath` is the absolute path to the Node binary currently
+// running the test. npm ships in a deterministic location relative to it.
+const NPM_CLI_JS = path.join(
+  path.dirname(process.execPath),
+  ...(IS_WINDOWS ? [] : ["..", "lib"]),
+  "node_modules",
+  "npm",
+  "bin",
+  "npm-cli.js",
+);
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const PKG_JSON = JSON.parse(
   readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8"),
@@ -46,17 +64,19 @@ const EXPECTED_VERSION = PKG_JSON.version;
 
 let installDir: string;
 let tarballPath: string;
-let sipcodeBin: string;
-let sipcodeMcpBin: string;
-let pkgRoot: string; // node_modules/sipcode/
+let sipcodeBin: string;     // .cmd / symlink — existence-checked, not spawned
+let sipcodeMcpBin: string;  // .cmd / symlink — existence-checked, not spawned
+let sipcodeCliJs: string;   // direct JS entry — what we spawn (no shell)
+let sipcodeMcpJs: string;   // direct JS entry — what we spawn (no shell)
+let pkgRoot: string;        // node_modules/sipcode/
 
 beforeAll(async () => {
   // 1. npm pack — produce the exact tarball that would be published
-  const pack = spawnSync("npm", ["pack", "--silent"], {
-    cwd: REPO_ROOT,
-    encoding: "utf-8",
-    shell: IS_WINDOWS,
-  });
+  const pack = spawnSync(
+    process.execPath,
+    [NPM_CLI_JS, "pack", "--silent"],
+    { cwd: REPO_ROOT, encoding: "utf-8" },
+  );
   if (pack.status !== 0) {
     throw new Error(`npm pack failed: ${pack.stderr}`);
   }
@@ -74,12 +94,11 @@ beforeAll(async () => {
   );
 
   const install = spawnSync(
-    "npm",
-    ["install", "--no-save", "--no-audit", "--no-fund", tarballPath],
+    process.execPath,
+    [NPM_CLI_JS, "install", "--no-save", "--no-audit", "--no-fund", tarballPath],
     {
       cwd: installDir,
       encoding: "utf-8",
-      shell: IS_WINDOWS,
     },
   );
   if (install.status !== 0) {
@@ -92,6 +111,11 @@ beforeAll(async () => {
   const binDir = path.join(installDir, "node_modules", ".bin");
   sipcodeBin = path.join(binDir, IS_WINDOWS ? "sipcode.cmd" : "sipcode");
   sipcodeMcpBin = path.join(binDir, IS_WINDOWS ? "sipcode-mcp.cmd" : "sipcode-mcp");
+  // Direct JS entry points — what `sipcode.cmd` and `sipcode-mcp.cmd`
+  // ultimately exec. We invoke these via `process.execPath` to avoid
+  // every .cmd-shim pitfall (DEP0190, EINVAL, slow cmd.exe startup).
+  sipcodeCliJs = path.join(pkgRoot, "dist", "cli.js");
+  sipcodeMcpJs = path.join(pkgRoot, "dist", "mcp", "server.js");
 }, 180_000);
 
 afterAll(() => {
@@ -139,18 +163,16 @@ describe("release smoke — tarball contents", () => {
 
 describe("release smoke — sipcode CLI binary", () => {
   it("--version returns the actual package version [hardcoded-version bug regression guard]", () => {
-    const r = spawnSync(sipcodeBin, ["--version"], {
+    const r = spawnSync(process.execPath, [sipcodeCliJs, "--version"], {
       encoding: "utf-8",
-      shell: IS_WINDOWS,
     });
     expect(r.status).toBe(0);
     expect(r.stdout.trim()).toBe(EXPECTED_VERSION);
   });
 
   it("--help lists every documented command", () => {
-    const r = spawnSync(sipcodeBin, ["--help"], {
+    const r = spawnSync(process.execPath, [sipcodeCliJs, "--help"], {
       encoding: "utf-8",
-      shell: IS_WINDOWS,
     });
     expect(r.status).toBe(0);
     for (const cmd of [
@@ -174,7 +196,7 @@ describe("release smoke — sipcode-mcp binary [THE gate for MCP bugs]", () => {
   it(
     "boots and reports the actual package version [SERVER_VERSION hardcoded bug regression guard]",
     async () => {
-      const r = await mcpHandshake(sipcodeMcpBin);
+      const r = await mcpHandshake(sipcodeMcpJs);
       expect(r.startupLog).toContain("connected");
       expect(r.startupLog).toContain(`v${EXPECTED_VERSION}`);
       expect(r.startupLog).toContain("4 tools");
@@ -185,7 +207,7 @@ describe("release smoke — sipcode-mcp binary [THE gate for MCP bugs]", () => {
   it(
     "registers exactly the 4 documented MCP tools",
     async () => {
-      const r = await mcpHandshake(sipcodeMcpBin);
+      const r = await mcpHandshake(sipcodeMcpJs);
       expect(r.toolNames.sort()).toEqual(
         [
           "audit_latest_session",
@@ -201,7 +223,7 @@ describe("release smoke — sipcode-mcp binary [THE gate for MCP bugs]", () => {
   it(
     "each tool has a description and an input schema",
     async () => {
-      const r = await mcpHandshake(sipcodeMcpBin);
+      const r = await mcpHandshake(sipcodeMcpJs);
       for (const tool of r.tools) {
         expect(typeof tool.name).toBe("string");
         expect(typeof tool.description).toBe("string");
@@ -265,13 +287,14 @@ interface HandshakeResult {
  * Spawn the MCP server binary, complete the JSON-RPC handshake, request
  * tools/list, return what we got. Kills the child after.
  */
-async function mcpHandshake(binPath: string): Promise<HandshakeResult> {
+async function mcpHandshake(serverJs: string): Promise<HandshakeResult> {
   return new Promise((resolve, reject) => {
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawn(binPath, [], {
+      // Direct `node + dist/mcp/server.js` — same code path the
+      // `.cmd` shim runs, minus the shim. DEP0190-free, cross-platform.
+      child = spawn(process.execPath, [serverJs], {
         stdio: ["pipe", "pipe", "pipe"],
-        shell: IS_WINDOWS,
       });
     } catch (e) {
       reject(e);

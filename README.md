@@ -8,7 +8,7 @@
 
 [![npm version](https://img.shields.io/npm/v/sipcode.svg?color=3DDC97&label=npm)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-787%20passing-success)](#)
+[![Tests](https://img.shields.io/badge/tests-808%20passing-success)](#)
 [![Benchmark](https://img.shields.io/badge/measured%20savings-62.6%25-3DDC97)](benchmark/METHODOLOGY.md)
 
 </div>
@@ -48,11 +48,87 @@ The fixes already exist as fragmented point solutions: [Caveman](https://github.
 
 ---
 
-## Installation — Step by step
+## Before & After — what Sipcode actually changes
 
-### Prerequisite: Node.js (one-time)
+This is the single comparison everything else in this README is downstream of. Every number below is reproducible from `npx sipcode benchmark`.
 
-If you've never used Node before, install it from **[nodejs.org](https://nodejs.org/)**. Click the green "LTS" button. Run the installer with all default settings. Done — works on Mac, Windows, and Linux.
+| | **Without Sipcode** | **With Sipcode** | **Reduction** |
+|---|---|---|---|
+| Tokens on a typical refactor (benchmark task BT008) | **218,500** | **42,280** | **80.6%** ↓ |
+| $ cost of that same task (Opus 4.7 pricing) | **$3.31** | **$0.64** | **$2.67 saved** |
+| Median reduction across 20 locked benchmark tasks | — | — | **62.6%** ↓ |
+| Daily Claude Code spend per developer (Anthropic baseline) | **$13.00** | **$4.86** | **$8.14/day** |
+| Annual spend, 10-developer team | **~$47,450** | **~$17,749** | **~$29,700/yr** |
+| Cursor on identical tasks ([Sitepoint 2026](https://www.sitepoint.com/claude-code-vs-cursor-developer-benchmark-2026/)) | **5.5× more tokens** than Claude Code | — | — |
+| Output ratio in a typical Claude Code session ([dev.to study](https://dev.to/lsvishaal/i-analyzed-38-claude-code-sessions-only-06-of-tokens-were-actual-code-output-56li)) | **0.6%** is code | rest is waste — Sipcode targets it | — |
+
+Range across the corpus: **37.4% – 80.6%** savings depending on task type. Methodology, raw data, and reproduction steps: [`benchmark/METHODOLOGY.md`](benchmark/METHODOLOGY.md).
+
+> Run `npx sipcode benchmark` to verify these numbers on your own machine in under 90 seconds. No signup, no telemetry, no network calls outside fetching the corpus.
+
+---
+
+## Install — pick how you'll use Sipcode
+
+There are **two ways** to run Sipcode. They install the same package and you can use either or both — most users start with the CLI, then add the Claude Desktop integration once they see the receipts.
+
+<table>
+<tr>
+<th width="50%">🖥️ Track 1 — CLI (terminal)</th>
+<th width="50%">💬 Track 2 — Claude Desktop (MCP server)</th>
+</tr>
+<tr>
+<td valign="top">
+
+Run `sipcode why`, `sipcode benchmark`, `sipcode receipt`, etc. directly from your terminal. Read-only, fast, scriptable, no signup.
+
+**Best if you:**
+- Already work in the terminal
+- Want to script audits into CI
+- Want to share PNG receipts in PRs
+- Use Claude Code (the CLI agent)
+
+**One-liner:**
+
+```bash
+npx sipcode why
+```
+
+Done. Output reads your local `.jsonl` transcripts and shows where your tokens went. No install needed.
+
+[**→ Track 1 full walkthrough**](#track-1--cli-full-setup)
+
+</td>
+<td valign="top">
+
+Sipcode tools appear **inside the Anthropic Claude Desktop chat**. Ask Claude *"audit my last session"* and it calls Sipcode live in the conversation.
+
+**Best if you:**
+- Live inside the Claude Desktop app
+- Want token analytics in chat
+- Use multiple MCP-aware clients (Cursor, Continue, etc.)
+
+**One-liner:**
+
+```bash
+npm install -g sipcode
+```
+
+Then add 4 lines to your Claude Desktop config (Windows / Mac / Linux snippets below) and restart the app.
+
+[**→ Track 2 full walkthrough**](#track-2--claude-desktop-mcp-server-full-setup)
+
+</td>
+</tr>
+</table>
+
+> **Both tracks share the same `sipcode` package and the same update command** (`npm install -g sipcode@latest`). No platform is privileged — every OS gets the same install command and the same update command.
+
+---
+
+### Prerequisite for both tracks: Node.js (one-time)
+
+If you've never used Node before, install it from **[nodejs.org](https://nodejs.org/)**. Click the green "LTS" button. Run the installer with all default settings. Works on Mac, Windows, and Linux.
 
 To check it worked, open your terminal and run:
 
@@ -67,11 +143,15 @@ If you see something like `v20.11.0` or higher, you're good.
 > **Windows:** Press the Windows key, type "Command Prompt" or "PowerShell", press Enter.
 > **Linux:** You already know.
 
-### Install Sipcode — two paths
+---
 
-**Path A (recommended) — always-fresh `npx`:**
+## Track 1 — CLI (full setup)
 
-Don't install. Just run commands with `npx` and they auto-fetch the latest version every time:
+The CLI runs from your terminal. There are two install options — they give you **identical functionality**; pick whichever fits your habits.
+
+### Option 1A (recommended) — always-fresh `npx`
+
+Don't install anything. Just run commands with `npx` and they auto-fetch the latest version every time:
 
 ```bash
 npx sipcode why          # see where your last session burned tokens
@@ -82,7 +162,7 @@ npx sipcode init         # set up Sipcode in any project
 **Pros:** zero install, always on the latest version, no manual updates ever.
 **Cons:** ~2-3 second delay on the first run per day (npx network resolve).
 
-**Path B — global install (faster startup, manual updates):**
+### Option 1B — global install (faster startup)
 
 ```bash
 npm install -g sipcode
@@ -92,7 +172,7 @@ sipcode --version        # verify
 **Pros:** instant CLI startup, works offline after install.
 **Cons:** version is frozen — you need to run `npm install -g sipcode@latest` periodically (~once a month) to stay current.
 
-**Both paths give you identical functionality.** Path A is the typical npm tool pattern (similar to `npx create-react-app`); Path B is what you'd do for a tool you use 50 times a day.
+**Which one should you pick?** `npx` if you'll use Sipcode a few times a week. Global install if you'll use it 50+ times a day.
 
 ---
 
@@ -169,24 +249,35 @@ Writes a standalone HTML and a **1200×630 PNG** to `.sipcode/receipts/<id>/`, c
 
 ---
 
-## NEW in v1.1 — Sipcode inside Claude Desktop chat (MCP server)
+## Track 2 — Claude Desktop (MCP server, full setup)
 
-> Run Sipcode tools live inside the Anthropic Claude Desktop app. Ask Claude *"audit my last session"* and it calls Sipcode in the chat.
+> **NEW in v1.1.** Run Sipcode tools live inside the Anthropic Claude Desktop app. Ask Claude *"audit my last session"* and it calls Sipcode in the chat — same forensic output you'd get from `sipcode why` in the terminal, but right there in the conversation.
 
-### 🪟 Windows install (verified end-to-end)
+### Install — same first step on every OS
 
-```powershell
-# 1. Install Sipcode (one-time)
+**Step 1 — Install Sipcode.** Identical on every OS:
+
+```bash
 npm install -g sipcode
+```
 
-# 2. Verify the MCP binary works (you should see "[sipcode-mcp] connected")
+**Step 2 — Verify the MCP binary boots.** You should see `[sipcode-mcp] connected (...)`:
+
+```bash
 sipcode-mcp        # Ctrl+C to exit after the connected line prints
 ```
 
-Then in Claude Desktop:
+**Step 3 — Open Claude Desktop's config:** click **☰ menu → Settings → Developer → Edit Config**, or open the file directly:
 
-3. Click **☰ menu → Settings → Developer → Edit Config**
-4. Paste this exact JSON (or add `"sipcode"` to your existing `mcpServers`):
+| Your OS | Config file path |
+|---|---|
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+**Step 4 — Paste the Sipcode entry into `mcpServers`.** Use the snippet that matches your OS:
+
+<details open><summary><b>🪟 Windows</b></summary>
 
 ```json
 {
@@ -199,35 +290,39 @@ Then in Claude Desktop:
 }
 ```
 
-> **⚠️ Critical Windows-only detail:** the `"command": "cmd"` with `["/c", ...]` wrapper is required. Without it, Claude Desktop registers the server but fails to launch it. macOS/Linux users use `"command": "npx"` directly — Windows must use `cmd /c`.
+</details>
 
-5. **Fully quit Claude Desktop:** system tray (bottom-right) → right-click Claude icon → **Quit**. Closing the window is not enough — the app keeps running in the tray.
-6. Reopen Claude Desktop. Open a new chat. Ask:
-
-```
-What MCP tools do you have from sipcode?
-```
-
-You should see Claude list the four tools: `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`.
-
-### 🍎 macOS / 🐧 Linux install
-
-Same as above, except in step 4 use:
+<details><summary><b>🍎 macOS / 🐧 Linux</b></summary>
 
 ```json
 {
   "mcpServers": {
     "sipcode": {
-      "command": "npx",
-      "args": ["-y", "-p", "sipcode", "sipcode-mcp"]
+      "command": "sipcode-mcp"
     }
   }
 }
 ```
 
-The config file lives at:
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux:** `~/.config/Claude/claude_desktop_config.json`
+</details>
+
+> **Why Windows has an extra `cmd /c` line:** `npm install -g` registers `sipcode-mcp` as `sipcode-mcp.cmd` on Windows (a batch shim). Claude Desktop's process launcher can't invoke `.cmd` files directly, so the `cmd /c` wrapper is required. On macOS and Linux, `sipcode-mcp` is a real executable, so no wrapper is needed. **This is a Windows shell quirk — not a Sipcode limitation, and both platforms have the same update story (see below).**
+
+If the file already has other MCP servers, add `"sipcode"` as a sibling key inside the existing `"mcpServers": {}` object. Don't replace the whole file.
+
+**Step 5 — Fully quit Claude Desktop, then reopen it.**
+
+- **Windows:** system tray (bottom-right) → right-click the Claude icon → **Quit**. Closing the window is not enough — the app keeps running in the tray.
+- **macOS:** ⌘ + Q from the menu bar.
+- **Linux:** quit from the application's File menu or `kill` the process.
+
+**Step 6 — Verify it's working.** Open a new chat in Claude Desktop and ask:
+
+```
+What MCP tools do you have from sipcode?
+```
+
+Claude should list 4 tools: `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`.
 
 ### 4 prompts to verify it's working end-to-end
 
@@ -257,32 +352,25 @@ If all four return real data — Sipcode is live in your Claude Desktop. Full se
 
 ---
 
-### 🔄 Updates — how to stay on the latest version
-
-How updates reach you depends on which install path you used:
-
-**Path A — global install + direct binary in config (recommended for reliability):**
-
-You used `npm install -g sipcode` and your Claude Desktop config calls `sipcode-mcp` directly. To update:
+### 🔄 Updates — one command, same on every OS
 
 ```bash
 npm install -g sipcode@latest
 ```
 
-Run this monthly (or whenever you notice a new release). **Pros:** instant Claude Desktop startup, no surprises. **Cons:** manual updates.
+That's the entire update story. **Windows, macOS, and Linux all use the same command.** There is no auto-updater, no background daemon, no telemetry call — Sipcode is local-first and zero-telemetry, so it will never silently update itself. You run the command when you want a newer version.
 
-**Path B — pure npx in config (slower startup, automatic eventual updates):**
+**You don't need to re-paste the MCP config when updating.** Claude Desktop asks the server "what tools do you have?" on every connect, so new Sipcode tools appear automatically the next time you restart the app.
 
-You used `"args": ["-y", "-p", "sipcode", "sipcode-mcp"]` in your config. npx caches the `sipcode` package and refreshes it periodically. Updates happen automatically within a few days of a release.
+**How often should I update?** Whenever you want. There's no urgency unless a security advisory is published — and if one is, it'll be pinned at the top of this README and announced on the [Releases page](https://github.com/Anuj7411/sipcode/releases). Monthly is a reasonable cadence for active users.
 
-**The config never needs re-pasting** — even when Sipcode adds new MCP tools. Claude Desktop asks the server "what tools do you have?" every time it connects, so new tools just appear.
+**Check your installed version:**
 
-| Setup | Update story |
-|---|---|
-| `npm install -g sipcode` + config `"command": "cmd", "args": ["/c", "sipcode-mcp"]` | **Reliable + fast.** Run `npm install -g sipcode@latest` monthly. Claude Desktop startup is instant. |
-| No install + config `"command": "cmd", "args": ["/c", "npx", "-y", "-p", "sipcode", "sipcode-mcp"]` | **Zero install + eventual auto-update.** npx caches the package and refreshes within days of a new release. First-run startup is slower (~15s). |
+```bash
+sipcode --version
+```
 
-**For the CLI** (`sipcode why`, `sipcode benchmark`, etc., in your terminal): use `npx sipcode <cmd>` for always-fresh one-off runs, or `npm install -g sipcode@latest` if you installed globally.
+**For the CLI side** (`sipcode why`, `sipcode benchmark`, etc., in your terminal): you can skip installing entirely and use `npx sipcode <cmd>` — npx fetches the latest version on each run. Use `npm install -g sipcode` if you prefer instant startup. Both paths give identical functionality.
 
 ---
 
@@ -300,34 +388,7 @@ Trust matters. Here's what changes (and what doesn't) when you install Sipcode.
 
 **Bottom line:** read-only commands change nothing about Claude. Modification commands always require an explicit `--install` flag and are 100% reversible. Privacy guard test ([`tests/privacy/no-network.test.ts`](tests/privacy/no-network.test.ts)) asserts there are zero `node:http/https/net/dns` imports in any core path — fails CI if anyone ever tries to add one.
 
----
-
-## (Original quick MCP overview — kept for reference)
-
-```json
-// add to claude_desktop_config.json
-{
-  "mcpServers": {
-    "sipcode": {
-      "command": "npx",
-      "args": ["-y", "sipcode-mcp"]
-    }
-  }
-}
-```
-
-Restart Claude desktop. Now in any chat, you can ask:
-
-> **"How expensive would it be to refactor my auth pipeline?"**
-> *(Claude calls Sipcode's `estimate_task_cost` tool → returns a real cost band)*
-
-> **"Where did my tokens go in yesterday's session?"**
-> *(Claude calls `audit_latest_session` → returns the same forensic report `sipcode why` gives)*
-
-> **"Read my project manifest before exploring."**
-> *(Claude calls `get_project_manifest` → gets the <2k-token map instead of grepping)*
-
-**Sipcode is the first token-optimization tool that lives inside the Anthropic chat experience itself.** Works in Claude desktop, Claude Code, Cursor, Continue, and any MCP-aware client. Full setup + tool reference: [docs/MCP.md](docs/MCP.md).
+**Sipcode is the first token-optimization tool that lives inside the Anthropic chat experience itself.** Works in Claude Desktop, Claude Code, Cursor, Continue, and any MCP-aware client. Full setup + tool reference: [docs/MCP.md](docs/MCP.md).
 
 ---
 
