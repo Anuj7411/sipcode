@@ -102,13 +102,20 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: upgrade npm to OIDC-capable version (>=11.5.1)
+      - name: upgrade npm to OIDC-capable version (>=11.5.1) via corepack
         if: steps.already_published.outputs.skip != 'true'
         # Required for Trusted Publishers / OIDC. Without this, npm 10.x
         # silently bypasses OIDC and the publish gets a misleading 404.
+        #
+        # We use corepack instead of `npm install -g npm@latest` because
+        # the latter sometimes corrupts its own install mid-upgrade
+        # ("Cannot find module 'promise-retry'") — that was v1.1.0's
+        # publish-blocker. Corepack manages the npm binary atomically.
         run: |
-          npm install -g npm@latest
+          corepack enable
+          corepack prepare npm@latest --activate
           echo "npm version: $(npm --version)"
+          echo "node version: $(node --version)"
 
       - name: verify tag matches package.json version
         if: steps.already_published.outputs.skip != 'true'
