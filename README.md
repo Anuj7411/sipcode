@@ -67,28 +67,32 @@ If you see something like `v20.11.0` or higher, you're good.
 > **Windows:** Press the Windows key, type "Command Prompt" or "PowerShell", press Enter.
 > **Linux:** You already know.
 
-### Install Sipcode (one command)
+### Install Sipcode — two paths
 
-```bash
-npm install -g sipcode
-```
+**Path A (recommended) — always-fresh `npx`:**
 
-That's the whole install. To verify:
-
-```bash
-sipcode --version
-```
-
-You should see `1.0.0` (or whatever the latest is).
-
-### Don't want to install globally?
-
-Use `npx` for one-off runs — no install, no commitment:
+Don't install. Just run commands with `npx` and they auto-fetch the latest version every time:
 
 ```bash
 npx sipcode why          # see where your last session burned tokens
 npx sipcode benchmark    # see the measured 62.6% savings number
+npx sipcode init         # set up Sipcode in any project
 ```
+
+**Pros:** zero install, always on the latest version, no manual updates ever.
+**Cons:** ~2-3 second delay on the first run per day (npx network resolve).
+
+**Path B — global install (faster startup, manual updates):**
+
+```bash
+npm install -g sipcode
+sipcode --version        # verify
+```
+
+**Pros:** instant CLI startup, works offline after install.
+**Cons:** version is frozen — you need to run `npm install -g sipcode@latest` periodically (~once a month) to stay current.
+
+**Both paths give you identical functionality.** Path A is the typical npm tool pattern (similar to `npx create-react-app`); Path B is what you'd do for a tool you use 50 times a day.
 
 ---
 
@@ -253,9 +257,17 @@ If all four return real data — Sipcode is live in your Claude Desktop. Full se
 
 ---
 
-### 🔄 Updates — how to stay on the latest version
+### 🔄 Updates — how to stay on the latest version (TL;DR: zero work if you use `@latest`)
 
 **The config above uses `sipcode-mcp@latest`**, which means `npx` checks npm for the newest version every time you restart Claude Desktop and auto-fetches it. **Zero manual action required between releases.**
+
+**Concretely — say Anuj ships v1.2.0 next Tuesday:**
+
+| Time | What happens | What YOU do |
+|---|---|---|
+| Tuesday 2:00pm | New version pushed to npm via auto-publish | Nothing |
+| Tuesday 9:00pm | You happen to quit & reopen Claude Desktop for any reason | Nothing |
+| Tuesday 9:00pm | Claude Desktop spawns `npx sipcode-mcp@latest`; npx pulls v1.2.0 from npm; v1.2.0 starts | **You're now on v1.2.0.** You didn't open a terminal, edit a config, or click anything. |
 
 | You installed via | How updates work |
 |---|---|
