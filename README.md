@@ -189,7 +189,7 @@ Then in Claude Desktop:
   "mcpServers": {
     "sipcode": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "sipcode-mcp"]
+      "args": ["/c", "npx", "-y", "sipcode-mcp@latest"]
     }
   }
 }
@@ -215,7 +215,7 @@ Same as above, except in step 4 use:
   "mcpServers": {
     "sipcode": {
       "command": "npx",
-      "args": ["-y", "sipcode-mcp"]
+      "args": ["-y", "sipcode-mcp@latest"]
     }
   }
 }
@@ -250,6 +250,27 @@ Read my Sipcode manifest at C:\Projects\YourProject and tell me the architecture
 *Expected: Claude summarizes the architecture without grepping any source files.*
 
 If all four return real data — Sipcode is live in your Claude Desktop. Full setup guide and troubleshooting: [docs/MCP.md](docs/MCP.md).
+
+---
+
+### 🔄 Updates — how to stay on the latest version
+
+**The config above uses `sipcode-mcp@latest`**, which means `npx` checks npm for the newest version every time you restart Claude Desktop and auto-fetches it. **Zero manual action required between releases.**
+
+| You installed via | How updates work |
+|---|---|
+| Only the Claude Desktop config (no `npm install -g`) | ✅ **Auto-update.** Each Claude Desktop restart fetches the latest. Slight ~3s startup cost on the first MCP call. |
+| `npm install -g sipcode` + Claude Desktop config with `@latest` | ✅ **Auto-update.** `npx` ignores the older global install and fetches latest from npm. |
+| `npm install -g sipcode` + Claude Desktop config WITHOUT `@latest` | ⚠️ **Manual.** Run `npm install -g sipcode@latest` periodically. |
+
+You never need to re-paste the JSON config. The `mcpServers.sipcode` block in `claude_desktop_config.json` is the same for v1.1.0, v1.1.5, v2.0, v3.0 — sipcode adds tools, fixes bugs, ships new features, and your config doesn't notice. Tools auto-appear because MCP servers self-describe their tools to Claude at runtime.
+
+**For the CLI** (`sipcode why`, `sipcode benchmark`, etc., when you run them in your terminal): if you installed globally, update with:
+```bash
+npm install -g sipcode@latest
+```
+
+Or use `npx sipcode@latest why` for always-fresh one-off runs.
 
 ---
 

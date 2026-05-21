@@ -31,7 +31,7 @@ npm install -g sipcode
   "mcpServers": {
     "sipcode": {
       "command": "npx",
-      "args": ["-y", "sipcode-mcp"]
+      "args": ["-y", "sipcode-mcp@latest"]
     }
   }
 }
