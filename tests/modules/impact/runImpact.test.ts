@@ -114,7 +114,7 @@ describe("runImpact", () => {
     expect(report.delta.tokenDeltaPct).toBe(-75);
   });
 
-  it("emits a meaningful headline in the measured case", () => {
+  it("emits a meaningful headline in the measured case (tokens leading, $ secondary)", () => {
     const report = runImpact({
       sessions: [
         mkSession({ startedAt: "2026-04-01T00:00:00.000Z", totalTokens: 100_000, estCostUSD: 1.0 }),
@@ -124,8 +124,9 @@ describe("runImpact", () => {
       markerSource: "--since flag",
       nowIso: "2026-05-22T00:00:00.000Z",
     });
-    expect(report.headline).toMatch(/saving \$0\.75/);
+    expect(report.headline).toMatch(/saved 75\.0K tokens/);
     expect(report.headline).toMatch(/75\.0%/);
+    expect(report.headline).toMatch(/about \$0\.75/);
   });
 
   it("schema version is stable", () => {

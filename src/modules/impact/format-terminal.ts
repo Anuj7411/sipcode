@@ -55,6 +55,11 @@ function renderHeader(report: ImpactReport): string {
   return lines.join("\n");
 }
 
+function pct(numer: number, denom: number): number {
+  if (denom === 0) return 0;
+  return Math.round((numer / denom) * 1000) / 10;
+}
+
 function renderBucketTable(
   before: ImpactBucket,
   after: ImpactBucket,
@@ -73,6 +78,25 @@ function renderBucketTable(
         : delta.sessionCountDelta.toString(),
     ),
   );
+  // Tokens first — the canonical unit of work, $ is downstream.
+  lines.push(
+    row(
+      "total tokens",
+      fmtTokens(before.totalTokens),
+      fmtTokens(after.totalTokens),
+      `${fmtTokens(delta.tokenDeltaAbs)}  (${Math.abs(delta.tokenDeltaPct).toFixed(1)}% ${trendArrow(delta.tokenDeltaPct)})`,
+    ),
+  );
+  const avgTokenDelta = after.avgTokensPerSession - before.avgTokensPerSession;
+  const avgTokenDeltaPct = pct(avgTokenDelta, before.avgTokensPerSession);
+  lines.push(
+    row(
+      "avg tokens / session",
+      fmtTokens(before.avgTokensPerSession),
+      fmtTokens(after.avgTokensPerSession),
+      `${fmtTokens(avgTokenDelta)}  (${Math.abs(avgTokenDeltaPct).toFixed(1)}% ${trendArrow(avgTokenDeltaPct)})`,
+    ),
+  );
   lines.push(
     row(
       "total spend",
@@ -83,18 +107,10 @@ function renderBucketTable(
   );
   lines.push(
     row(
-      "avg / session",
+      "avg $ / session",
       fmtUSDPlain(before.avgCostPerSessionUSD),
       fmtUSDPlain(after.avgCostPerSessionUSD),
       `${fmtUSD(delta.avgCostPerSessionDeltaUSD)}  (${Math.abs(delta.avgCostPerSessionDeltaPct).toFixed(1)}% ${trendArrow(delta.avgCostPerSessionDeltaPct)})`,
-    ),
-  );
-  lines.push(
-    row(
-      "total tokens",
-      fmtTokens(before.totalTokens),
-      fmtTokens(after.totalTokens),
-      `${fmtTokens(delta.tokenDeltaAbs)}  (${Math.abs(delta.tokenDeltaPct).toFixed(1)}% ${trendArrow(delta.tokenDeltaPct)})`,
     ),
   );
   lines.push(

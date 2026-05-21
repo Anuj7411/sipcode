@@ -144,19 +144,28 @@ function statusFor(
   return "measured";
 }
 
+function fmtTokensCompact(n: number): string {
+  const abs = Math.abs(n);
+  if (abs < 1000) return n.toString();
+  if (abs < 1_000_000) return `${(n / 1000).toFixed(1)}K`;
+  return `${(n / 1_000_000).toFixed(2)}M`;
+}
+
 function renderHeadline(
   status: ImpactStatus,
   delta: ImpactDelta,
   before: ImpactBucket,
   after: ImpactBucket,
 ): string {
+  void before;
   switch (status) {
     case "measured": {
-      const direction = delta.costDeltaAbsUSD < 0 ? "saving" : "spending";
-      const absUSD = Math.abs(delta.costDeltaAbsUSD).toFixed(2);
-      const absPct = Math.abs(delta.costDeltaPct).toFixed(1);
-      const arrow = delta.costDeltaAbsUSD < 0 ? "↓" : "↑";
-      return `${direction} $${absUSD} (${absPct}% ${arrow}) across ${after.sessionCount} post-install sessions`;
+      const direction = delta.tokenDeltaAbs < 0 ? "saved" : "spent extra";
+      const absTokens = fmtTokensCompact(Math.abs(delta.tokenDeltaAbs));
+      const absPct = Math.abs(delta.tokenDeltaPct).toFixed(1);
+      const arrow = delta.tokenDeltaAbs < 0 ? "↓" : "↑";
+      const dollars = Math.abs(delta.costDeltaAbsUSD).toFixed(2);
+      return `${direction} ${absTokens} tokens (${absPct}% ${arrow}) — about $${dollars} — across ${after.sessionCount} post-install sessions`;
     }
     case "insufficient-post-data":
       return "not enough post-install data yet — come back after a few more sessions";
