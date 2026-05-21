@@ -375,6 +375,8 @@ That's the entire update story. **Windows, macOS, and Linux all use the same com
 sipcode --version
 ```
 
+> **Why isn't there an auto-updater?** Every option has a cost we weren't willing to pay in v1: the `npx` config pattern adds 5–15s to every Claude Desktop launch; a "check for new versions" daemon would require a network call on each boot, breaking the zero-telemetry contract that's asserted by a CI test. **True auto-update is on the v2.0 roadmap** via Anthropic's Desktop Extensions (DXT) format — when Claude Desktop manages the lifecycle of its own MCP servers, you'll get auto-update without us breaking any of the speed/privacy contracts. Until then: `npm install -g sipcode@latest` is the deal.
+
 **For the CLI side** (`sipcode why`, `sipcode benchmark`, etc., in your terminal): you can skip installing entirely and use `npx sipcode <cmd>` — npx fetches the latest version on each run. Use `npm install -g sipcode` if you prefer instant startup. Both paths give identical functionality.
 
 ---
@@ -545,6 +547,7 @@ The v1.0 wedge is complete. v2 is about depth, distribution, and ecosystem:
 | **Predictive pre-summarize** — warm cache | When the agent edits `auth.ts`, Sipcode pre-generates compressed summaries of files commonly co-edited with it (from git history). Read-Once Cache, but predictive. | 🛠️ research |
 | **`sipcode doctor`** — diagnose a slow setup | Static analyzer that scans your CLAUDE.md + .sipcode/ for misconfigurations, stale entries, missing rules. | 🛠️ planned |
 | **Fair Plan Calculator** | Given your usage, recommends the cheapest Anthropic plan that covers you. Sometimes recommends DOWNGRADING. | 🛠️ planned |
+| **DXT packaging — auto-update for the MCP server** | Repackage `sipcode-mcp` as a `.dxt` Desktop Extension. Claude Desktop manages install + updates. No more `npm install -g sipcode@latest` — Claude Desktop pulls new versions in the background. Preserves the zero-telemetry contract because the network call moves to Claude Desktop, not Sipcode. | 🛠️ planned (the answer to "why isn't sipcode auto-updating?") |
 
 ---
 
