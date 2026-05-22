@@ -3,6 +3,8 @@
 **Decision date:** 2026-05-22
 **Status:** Committed strategic path. Updated when post-launch signal arrives.
 
+> **This document is the OPERATIONAL plan for executing the North Star captured in [`docs/VISION.md`](VISION.md).** The North Star says: be the best token-saving tool for every AI coding agent, built with latest semantic technologies rather than heuristic filters. This doc is HOW we get there over the next 4 weeks vs. competitors who already hold optimizer ground.
+
 ---
 
 ## Context

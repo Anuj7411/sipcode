@@ -2,7 +2,11 @@
 
 **For the day you actually post.** Everything below is ready to copy-paste with light edits. Built around the v1.2.3 integrity contract + the **observatory positioning** (Sipcode is the audit + MCP + cost-prediction layer; RTK is the optimizer proxy layer; they pair).
 
-> **POSITIONING DECISION:** Sipcode does NOT lead with "token optimizer." That ground is held by RTK (https://github.com/rtk-ai/rtk, 52k stars) and we don't fight head-on day 1. Sipcode leads with the OBSERVATORY angle — *where did your tokens go, how much will the next task cost, is it actually saving me anything, and it lives inside Claude Desktop chat*. See `docs/COMPETITIVE-STRATEGY-RTK.md` for the full strategy + Phase A/B/C roadmap to also be the better optimizer in 3-4 weeks.
+> **POSITIONING DECISION (LAUNCH-DAY ONLY — not the long-term vision):** On launch day, Sipcode does NOT lead with "best token optimizer." That ground is held by RTK (https://github.com/rtk-ai/rtk, 52k stars) and we don't fight head-on day 1. Sipcode leads with the OBSERVATORY angle — *where did your tokens go, how much will the next task cost, is it actually saving me anything, and it lives inside Claude Desktop chat*.
+>
+> **The North Star is in [`docs/VISION.md`](VISION.md): Sipcode IS being built to be the best token-saving tool for every AI coding agent.** Multi-agent (Cursor, Codex, Gemini, Aider, ...) is the v2.0+ horizon. Phase A (parity proxy ~week 1) + Phase B (AST-aware semantic compression ~week 4) is the engineering path to "best optimizer." The OBSERVATORY framing is a LAUNCH-DAY positioning to avoid an unwinnable head-on fight, not a permanent product identity.
+>
+> When launch posts ship, do NOT say "Sipcode will never be the optimizer." Say *"Sipcode launches today as the observatory. Phase A ships the optimizer parity in a week. Phase B ships the semantic-compression leapfrog in a month. Multi-agent expansion follows."* That's the truthful framing of the journey.
 
 ---
 
