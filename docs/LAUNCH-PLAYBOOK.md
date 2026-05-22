@@ -1,8 +1,20 @@
 # Sipcode launch playbook
 
-**For the day you actually post.** Everything below is ready to copy-paste with light edits. Built around the v1.2.2 integrity contract — every claim is defensible because the tool refuses to mislead.
+**For the day you actually post.** Everything below is ready to copy-paste with light edits. Built around the v1.2.3 integrity contract + the **observatory positioning** (Sipcode is the audit + MCP + cost-prediction layer; RTK is the optimizer proxy layer; they pair).
+
+> **POSITIONING DECISION:** Sipcode does NOT lead with "token optimizer." That ground is held by RTK (https://github.com/rtk-ai/rtk, 52k stars) and we don't fight head-on day 1. Sipcode leads with the OBSERVATORY angle — *where did your tokens go, how much will the next task cost, is it actually saving me anything, and it lives inside Claude Desktop chat*. See `docs/COMPETITIVE-STRATEGY-RTK.md` for the full strategy + Phase A/B/C roadmap to also be the better optimizer in 3-4 weeks.
 
 ---
+
+## The defensible positioning (after the RTK analysis)
+
+Sipcode is the **token observatory** for Claude Code, not the optimizer:
+- **See** where your tokens died (`sipcode why`)
+- **Predict** what the next task will cost (`sipcode estimate`)
+- **Prove** whether optimizations are working on your own data (`sipcode impact`)
+- **Live in chat** — 6 MCP tools that surface all of the above inside Claude Desktop conversation
+
+RTK is the better TOKEN OPTIMIZER (60-90% savings via transparent proxy). Sipcode is the better TOKEN OBSERVATORY. **Pair them.** The README and posts should recommend stacking both.
 
 ## The two claims that survived skeptical scrutiny
 
@@ -323,6 +335,8 @@ Cheers.
 | "AI-powered" | HN downvotes vague buzzwords. Sipcode is *zero-LLM* — say that instead. |
 | "Revolutionary" / "Game-changing" | Indie launches die on hype words. |
 | "Always-fresh latest version" | We don't have auto-update yet. DXT is on the v2 roadmap. Don't overclaim. |
+| "Sipcode is the best token optimizer" | RTK (52k stars) holds that ground for now via runtime proxy. Don't fight head-on — lead with observatory + MCP wedge. Phase A (parity proxy) ships ~5 days post-launch and we'll re-pitch then. |
+| "RTK is bad / Sipcode replaces RTK" | Engineers will fact-check. They're complementary, not competing. Recommend stacking both. |
 
 ## What TO say
 
