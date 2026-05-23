@@ -19,7 +19,7 @@ function model(variant: "post-install" | "pre-install"): ReceiptModel {
       { rank: 2, title: "idle context", tokensDisplay: "3,000" },
       { rank: 3, title: "cache-creation overhead", tokensDisplay: "1,345" },
     ],
-    footer: { tagline: "sip your tokens. don't gulp them.", url: "sipcode.dev" },
+    footer: { tagline: "sip your tokens. don't gulp them.", url: "github.com/Anuj7411/sipcode" },
   };
 }
 

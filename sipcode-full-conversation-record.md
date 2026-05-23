@@ -332,7 +332,7 @@ Claude performed 6 web searches checking npm, GitHub, and broader web for name c
 **1. sipcode**
 - "Sip" implies controlled consumption. Short, memorable. `npx sipcode init` reads naturally. Zero npm/GitHub/AI-tool collision.
 - Pitch: "Sip your tokens. Don't gulp them."
-- Domain potential: sipcode.dev likely available
+- Domain potential: ~~sipcode.dev likely available~~ — **dropped 2026-05-23, no domain planned**
 - npm scope: `@sipcode/cli` or just `sipcode`
 
 **2. dripfeed**
@@ -375,7 +375,7 @@ After context compaction, the conversation continued.
 
 1. **GitHub repo:** `github.com/Anuj7411/sipcode` — create private, publish when ready
 2. **npm org:** `npmjs.com/org/sipcode` — create `@sipcode` under `anujojha18` account
-3. **Domain:** `sipcode.dev` — check availability, grab if under $15
+3. ~~**Domain:** `sipcode.dev`~~ — **dropped 2026-05-23.** GitHub repo + npm package are the canonical home; no custom domain needed.
 
 ---
 

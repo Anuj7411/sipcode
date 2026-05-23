@@ -83,7 +83,7 @@ Canonical docs:
 |---|---|---|
 | **Launch posts (Twitter / HN / Reddit r/ClaudeAI)** | Not drafted yet | Anuj kept deferring this to get engineering right first. Pending his "draft the launch posts" go-ahead. |
 | Repo go-public announcement | Repo IS public, no announcement made | Same as above |
-| Domain `sipcode.dev` | Not purchased | Decision: defer until ≥1k stars (zero need before marketing push) |
+| Custom domain | **Not purchased — and not planned.** | Decision (2026-05-23): the GitHub repo + npm package are the canonical home; a custom domain adds no value over `github.com/Anuj7411/sipcode`. Removed from roadmap entirely. |
 | Trademark verification (`Sipcode`) | Pending | Recommended quick USPTO + EUIPO TESS search before public launch |
 | v2.0 roadmap | Documented, not started | After v1.0 launch + adoption signal |
 | Browser extension for claude.ai web chat | v2.0 roadmap | Planned — would extend `audit_latest_session` to server-side conversations |

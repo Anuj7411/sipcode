@@ -131,6 +131,6 @@ describe("renderReceipt", () => {
       sessionStartedAt,
     });
     expect(model.footer.tagline).toBe("sip your tokens. don't gulp them.");
-    expect(model.footer.url).toBe("sipcode.dev");
+    expect(model.footer.url).toBe("github.com/Anuj7411/sipcode");
   });
 });

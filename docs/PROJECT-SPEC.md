@@ -125,7 +125,7 @@ After any session, `npx sipcode receipt [session-id]` produces:
 - Big number: tokens saved (or in pre-install case: tokens *wasted*).
 - Dollar equivalent at current Anthropic rates.
 - Top three optimizations that drove the savings.
-- Sipcode wordmark + `sipcode.dev` URL — designed to be embarrassing not to share.
+- Sipcode wordmark + `github.com/Anuj7411/sipcode` URL — designed to be embarrassing not to share.
 
 ---
 

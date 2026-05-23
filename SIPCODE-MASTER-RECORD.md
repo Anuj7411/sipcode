@@ -44,7 +44,7 @@ If you need one document that answers "what is Sipcode, who decided what, when, 
 | **Distribution channel (deferred)** | Web UI for non-CLI users — planned for after v1.0. |
 | **npm scope** | `@sipcode` (claimed by user this session) |
 | **GitHub repo (planned)** | `github.com/Anuj7411/sipcode` (not yet created) |
-| **Domain (planned)** | `sipcode.dev` (not yet purchased) |
+| **Custom domain** | **Dropped (2026-05-23).** GitHub repo + npm package are the canonical home. No domain planned. |
 | **License** | MIT |
 
 ---
@@ -117,7 +117,7 @@ Anuj confirmed: *"i also think sip code would be good"* — locked.
 
 1. Create GitHub repo `Anuj7411/sipcode`
 2. Create npm org `@sipcode`
-3. Buy `sipcode.dev`
+3. ~~Buy `sipcode.dev`~~ — **dropped 2026-05-23, no domain planned**
 
 (Status as of this record: npm org claimed; GitHub repo + domain still pending.)
 
@@ -506,7 +506,7 @@ Most are from PROJECT-SPEC §13; this session added rows 1, 6, and 7.
 ### 15.1 Outstanding for Anuj (can't be done by Claude)
 
 1. **Create GitHub repo** `github.com/Anuj7411/sipcode` (Private is fine for now.) Then: `git remote add origin … && git push -u origin main`.
-2. **Buy `sipcode.dev`** (target ≤ $15).
+2. ~~Buy `sipcode.dev`~~ — **dropped 2026-05-23.** GitHub repo is the canonical home; no custom domain needed.
 3. **Trademark gut-check** "Sipcode" against beverage industry — quick USPTO + EUIPO search.
 4. **~~Install gstack~~ ✓ DONE this session.** Installed at `~/.claude/skills/gstack`. Bun 1.3.11 verified. All 5 binaries compiled (browse, find-browse, design, pdf, gstack-global-discover). Node server bundled. 50+ skills now live and discoverable: `/plan-ceo-review`, `/plan-eng-review`, `/plan-devex-review`, `/plan-design-review`, `/review`, `/freeze`, `/guard`, `/careful`, `/qa`, `/ship`, `/health`, `/autoplan`, `/codex`, `/cso`, `/benchmark-models`, `/context-save` + `/context-restore`, `/investigate`, `/learn`, `/retro`, `/document-release` + `/document-generate`, etc. Reference: [garrytan/gstack](https://github.com/garrytan/gstack).
 

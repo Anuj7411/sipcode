@@ -23,7 +23,7 @@ function model(variant: "post-install" | "pre-install"): ReceiptModel {
       { rank: 2, title: "idle context", tokensDisplay: "3,000" },
       { rank: 3, title: "cache-creation overhead", tokensDisplay: "1,345" },
     ],
-    footer: { tagline: "sip your tokens. don't gulp them.", url: "sipcode.dev" },
+    footer: { tagline: "sip your tokens. don't gulp them.", url: "github.com/Anuj7411/sipcode" },
   };
 }
 
@@ -59,7 +59,7 @@ describe("formatHtml", () => {
   it("contains the locked tagline and url verbatim (post escaping)", () => {
     const html = formatHtml(model("post-install"));
     expect(html).toContain("sip your tokens. don&#39;t gulp them.");
-    expect(html).toContain("sipcode.dev");
+    expect(html).toContain("github.com/Anuj7411/sipcode");
   });
 
   it("uses lowercase hex codes (snapshot constraint)", () => {

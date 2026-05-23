@@ -1,6 +1,6 @@
 {
   "name": "sipcode",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Sip your tokens. Don't gulp them. — Unified token optimization for AI coding agents.",
   "keywords": [
     "claude-code",
@@ -11,7 +11,7 @@
     "context-window",
     "cost-reduction"
   ],
-  "homepage": "https://sipcode.dev",
+  "homepage": "https://github.com/Anuj7411/sipcode",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Anuj7411/sipcode.git"

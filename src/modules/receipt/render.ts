@@ -25,7 +25,7 @@ export interface RenderReceiptInput {
 }
 
 const TAGLINE = "sip your tokens. don't gulp them.";
-const URL = "sipcode.dev";
+const URL = "github.com/Anuj7411/sipcode";
 
 /** en-US, year-month-day. Locale-pinned so screenshots are identical across hosts. */
 const DATE_FMT = new Intl.DateTimeFormat("en-US", {

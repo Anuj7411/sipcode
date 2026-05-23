@@ -12,7 +12,7 @@ This roadmap is opinionated about *order*, not dates. Side projects ship when th
 - [x] PROJECT-SPEC, ROADMAP, AUDIT-FRAMEWORK, SESSION-HANDOFF
 - [x] README with the 0.6% wedge
 - [ ] GitHub repo `Anuj7411/sipcode` created and pushed
-- [ ] Domain `sipcode.dev` purchased
+- [x] Custom domain — **dropped** (2026-05-23). GitHub repo + npm package are the canonical home; no domain needed.
 - [ ] First CLI scaffold (`sipcode --help` works)
 
 **Exit criteria:** `npx sipcode --help` runs from a published prerelease.
@@ -58,7 +58,7 @@ The three deliverables that prove the thesis.
 - [ ] HTML receipt (default file output)
 - [ ] PNG receipt via `--png` or `--share` (skip for alpha if hard; ship HTML first)
 - [ ] Receipt design draft — Anuj reviews before locking
-- [ ] Hosting hint: `sipcode.dev/r/<short-id>` for shareable URLs (Phase 2 — local-only for v0.1)
+- [ ] Hosting hint: shareable URLs via GitHub Pages or similar (Phase 2 — local-only for v0.1; no custom domain).
 
 ### v0.1.0 — Stabilization
 
@@ -140,6 +140,6 @@ The three deliverables that prove the thesis.
 - Local LLM router (route exploration to Ollama for free)
 - `sipcode doctor` — diagnose a slow / expensive setup
 - Per-language tree-sitter expansion (Rust, Java, Kotlin, Swift, Ruby, PHP)
-- Shareable URL hosting (`sipcode.dev/r/<id>`)
+- Shareable URL hosting (GitHub Pages or similar — no custom domain needed)
 - Public REST API for receipt data
 - Self-hosted org dashboard

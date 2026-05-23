@@ -239,7 +239,7 @@ ${warnings}
 
 <footer>
 <span>sip your tokens. don't gulp them.</span>
-<a href="https://sipcode.dev">sipcode.dev</a>
+<a href="https://github.com/Anuj7411/sipcode">github.com/Anuj7411/sipcode</a>
 </footer>
 </div>
 <script>${escapeJson(TABLE_SORT_JS)}</script>

@@ -15,7 +15,7 @@ function model(variant: "post-install" | "pre-install"): ReceiptModel {
       pricingAsOf: "2026-05-01",
     },
     leaks: [],
-    footer: { tagline: "sip your tokens. don't gulp them.", url: "sipcode.dev" },
+    footer: { tagline: "sip your tokens. don't gulp them.", url: "github.com/Anuj7411/sipcode" },
   };
 }
 
