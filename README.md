@@ -70,6 +70,17 @@ Range across the corpus: **37.4% – 80.6%** savings depending on task type. Met
 
 ## Install — pick how you'll use Sipcode
 
+> **NEW in v1.3:** Sipcode is now available as a Claude Code plugin. Once Anthropic's community marketplace approval lands, you'll be able to install everything (CLI + MCP + slash commands `/sipcode:why`, `/sipcode:impact`, `/sipcode:estimate`, `/sipcode:benchmark`) with one command in Claude Code:
+>
+> ```
+> /plugin marketplace add anthropics/claude-plugins-community
+> /plugin install sipcode@claude-community
+> ```
+>
+> Currently pending review — until it's live, use the npm install path below.
+
+
+
 There are **two ways** to run Sipcode. They install the same package and you can use either or both — most users start with the CLI, then add the Claude Desktop integration once they see the receipts.
 
 <table>

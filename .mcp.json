@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "sipcode": {
+      "command": "sipcode-mcp"
+    }
+  }
+}
