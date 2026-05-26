@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "sipcode",
+  "description": "Sipcode's own marketplace — install Sipcode directly from this repository, without waiting for the official community marketplace.",
+  "owner": {
+    "name": "Anuj Ojha",
+    "email": "ojhaanuj7411@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "sipcode",
+      "displayName": "Sipcode",
+      "source": "./",
+      "description": "Token-economy observatory for Claude Code: forensic per-session audit, A/B savings verifier, reproducible benchmark, and cost prediction — directly in Claude chat. Auto-installs via npx on first use.",
+      "author": {
+        "name": "Anuj Ojha",
+        "url": "https://github.com/Anuj7411"
+      },
+      "homepage": "https://github.com/Anuj7411/sipcode",
+      "repository": "https://github.com/Anuj7411/sipcode",
+      "license": "MIT",
+      "category": "Developer Tools",
+      "tags": ["tokens", "audit", "cost", "benchmark", "mcp", "observability", "optimization"],
+      "keywords": ["claude-code", "tokens", "audit", "cost", "benchmark", "mcp", "observability", "optimization"]
+    }
+  ]
+}
