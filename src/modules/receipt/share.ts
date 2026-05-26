@@ -11,7 +11,7 @@ const TWITTER_INTENT_BASE = "https://twitter.com/intent/tweet";
 export function buildShareLinks(model: ReceiptModel): ReceiptShareLinks {
   const verb = model.variant === "post-install" ? "sipped" : "wasted";
   const tweetText =
-    `${verb} ${model.hero.tokensDisplay} tokens this session with @sipcode_dev — ` +
+    `${verb} ${model.hero.tokensDisplay} tokens this session with sipcode — ` +
     `that's ${model.hero.dollarDisplay} on the meter. ${model.footer.tagline}`;
   // URLSearchParams uses application/x-www-form-urlencoded (+ for spaces).
   // Twitter intent prefers %20 encoding; build manually with encodeURIComponent.

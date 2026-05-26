@@ -33,11 +33,11 @@ describe("buildShareLinks", () => {
 
   it("encodes special characters into the intent URL", () => {
     const { tweetIntentUrl, tweetText } = buildShareLinks(model("post-install"));
-    // Spaces become %20, commas %2C, @ becomes %40.
-    // (apostrophe is not encoded by encodeURIComponent — twitter accepts it raw.)
+    // Spaces become %20, commas %2C.
+    // (The @sipcode_dev handle was dropped in v1.3.3 when the brand was
+    // simplified to the bare word "sipcode" — no @-handle is encoded anymore.)
     expect(tweetIntentUrl).toContain("%20");
     expect(tweetIntentUrl).toContain("%2C");
-    expect(tweetIntentUrl).toContain("%40");
     // Decoded round-trip equals the tweet text.
     const queryStart = tweetIntentUrl.indexOf("text=") + "text=".length;
     const encoded = tweetIntentUrl.slice(queryStart);
@@ -46,7 +46,7 @@ describe("buildShareLinks", () => {
 
   it("includes the brand handle and tagline", () => {
     const { tweetText } = buildShareLinks(model("post-install"));
-    expect(tweetText).toContain("@sipcode_dev");
+    expect(tweetText).toContain("sipcode");
     expect(tweetText).toContain("sip your tokens. don't gulp them.");
   });
 });
