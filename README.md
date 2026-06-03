@@ -1,15 +1,15 @@
 <div align="center">
 
-# Sipcode
+<img src="docs/brand/wordmark/wordmark-horizontal.png" alt="Sipcode" width="380">
 
 ### Sip your tokens. Don't gulp them.
 
 **Token optimization for Claude Code, Cursor, Codex, and other AI coding agents.**
 
-[![npm version](https://img.shields.io/npm/v/sipcode.svg?color=3DDC97&label=npm)](https://www.npmjs.com/package/sipcode)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-828%20passing-success)](#)
-[![Benchmark](https://img.shields.io/badge/measured%20savings-62.6%25-3DDC97)](benchmark/METHODOLOGY.md)
+[![npm version](https://img.shields.io/npm/v/sipcode.svg?color=5B4FCF&label=npm)](https://www.npmjs.com/package/sipcode)
+[![License: MIT](https://img.shields.io/badge/License-MIT-0A0A0A.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-833%20passing-5B4FCF)](#)
+[![Benchmark](https://img.shields.io/badge/measured%20savings-62.6%25-5B4FCF)](benchmark/METHODOLOGY.md)
 
 </div>
 
