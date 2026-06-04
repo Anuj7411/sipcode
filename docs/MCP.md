@@ -77,7 +77,7 @@ Claude will discover the `estimate_task_cost` tool, call it with your task descr
 
 ## What the MCP server exposes
 
-Six tools, all backed by Sipcode's existing zero-LLM analyzers:
+Seven tools, all backed by Sipcode's existing zero-LLM analyzers:
 
 ### `get_sipcode_info`
 
@@ -122,6 +122,12 @@ A/B-compares the user's token spend before vs after Sipcode's optimizers were in
 **When Claude uses it:** when the user asks "is sipcode actually saving me tokens?", "show me the impact", or "prove sipcode is working."
 
 **Optional arguments:** `cwd` (absolute path; defaults to the server's cwd) and `since` (YYYY-MM-DD override for the install date, skipping the install-state lookup).
+
+### `get_proxy_stats`
+
+Returns aggregated stats for the Sipcode runtime proxy (`sipcode proxy --install`): total rewrite invocations, per-rewriter counts, and estimated tokens saved (heuristic). Reads the per-PID JSONL files under `~/.sipcode/proxy-stats/`. No arguments.
+
+**When Claude uses it:** when the user asks "is the proxy active?", "how much is the proxy saving?", or "how many commands has sipcode rewritten?"
 
 ---
 

@@ -24,21 +24,27 @@ We are NOT staying the observatory. We are matching RTK's mechanic, then leapfro
 - Recommend stacking Sipcode + RTK in the README. They are complementary, not mutually exclusive.
 - Establish the MCP wedge while it's still uncontested.
 
-### Phase A — Parity proxy (target: 3-5 days post-launch)
+### Phase A — Parity proxy ✅ SHIPPED in v1.5.0 (2026-06-04)
 
-Build `sipcode proxy` as a Claude Code PreToolUse hook. Match RTK's mechanic.
+`sipcode proxy` is a Claude Code PreToolUse hook that matches RTK's mechanic.
 
-**What to build:**
-- PreToolUse hook handler that intercepts tool outputs
-- Per-tool heuristic filters for: Read, Grep, Bash, Glob
-- Specific command filters: `git status`, `git log`, `npm ls`, `cargo build`, `ls`, `find`, `grep`, `cat`, file reads
-- New CLI command: `sipcode proxy --install` / `sipcode proxy --uninstall`
-- New MCP tool: `get_proxy_stats` (RTK has `rtk gain` — we should match it)
-- New benchmark: `sipcode benchmark --vs-rtk` (run the same corpus with both, report deltas)
+> **Architecture note:** During plan-eng-review we verified Claude Code's hook
+> contract and corrected a fabricated assumption: PostToolUse **cannot** replace
+> tool output. The shipped design rewrites tool **inputs** via
+> `hookSpecificOutput.updatedInput` (PreToolUse) — the same lever RTK uses. A
+> regression guard (`proxy-no-fabricated-fields`) locks this in.
 
-**Target:** match RTK's 60-90% savings range as the baseline floor. Within ±5% on the same corpus.
+**What shipped:**
+- ✅ PreToolUse hook that rewrites tool **inputs** (not output filtering)
+- ✅ Per-tool injectors for native Read / Grep / Glob (`limit`, `head_limit`)
+- ✅ Bash command rewriters: `git status`, `git log`, `npm ls`, `cargo build`, `ls`, `find`, `grep`, `cat`
+- ✅ CLI: `sipcode proxy --install` / `--uninstall` / `--diff` / `--stats`
+- ✅ MCP tool: `get_proxy_stats` (matches RTK's `rtk gain`)
+- ✅ `sipcode benchmark --vs-rtk` — heuristic preview replaying rewriters over the corpus's recorded tool calls (the corpus is static fixtures, so this is a preview, not live re-execution)
 
-**Effort:** 3-5 days for solo dev. ~2,000 lines of code + tests.
+**Deferred to a follow-up:** a true live with/without-proxy benchmark harness (the current corpus is a static re-analysis, so an apples-to-apples live comparison needs its own execution runner).
+
+**Actual:** ~1,300 lines of code + tests. Self-contained hook `.mjs` imports the unit-tested `runRewriter` rather than inlining logic.
 
 ### Phase B — AST-aware compression (target: 2-3 weeks post-Phase A, ships as v1.4.0)
 

@@ -251,6 +251,7 @@ Writes a standalone HTML and a **1200×630 PNG** to `.sipcode/receipts/<id>/`, c
 | **`sipcode receipt`** | HTML + 1200×630 PNG + clipboard + tweet intent. The viral surface. |
 | **`sipcode rules`** | Output Compression — three modes (default / strict / verbose) installed in `CLAUDE.md`. |
 | **`sipcode hygiene`** | Read-once rules + PreToolUse hook (50/70/90% context warnings) + smart `/compact` suggestions. |
+| **`sipcode proxy`** *(NEW in v1.5)* | Runtime PreToolUse hook that rewrites tool inputs so tools emit naturally-compact output (`git status` → `git status -s`, `npm ls` → `--depth=0`, unbounded `Read` → `limit=2000`). Savings out of the box, no behavior change. `--stats` shows accumulated rewrites; also the `get_proxy_stats` MCP tool. |
 | **`sipcode estimate "<task>"`** | Predicts session cost per model (Opus / Sonnet / Haiku) before you run it. Zero LLM calls. |
 | **`sipcode stats`** | Cross-session analytics — totals, sparkline, top-N expensive sessions, optional standalone HTML. |
 | **`sipcode score`** | 24-check static audit of your codebase's "agent-friendliness." Tier badge + Shields.io endpoint + composite GitHub Action. |
@@ -400,8 +401,8 @@ Trust matters. Here's what changes (and what doesn't) when you install Sipcode.
 |---|---|
 | `sipcode why`, `stats`, `receipt`, `score`, `estimate`, `benchmark` | **🟢 Zero effect.** Read-only on your local transcripts. Claude Code behaves identically with or without these. |
 | `sipcode manifest` (no `--inject`) | **🟢 Zero effect.** Writes only to `.sipcode/manifest.md` — Claude Code doesn't auto-read this. |
-| `sipcode init`, `rules --install`, `hygiene --install` | **🟡 Explicit, transparent modifications.** Adds clearly-marked sipcode blocks to your `CLAUDE.md` and (for hygiene) hooks to `~/.claude/settings.json`. Fully reversible with `--uninstall`. |
-| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 6 tools — which only happens when you ask a question Claude thinks the tool can help with. |
+| `sipcode init`, `rules --install`, `hygiene --install`, `proxy --install` | **🟡 Explicit, transparent modifications.** Adds clearly-marked sipcode blocks to your `CLAUDE.md` and (for hygiene/proxy) hooks to `~/.claude/settings.json`. Fully reversible with `--uninstall`. |
+| `sipcode-mcp` (Claude Desktop MCP server) | **🟡 Dormant unless invoked.** Doesn't intercept or modify anything Claude says. Only runs when Claude calls one of its 7 tools — which only happens when you ask a question Claude thinks the tool can help with. |
 | Anything else | Doesn't exist. There's no background daemon, no telemetry, no auto-updater, no network call. |
 
 **Bottom line:** read-only commands change nothing about Claude. Modification commands always require an explicit `--install` flag and are 100% reversible. Privacy guard test ([`tests/privacy/no-network.test.ts`](tests/privacy/no-network.test.ts)) asserts there are zero `node:http/https/net/dns` imports in any core path — fails CI if anyone ever tries to add one.
