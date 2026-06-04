@@ -9,12 +9,13 @@ describe("estimateProxyOverToolCalls", () => {
     const est = estimateProxyOverToolCalls([
       { name: "Bash", input: { command: "git status" } }, // rewrite (800)
       { name: "Bash", input: { command: "echo hi" } }, // no match
-      { name: "Read", input: { file_path: "/a.ts" } }, // rewrite (3000)
+      { name: "Grep", input: { pattern: "foo" } }, // rewrite (2000)
+      { name: "Read", input: { file_path: "/a.ts" } }, // no rewrite (capped by platform)
       { name: "WebFetch", input: { url: "x" } }, // unknown tool
     ]);
-    expect(est.toolCalls).toBe(4);
+    expect(est.toolCalls).toBe(5);
     expect(est.rewrites).toBe(2);
-    expect(est.estSavedTokens).toBe(3800);
+    expect(est.estSavedTokens).toBe(2800);
   });
 
   it("ignores non-object inputs safely", () => {

@@ -36,7 +36,7 @@ We are NOT staying the observatory. We are matching RTK's mechanic, then leapfro
 
 **What shipped:**
 - ✅ PreToolUse hook that rewrites tool **inputs** (not output filtering)
-- ✅ Per-tool injectors for native Read / Grep / Glob (`limit`, `head_limit`)
+- ✅ Per-tool injectors for native Grep / Glob (`head_limit`). (Read needs none — Claude Code already caps reads at 2000 lines, so a `limit` injection would be a no-op; we don't claim a saving we don't deliver.)
 - ✅ Bash command rewriters: `git status`, `git log`, `npm ls`, `cargo build`, `ls`, `find`, `grep`, `cat`
 - ✅ CLI: `sipcode proxy --install` / `--uninstall` / `--diff` / `--stats`
 - ✅ MCP tool: `get_proxy_stats` (matches RTK's `rtk gain`)

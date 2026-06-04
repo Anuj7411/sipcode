@@ -26,9 +26,8 @@ describe("resolveRewriter", () => {
     const fn = resolveRewriter("Bash");
     expect(fn?.({ command: "echo hello" })).toBeNull();
   });
-  it("Read tool → native-read rewriter", () => {
-    const fn = resolveRewriter("Read");
-    expect(fn?.({ file_path: "/x.ts" })?.rewriterName).toBe("native-read");
+  it("Read tool → no rewriter (Claude Code already caps reads at 2000 lines)", () => {
+    expect(resolveRewriter("Read")).toBeNull();
   });
   it("Grep tool → native-grep rewriter", () => {
     const fn = resolveRewriter("Grep");

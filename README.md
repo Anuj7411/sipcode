@@ -251,7 +251,7 @@ Writes a standalone HTML and a **1200×630 PNG** to `.sipcode/receipts/<id>/`, c
 | **`sipcode receipt`** | HTML + 1200×630 PNG + clipboard + tweet intent. The viral surface. |
 | **`sipcode rules`** | Output Compression — three modes (default / strict / verbose) installed in `CLAUDE.md`. |
 | **`sipcode hygiene`** | Read-once rules + PreToolUse hook (50/70/90% context warnings) + smart `/compact` suggestions. |
-| **`sipcode proxy`** *(NEW in v1.5)* | Runtime PreToolUse hook that rewrites tool inputs so tools emit naturally-compact output (`git status` → `git status -s`, `npm ls` → `--depth=0`, unbounded `Read` → `limit=2000`). Savings out of the box, no behavior change. `--stats` shows accumulated rewrites; also the `get_proxy_stats` MCP tool. |
+| **`sipcode proxy`** *(NEW in v1.5)* | Runtime PreToolUse hook that rewrites tool inputs so tools emit naturally-compact output (`git status` → `git status -s`, `npm ls` → `--depth=0`, recursive `grep` → `-c`, `Grep` tool → `head_limit=50`). Same information in a tighter form — the agent can always re-run with explicit flags for the full output. `--stats` shows accumulated rewrites; also the `get_proxy_stats` MCP tool. |
 | **`sipcode estimate "<task>"`** | Predicts session cost per model (Opus / Sonnet / Haiku) before you run it. Zero LLM calls. |
 | **`sipcode stats`** | Cross-session analytics — totals, sparkline, top-N expensive sessions, optional standalone HTML. |
 | **`sipcode score`** | 24-check static audit of your codebase's "agent-friendliness." Tier badge + Shields.io endpoint + composite GitHub Action. |

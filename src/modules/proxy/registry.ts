@@ -13,7 +13,6 @@ import { rewriteLs } from "./rewriters/ls.js";
 import { rewriteFind } from "./rewriters/find.js";
 import { rewriteGrep } from "./rewriters/grep.js";
 import { rewriteCat } from "./rewriters/cat.js";
-import { rewriteNativeRead } from "./rewriters/nativeRead.js";
 import { rewriteNativeGrep } from "./rewriters/nativeGrep.js";
 import { rewriteNativeGlob } from "./rewriters/nativeGlob.js";
 
@@ -41,8 +40,9 @@ export function resolveRewriter(toolName: string): RewriterFn | null {
   switch (toolName) {
     case "Bash":
       return bashRewriter;
-    case "Read":
-      return rewriteNativeRead;
+    // NOTE: no "Read" rewriter. Claude Code's Read tool already defaults to a
+    // 2000-line cap, so injecting limit=2000 would be a no-op — we don't claim
+    // a saving we don't deliver. Reads are bounded by the platform default.
     case "Grep":
       return rewriteNativeGrep;
     case "Glob":

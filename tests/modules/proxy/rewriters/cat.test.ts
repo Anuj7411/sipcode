@@ -2,11 +2,20 @@ import { describe, it, expect } from "vitest";
 import { rewriteCat } from "../../../../src/modules/proxy/rewriters/cat.js";
 
 describe("rewriteCat", () => {
-  it("wraps `cat file.txt` as head + tail", () => {
+  it("rewrites `cat file.txt` to a size-aware awk over the file", () => {
     const r = rewriteCat({ command: "cat file.txt" });
-    expect(r?.updatedInput.command).toContain("head -200 file.txt");
-    expect(r?.updatedInput.command).toContain("tail -100 file.txt");
+    const cmd = r?.updatedInput.command as string;
+    expect(cmd).toContain("awk '");
+    expect(cmd.endsWith(" file.txt")).toBe(true);
     expect(r?.rewriterName).toBe("cat");
+  });
+  it("preserves small files unchanged (no head/tail duplication)", () => {
+    // The else-branch prints every line for files at or below the threshold —
+    // a small file is never doubled the way head -200 && tail -100 would.
+    const r = rewriteCat({ command: "cat file.txt" });
+    const cmd = r?.updatedInput.command as string;
+    expect(cmd).toContain("else {for(i=1;i<=n;i++)print a[i]}");
+    expect(cmd).toContain("n>300"); // only elide when genuinely large
   });
   it("does NOT rewrite when piped", () => {
     expect(rewriteCat({ command: "cat file.txt | grep foo" })).toBeNull();
