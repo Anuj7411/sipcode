@@ -29,6 +29,7 @@
  * (tests/privacy/no-network.test.ts) covers this file too.
  */
 import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
+import { withTimeout, ToolTimeoutError } from "../lib/timeout.js";
 void ASSERT_NO_NETWORK;
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -491,9 +492,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const args = parsed.data as Record<string, unknown>;
 
   try {
+    // Each handler is wrapped in withTimeout so a single slow/hung
+    // tool cannot make Claude Desktop's MCP client time out at the
+    // 4-minute mark and surface a generic "server is down" error.
+    // The user sees a real diagnostic instead. Tool-specific hints
+    // tell them how to narrow the scan if the work was genuinely
+    // too big rather than a bug.
     switch (name) {
       case "get_sipcode_info": {
-        return await toolGetSipcodeInfo();
+        return await withTimeout(name, 5_000, toolGetSipcodeInfo());
       }
       case "verify_sipcode_impact": {
         const impactOpts: { cwd?: string; since?: string } = {};
@@ -501,31 +508,55 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         const sinceArg = args["since"] as string | undefined;
         if (cwdArg !== undefined) impactOpts.cwd = cwdArg;
         if (sinceArg !== undefined) impactOpts.since = sinceArg;
-        return await toolVerifySipcodeImpact(impactOpts);
+        return await withTimeout(
+          name,
+          45_000,
+          toolVerifySipcodeImpact(impactOpts),
+          "scan was too large or your session catalog has many files — pass `since: \"YYYY-MM-DD\"` (recent date) to narrow the window, or pass `cwd: \"<absolute-project-path>\"` to scope to one project",
+        );
       }
       case "list_recent_sessions": {
         const limit = (args["limit"] as number | undefined) ?? 10;
-        return await toolListRecentSessions(limit);
+        return await withTimeout(name, 10_000, toolListRecentSessions(limit));
       }
       case "audit_latest_session": {
         const opts: { sessionId?: string } = {};
         const sid = args["session_id"] as string | undefined;
         if (sid !== undefined) opts.sessionId = sid;
-        return await toolAuditLatestSession(opts);
+        return await withTimeout(
+          name,
+          20_000,
+          toolAuditLatestSession(opts),
+          "the target session is unusually large — pass `session_id: \"<short-hash>\"` to pick a specific smaller one from list_recent_sessions",
+        );
       }
       case "get_project_manifest": {
-        return await toolGetProjectManifest({ cwd: args["cwd"] as string });
+        return await withTimeout(
+          name,
+          15_000,
+          toolGetProjectManifest({ cwd: args["cwd"] as string }),
+          "the project at this cwd may not have a Sipcode manifest yet — run `sipcode manifest` in that project first",
+        );
       }
       case "estimate_task_cost": {
-        return await toolEstimateTaskCost({
-          task: args["task"] as string,
-          cwd: args["cwd"] as string,
-        });
+        return await withTimeout(
+          name,
+          15_000,
+          toolEstimateTaskCost({
+            task: args["task"] as string,
+            cwd: args["cwd"] as string,
+          }),
+        );
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);
     }
   } catch (e) {
+    // Surface ToolTimeoutError specifically — it carries a structured
+    // hint that helps the user fix their request, not a generic error.
+    if (e instanceof ToolTimeoutError) {
+      return fail(e.message);
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return fail(`Error executing ${name}: ${msg}`);
   }
