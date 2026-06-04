@@ -20,6 +20,7 @@ export const SESSION_HYGIENE_BLOCK_NAME = "session-hygiene";
 /** Stable hook entry ids — recognized for upsert + uninstall. */
 export const HOOK_PRESSURE_ID = "sipcode-pressure";
 export const HOOK_BREAKPOINT_ID = "sipcode-breakpoint";
+export const HOOK_PROXY_ID = "sipcode-proxy";
 
 /** Detected state of session-hygiene in a project + user's claude settings. */
 export interface HygieneState {

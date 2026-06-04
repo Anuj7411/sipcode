@@ -21,7 +21,7 @@
  *  - idempotent: calling upsert twice yields a deep-equal result
  *  - reversible: removeSipcodeHooks(upsertSipcodeHooks(x)) === x (structurally)
  */
-import { HOOK_BREAKPOINT_ID, HOOK_PRESSURE_ID } from "./types.js";
+import { HOOK_BREAKPOINT_ID, HOOK_PRESSURE_ID, HOOK_PROXY_ID } from "./types.js";
 
 type Json = unknown;
 type JsonObj = { [k: string]: Json };
@@ -87,19 +87,24 @@ export function upsertSipcodeHook(
   return next;
 }
 
-/** Remove all sipcode-owned hook entries from a parsed settings.json object. */
-export function removeSipcodeHooks(settings: JsonObj): JsonObj {
+/**
+ * Remove sipcode-owned hook entries from a parsed settings.json object.
+ *
+ * `ids` defaults to every sipcode hook id, so a bare call strips all of them.
+ * Pass a narrower list (e.g. `[HOOK_PROXY_ID]`) to remove just one feature's
+ * hooks without disturbing the others.
+ */
+export function removeSipcodeHooks(
+  settings: JsonObj,
+  ids: readonly string[] = [HOOK_PRESSURE_ID, HOOK_BREAKPOINT_ID, HOOK_PROXY_ID],
+): JsonObj {
   if (!isObj(settings["hooks"])) return settings;
   const next: JsonObj = { ...settings };
   const hooks: JsonObj = { ...(next["hooks"] as JsonObj) };
   let touched = false;
   for (const evt of Object.keys(hooks)) {
     const arr = asArr(hooks[evt]);
-    const filtered = arr.filter(
-      (e) =>
-        !entryIsSipcode(e, HOOK_PRESSURE_ID) &&
-        !entryIsSipcode(e, HOOK_BREAKPOINT_ID),
-    );
+    const filtered = arr.filter((e) => !ids.some((id) => entryIsSipcode(e, id)));
     if (filtered.length !== arr.length) {
       touched = true;
       if (filtered.length === 0) {
