@@ -30,6 +30,18 @@ export function hasFlag(cmd: string, ...flags: string[]): boolean {
   return false;
 }
 
+/**
+ * Is a single-letter short flag present, including inside a combined cluster?
+ *
+ * `hasFlag` uses word boundaries, so it misses `-c` in `grep -rc` (the `c` is
+ * preceded by `r`, not whitespace). This detects a short-flag cluster like
+ * `-r`, `-rc`, `-abc` that contains `letter`, while ignoring long flags (`--count`).
+ */
+export function hasShortFlag(cmd: string, letter: string): boolean {
+  const re = new RegExp(`(^|\\s)-[a-zA-Z]*${escapeRegex(letter)}[a-zA-Z]*(\\s|$)`);
+  return re.test(cmd);
+}
+
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -7,7 +7,7 @@
  * For non-recursive grep without an output limit, pipe to `| head -50`.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag, hasOutputLimit } from "./base.js";
+import { commandStartsWith, hasFlag, hasOutputLimit, hasShortFlag } from "./base.js";
 
 const HEAD_LIMIT = 50;
 
@@ -16,9 +16,10 @@ export const rewriteGrep: RewriterFn = (input) => {
   const isGrep = commandStartsWith(cmd, "grep") || commandStartsWith(cmd, "rg");
   if (!isGrep) return null;
 
-  const recursive = hasFlag(cmd, "-r", "-R", "--recursive");
-  const countMode = hasFlag(cmd, "-c", "--count");
-  const listMode = hasFlag(cmd, "-l", "--files-with-matches");
+  const recursive =
+    hasShortFlag(cmd, "r") || hasShortFlag(cmd, "R") || hasFlag(cmd, "--recursive");
+  const countMode = hasShortFlag(cmd, "c") || hasFlag(cmd, "--count");
+  const listMode = hasShortFlag(cmd, "l") || hasFlag(cmd, "--files-with-matches");
   const summaryMode = countMode || listMode;
 
   if (recursive && !summaryMode) {
