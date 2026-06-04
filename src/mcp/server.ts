@@ -333,6 +333,15 @@ async function toolEstimateTaskCost(opts: {
   return ok(buf.join("\n"));
 }
 
+async function toolGetProxyStats(): Promise<CallToolResult> {
+  const { readReport } = await import("../modules/proxy/stats-store.js");
+  const { join } = await import("node:path");
+  const { homedir } = await import("node:os");
+  const dir = join(homedir(), ".sipcode", "proxy-stats");
+  const report = await readReport(dir);
+  return ok(JSON.stringify(report, null, 2));
+}
+
 // ---- Tool registry ----
 
 const TOOL_DEFS = [
@@ -449,6 +458,16 @@ const TOOL_DEFS = [
       cwd: z.string().min(1),
     }),
   },
+  {
+    name: "get_proxy_stats",
+    description:
+      "Return aggregated Sipcode proxy rewrite stats: total invocations, per-rewriter counts, and estimated saved tokens (heuristic). Use when the user asks 'is the proxy active?' or 'how much is the proxy saving?'.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    schema: z.object({}),
+  },
 ] as const;
 
 // ---- Wire up the server ----
@@ -547,6 +566,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             cwd: args["cwd"] as string,
           }),
         );
+      }
+      case "get_proxy_stats": {
+        return await withTimeout(name, 5_000, toolGetProxyStats());
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);
