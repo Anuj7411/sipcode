@@ -77,7 +77,7 @@ Claude will discover the `estimate_task_cost` tool, call it with your task descr
 
 ## What the MCP server exposes
 
-Seven tools, all backed by Sipcode's existing zero-LLM analyzers:
+Twelve tools, all backed by Sipcode's existing zero-LLM analyzers (ten read-only meters + two proxy write-controls):
 
 ### `get_sipcode_info`
 
@@ -128,6 +128,22 @@ A/B-compares the user's token spend before vs after Sipcode's optimizers were in
 Returns aggregated stats for the Sipcode runtime proxy (`sipcode proxy --install`): total rewrite invocations, per-rewriter counts, and estimated tokens saved (heuristic). Reads the per-PID JSONL files under `~/.sipcode/proxy-stats/`. No arguments.
 
 **When Claude uses it:** when the user asks "is the proxy active?", "how much is the proxy saving?", or "how many commands has sipcode rewritten?"
+
+### `get_agent_score`
+
+Runs the 24-check static agent-friendliness audit on a project and returns the tier + composite score as JSON. **Argument:** `cwd` (absolute project path).
+
+### `get_session_stats`
+
+Returns cross-session token analytics (totals, per-session breakdown, top expensive sessions) as JSON, read from local Claude Code transcripts. No arguments.
+
+### `install_proxy` / `uninstall_proxy`
+
+**Write tools.** `install_proxy` writes the PreToolUse hook and registers it in `~/.claude/settings.json` so Claude Code rewrites tool inputs for compact output; `uninstall_proxy` removes it. These are the only two MCP tools that modify your config — everything else is read-only. Reversible.
+
+### `get_proxy_status`
+
+Read-only. Reports whether the proxy is installed plus its accumulated rewrite stats.
 
 ---
 
