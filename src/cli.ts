@@ -178,6 +178,7 @@ program
   .option("--html", "also write .sipcode/benchmark.html (or .sipcode/benchmark-hardest.html with --hardest)")
   .option("--json", "machine-readable output")
   .option("--corpus <dir>", "override the corpus directory (default: <repo>/benchmark/corpus)")
+  .option("--vs-rtk", "heuristic proxy preview: replay rewriters over corpus tool calls (no re-execution)")
   .action(async (opts) => {
     const { runBenchmark } = await import("./commands/benchmark.js");
     const r = await runBenchmark(opts);

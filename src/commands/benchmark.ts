@@ -30,6 +30,12 @@ import type {
   BenchmarkTask,
   TaskResult,
 } from "../modules/benchmark/types.js";
+import { parseTranscript } from "../modules/transcript/parse.js";
+import {
+  estimateProxyOverToolCalls,
+  renderVsRtkTable,
+  type VsRtkRow,
+} from "../modules/proxy/vsRtk.js";
 
 export interface BenchmarkOptions {
   task?: string;
@@ -40,6 +46,7 @@ export interface BenchmarkOptions {
   hardest?: boolean;
   corpus?: string;
   cwd?: string;
+  vsRtk?: boolean;
 }
 
 /** BT011-BT020 — the Hardest Tasks subset (waste-maximizing). */
@@ -117,6 +124,38 @@ export async function runBenchmark(
   if (tasks.length === 0) {
     stderr(MESSAGES.benchmarkEmptyCorpus(corpusDir));
     return { exitCode: 1 };
+  }
+
+  // --vs-rtk: heuristic proxy preview. Replay the pure rewriters over each
+  // task's baseline tool calls (no re-execution) and tally would-be rewrites.
+  if (opts.vsRtk) {
+    const rows: VsRtkRow[] = [];
+    for (const task of tasks) {
+      let baselineJsonl: string;
+      try {
+        baselineJsonl = readTranscript(task.baselineTranscriptPath);
+      } catch {
+        stderr(MESSAGES.benchmarkTranscriptMissing(task.id));
+        continue;
+      }
+      const parsed = parseTranscript(baselineJsonl);
+      const calls = parsed.ok ? parsed.value.toolCalls : [];
+      rows.push({
+        taskId: task.id,
+        title: task.title,
+        estimate: estimateProxyOverToolCalls(calls),
+      });
+    }
+    if (rows.length === 0) {
+      stderr(MESSAGES.benchmarkAllFailed());
+      return { exitCode: 1 };
+    }
+    if (opts.json) {
+      stdout(JSON.stringify({ schemaVersion: "sipcode-proxy-vsrtk/1", rows }, null, 2));
+    } else {
+      stdout(renderVsRtkTable(rows));
+    }
+    return { exitCode: 0 };
   }
 
   // Pricing — use today.
