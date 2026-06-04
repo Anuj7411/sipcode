@@ -1,14 +1,57 @@
-# sipcode proxy — Phase A Implementation Plan
+# sipcode proxy — Phase A Implementation Plan (v2 — corrected architecture)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Ship `sipcode proxy` — a Claude Code PreToolUse hook that intercepts tool outputs at runtime and applies per-tool heuristic filters to reduce token consumption 60–90% out of the box. Brings Sipcode to parity with RTK's mechanic while keeping the audit + MCP differentiators.
+> **Architecture correction (v2):** The original plan was built against a fabricated PostToolUse-output-replacement contract that does not exist in Claude Code. `plan-eng-review` caught this before any code was written. **This v2 plan uses the verified PreToolUse + `updatedInput` contract** — the same mechanic RTK actually uses. The fix: instead of filtering tool OUTPUTS, we rewrite tool INPUTS to commands that produce naturally-compact output (e.g., `git status` → `git status -s`). Source: `https://code.claude.com/docs/en/hooks` verified 2026-06-04.
 
-**Architecture:** Pure-runner + I/O-seam. Filters are pure functions `raw_text → filtered_text + savings`. I/O lives only in the hook script (stdin → spawn filter → stdout) and CLI installer (writes `.mjs` + edits `~/.claude/settings.json`). Matches existing `sipcode hygiene` install pattern byte-for-byte to keep operational mental load at zero.
+**Goal:** Ship `sipcode proxy` — a Claude Code PreToolUse hook that rewrites tool inputs at runtime to produce naturally-compact outputs, reducing token consumption 60–90% out of the box. Matches RTK's mechanic exactly. Keeps Sipcode's audit + MCP differentiators.
 
-**Tech Stack:** TypeScript, Node 20+, zero new runtime deps. Vitest for tests. Hook is a generated `.mjs` at `~/.claude/hooks/sipcode-proxy.mjs`. Cross-platform. Privacy contract preserved — `tests/privacy/no-network.test.ts` already fails the build on any network import in core paths.
+**Architecture:** Pure runner + I/O seam. Filters are pure functions `(toolName, toolInput) → null | { updatedInput, savedTokensEstimate, filterName }`. I/O lives only in the hook script and CLI installer. Matches the existing `sipcode hygiene` install pattern byte-for-byte.
 
-**Regex style note:** throughout this plan, use `str.match(re)` rather than `re.test(str)` calling style for capture groups. Functionally equivalent; the former is the canonical pure-string method and avoids a noisy false-positive in our security-reminder hook.
+**Tech Stack:** TypeScript, Node 20+, zero new runtime deps. Vitest. Hook is a generated `.mjs` at `~/.claude/hooks/sipcode-proxy.mjs`. Cross-platform. Privacy contract preserved.
+
+**Regex style note:** throughout this plan, use `str.match(re)` rather than `re.test(str)`-with-capture-groups calling style. Functionally equivalent; the former is canonical.
+
+---
+
+## What Phase A actually does (verified mechanic)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Claude wants to run: `git status`                               │
+└──────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+              ┌──────────────────────────┐
+              │  ⏸ PreToolUse hook fires │  ← Sipcode proxy intercepts.
+              │                          │
+              │  Sees:                   │
+              │    tool_name: "Bash"     │
+              │    tool_input: {         │
+              │      command: "git status"│
+              │    }                     │
+              │                          │
+              │  Returns to Claude Code: │
+              │    hookSpecificOutput.   │
+              │      updatedInput = {    │
+              │        command:          │
+              │          "git status -s" │
+              │      }                   │
+              └──────────────────────────┘
+                            │
+                            ▼
+                    ┌─────────────┐
+                    │ git status  │  ← Tool runs with the rewritten input.
+                    │   -s runs   │     Produces ~5 lines instead of ~200.
+                    └─────────────┘
+                            │
+                            ▼
+              ┌──────────────────────────┐
+              │  Claude reads ~5 lines   │  ← 95% fewer tokens, same UX.
+              └──────────────────────────┘
+```
+
+No output filtering. No PostToolUse. No fabricated `replace_tool_response` field. Just clean input rewriting via the documented `hookSpecificOutput.updatedInput` field.
 
 ---
 
@@ -18,117 +61,134 @@
 
 ```
 src/modules/proxy/
-├── types.ts                      Public types
-├── filters/
-│   ├── base.ts                   estimateTokens + makeResult + identityFilter
-│   ├── git.ts                    filterGitStatus / filterGitLog / filterGitDiff
-│   ├── npm.ts                    filterNpmLs / filterNpmInstall
-│   ├── cargo.ts                  filterCargoBuild
-│   ├── ls.ts                     filterLs (head+tail+elide-middle)
-│   ├── find.ts                   filterFind (mirrors ls)
-│   ├── grep.ts                   filterGrep (dedupe identical matches)
-│   ├── cat.ts                    filterCat (large file head+tail+elide)
-│   ├── read.ts                   Claude Code Read tool filter
-│   └── glob.ts                   Claude Code Glob tool filter
-├── registry.ts                   resolveFilter(toolName, toolInput) → FilterFn
-├── runFilter.ts                  Pure orchestrator (ProxyHookInput → ProxyHookOutput)
+├── types.ts                      Verified hook contract types
+├── rewriters/
+│   ├── base.ts                   Shared helpers + null-rewrite identity
+│   ├── git.ts                    rewriteGitStatus / rewriteGitLog
+│   ├── npm.ts                    rewriteNpmLs
+│   ├── cargo.ts                  rewriteCargoBuild
+│   ├── ls.ts                     rewriteLs (add `| head -N` if absent)
+│   ├── find.ts                   rewriteFind (same pattern as ls)
+│   ├── grep.ts                   rewriteGrep (Bash grep — add `-c` count mode)
+│   ├── cat.ts                    rewriteCat (wrap as head + tail)
+│   ├── nativeRead.ts             Claude Code Read tool param injector
+│   ├── nativeGrep.ts             Claude Code Grep tool param injector
+│   └── nativeGlob.ts             Claude Code Glob tool param injector
+├── registry.ts                   resolveRewriter(toolName, toolInput) → RewriterFn
+├── runRewriter.ts                Pure orchestrator
 ├── proxyHookScript.ts            Generator for the on-disk .mjs hook
-├── install.ts                    Pure install/uninstall (reuses hygiene/settingsJson)
-├── stats-store.ts                JSONL append + aggregate read
+├── install.ts                    Pure install/uninstall helpers
+├── stats-store.ts                JSONL append + aggregate read for proxy stats
 ├── format-json.ts                Stable JSON shape for proxy report
-└── format-terminal.ts            Renderer for `sipcode proxy --stats`
+└── format-terminal.ts            Terminal renderer for `sipcode proxy --stats`
 
-src/commands/proxy.ts             CLI wiring
-
-tests/modules/proxy/              One unit test per module above
-tests/integration/proxy-install-roundtrip.test.ts
-tests/integration/proxy-hook-handshake.test.ts
-tests/guards/proxy-filter-purity.test.ts
-tests/guards/proxy-stats-bounded.test.ts
+src/commands/proxy.ts             CLI wiring (--install / --uninstall / --diff / --stats)
 ```
 
 **Modified files:**
 
-- `src/cli.ts` — register `proxy` command
-- `src/mcp/server.ts` — add `get_proxy_stats` (7th tool)
-- `tests/e2e/release-smoke.test.ts` — bump tool count to 7
-- `tests/mcp/server.integration.test.ts` — same bump
-- `docs/MCP.md` — document 7th tool
-- `README.md` — proxy in commands table, install picker, badge bumps
-- `docs/COMPETITIVE-STRATEGY-RTK.md` — mark Phase A shipped
-- `package.json` — 1.4.0 → 1.5.0
-- `.claude-plugin/plugin.json` — version bump (must stay in sync)
-- `scripts/copy-assets.mjs` — bundle filter modules via esbuild for the hook script
+```
+src/cli.ts                        Register `proxy` command
+src/mcp/server.ts                 Add `get_proxy_stats` (7th tool)
+tests/e2e/release-smoke.test.ts   Bump tool count to 7
+tests/mcp/server.integration.test.ts   Same bump
+docs/MCP.md                       Document 7th tool
+README.md                         Proxy in commands table, badge bumps
+docs/COMPETITIVE-STRATEGY-RTK.md  Mark Phase A shipped
+package.json                      Version 1.4.0 → 1.5.0
+.claude-plugin/plugin.json        Version bump (must stay in sync)
+```
+
+**Notably ABSENT from v2** (versus v1 plan): no `esbuild` bundling, no `scripts/copy-assets.mjs` changes, no separate `proxy-hook-bundle.js`. The hook script is small enough to inline-embed its dispatch logic directly.
 
 ---
 
-## Task 1: Hook protocol types (foundation)
+## Task 1: Verified hook contract types
 
 **Files:**
 - Create: `src/modules/proxy/types.ts`
 - Test: `tests/modules/proxy/types.test.ts`
 
-- [ ] **Step 1: Write the failing test** — shape lock for the 5 exported interfaces (ProxyHookInput, ProxyHookOutput, FilterResult, FilterFn, ProxyReport). Use literal example objects matching each shape; assert key fields exist.
+The types match Claude Code's documented PreToolUse contract verbatim — no invented fields.
 
-- [ ] **Step 2: Run** `npx vitest run tests/modules/proxy/types.test.ts` — Expected: FAIL (module not found).
+- [ ] **Step 1: Write 5 failing tests** asserting shape lock for `PreToolUseInput`, `HookSpecificOutput`, `RewriterResult`, `RewriterFn`, `ProxyReport`.
 
-- [ ] **Step 3: Implement** `src/modules/proxy/types.ts` (full source below). Pure types only.
+- [ ] **Step 2: Run** `npx vitest run tests/modules/proxy/types.test.ts` — Expected: FAIL.
+
+- [ ] **Step 3: Implement `src/modules/proxy/types.ts`:**
 
 ```typescript
 /**
- * Public types for the sipcode proxy runtime filter system.
- * Pure data shapes; no runtime behavior.
+ * Verified Claude Code hook contract types — PreToolUse only.
+ * Source: https://code.claude.com/docs/en/hooks (verified 2026-06-04).
+ *
+ * IMPORTANT: PostToolUse is intentionally not used. Claude Code's
+ * PostToolUse cannot replace tool_output (verified). The only
+ * documented output-modification path is `decision: "block"` plus
+ * `additionalContext`, which is intentionally NOT exercised in
+ * Phase A — it would lose the natural-tool-output UX that makes
+ * the proxy transparent.
  */
 
-export interface ProxyHookInput {
+/** PreToolUse JSON delivered on stdin to the hook script. */
+export interface PreToolUseInput {
+  readonly session_id: string;
+  readonly transcript_path: string;
+  readonly cwd: string;
+  readonly permission_mode: string;
+  readonly hook_event_name: "PreToolUse";
   readonly tool_name: string;
   readonly tool_input: Record<string, unknown>;
-  readonly tool_response?: {
-    readonly stdout?: string;
-    readonly stderr?: string;
-    readonly exit_code?: number;
+}
+
+/** Standard JSON the hook writes to stdout to influence Claude Code. */
+export interface HookSpecificOutput {
+  readonly hookSpecificOutput: {
+    readonly hookEventName: "PreToolUse";
+    /** Always "allow" for the proxy — we never block, only rewrite. */
+    readonly permissionDecision?: "allow";
+    /** The modified tool_input that replaces the original. THIS IS THE LEVER. */
+    readonly updatedInput?: Record<string, unknown>;
+    readonly additionalContext?: string;
   };
 }
 
-export interface ProxyHookOutput {
-  readonly replace_tool_response?: ProxyHookInput["tool_response"];
-  readonly sipcode_saved_tokens?: number;
-  readonly sipcode_filter_name?: string;
-}
+/** Per-rewriter result. `null` means "no change" (passthrough). */
+export type RewriterResult =
+  | null
+  | {
+      readonly updatedInput: Record<string, unknown>;
+      readonly savedTokensEstimate: number;
+      readonly rewriterName: string;
+    };
 
-export interface FilterResult {
-  readonly filtered: string;
-  readonly originalTokens: number;
-  readonly filteredTokens: number;
-  readonly savedTokens: number;
-  readonly filterName: string;
-}
+/** Rewriter function signature. Pure. */
+export type RewriterFn = (
+  toolInput: Record<string, unknown>,
+) => RewriterResult;
 
-export type FilterFn = (raw: string) => FilterResult;
-
+/** One proxy hook invocation written to .sipcode/proxy-stats.jsonl. */
 export interface ProxyStatsEntry {
   readonly timestamp: string;
   readonly toolName: string;
-  readonly filterName: string;
-  readonly originalTokens: number;
-  readonly filteredTokens: number;
-  readonly savedTokens: number;
+  readonly rewriterName: string;
+  /** Estimated tokens saved (heuristic, not measured). */
+  readonly savedTokensEstimate: number;
 }
 
+/** Aggregated report — what `get_proxy_stats` MCP tool returns. */
 export interface ProxyReport {
-  readonly schemaVersion: "sipcode-proxy/1";
+  readonly schemaVersion: "sipcode-proxy/2";
   readonly totalInvocations: number;
-  readonly totalSavedTokens: number;
-  readonly totalOriginalTokens: number;
-  readonly perFilter: Record<
+  readonly estimatedSavedTokens: number;
+  readonly perRewriter: Record<
     string,
     {
       invocations: number;
-      savedTokens: number;
-      originalTokens: number;
-      avgReductionPct: number;
+      estimatedSavedTokens: number;
     }
   >;
+  readonly note: string;
 }
 ```
 
@@ -138,150 +198,104 @@ export interface ProxyReport {
 
 ```bash
 git add src/modules/proxy/types.ts tests/modules/proxy/types.test.ts
-git commit -m "feat(proxy): types contract for PreToolUse hook + filter result shape"
+git commit -m "feat(proxy): verified Claude Code PreToolUse contract types"
 ```
 
 ---
 
-## Task 2: First filter end-to-end — `git status`
+## Task 2: First rewriter end-to-end — `git status`
 
 **Files:**
-- Create: `src/modules/proxy/filters/base.ts`
-- Create: `src/modules/proxy/filters/git.ts`
-- Test: `tests/modules/proxy/filters/git.test.ts`
+- Create: `src/modules/proxy/rewriters/base.ts`
+- Create: `src/modules/proxy/rewriters/git.ts`
+- Test: `tests/modules/proxy/rewriters/git.test.ts`
 
 - [ ] **Step 1: Write 4 failing tests:**
-  1. Deduplicates identical modified-file lines AND drops `(use "git add ...")` advisory lines.
-  2. Renders compact one-line-per-change format: `M src/foo.ts`, `D src/old.ts`, `? new.ts`.
-  3. Handles clean tree without crashing — returns short clean message.
-  4. Reports correct token counts using the 4-chars-per-token heuristic (matches `src/lib/tokenizer.ts`).
+  1. `rewriteGitStatus({ command: "git status" })` returns `{ updatedInput: { command: "git status -s" }, ... }`.
+  2. `rewriteGitStatus({ command: "git status -s" })` returns `null` (already short — no rewrite).
+  3. `rewriteGitStatus({ command: "git status --porcelain" })` returns `null` (already machine-readable).
+  4. `rewriteGitStatus({ command: "git statusbar" })` returns `null` (not actually `git status` — prefix match must be word-boundary aware).
 
 - [ ] **Step 2: Run** — Expected: FAIL.
 
-- [ ] **Step 3: Implement `src/modules/proxy/filters/base.ts`:**
+- [ ] **Step 3: Implement `src/modules/proxy/rewriters/base.ts`:**
 
 ```typescript
 /**
- * Shared filter helpers. Pure functions only.
- * Token counting uses the standard 4-chars-per-token heuristic
- * (matches src/lib/tokenizer.ts) for consistency with the audit side.
+ * Shared rewriter helpers. Pure functions only.
+ *
+ * Savings heuristic: each rewriter declares an expected reduction
+ * percentage based on observed-in-the-wild output sizes. These are
+ * used for the proxy stats display but never as a marketing claim —
+ * actual savings vary per-invocation.
  */
-import type { FilterFn, FilterResult } from "../types.js";
 
-export function estimateTokens(s: string): number {
-  return Math.ceil(s.length / 4);
+/** Does `cmd` start with a target prefix at a word boundary? */
+export function commandStartsWith(cmd: string, prefix: string): boolean {
+  const trimmed = cmd.trim();
+  if (!trimmed.startsWith(prefix)) return false;
+  const next = trimmed[prefix.length];
+  if (next === undefined) return true;
+  return next === " " || next === "\t" || next === "\n";
 }
 
-export function makeResult(
-  filterName: string,
-  raw: string,
-  filtered: string,
-): FilterResult {
-  const originalTokens = estimateTokens(raw);
-  const filteredTokens = estimateTokens(filtered);
-  return {
-    filterName,
-    filtered,
-    originalTokens,
-    filteredTokens,
-    savedTokens: Math.max(0, originalTokens - filteredTokens),
-  };
+/** Is a particular flag/argument already present in the command? */
+export function hasFlag(cmd: string, ...flags: string[]): boolean {
+  for (const f of flags) {
+    const re = new RegExp(`(^|\\s)${escapeRegex(f)}(\\s|$|=)`);
+    if (re.test(cmd)) return true;
+  }
+  return false;
 }
 
-export const identityFilter: FilterFn = (raw) => makeResult("identity", raw, raw);
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Is the command already piped to a length-limiting tool? */
+export function hasOutputLimit(cmd: string): boolean {
+  return /\|\s*(head|tail|less|more)\b/.test(cmd);
+}
 ```
 
-- [ ] **Step 4: Implement `src/modules/proxy/filters/git.ts`:**
+- [ ] **Step 4: Implement `src/modules/proxy/rewriters/git.ts`:**
 
 ```typescript
+import type { RewriterFn } from "../types.js";
+import { commandStartsWith, hasFlag } from "./base.js";
+
 /**
- * Filters for git command outputs.
- *
- * git status: collapse verbose Porcelain v1 output into compact short-format
- * git log:    keep first 20 commits' subject lines; drop body/author/email
- * git diff:   pass through unchanged (semantic compression is Phase B)
+ * git status: add `-s` (short format) if not already in short or porcelain mode.
+ * Typical reduction: 85-95% on dirty trees, ~50% on clean trees.
  */
-import type { FilterFn } from "../types.js";
-import { makeResult } from "./base.js";
-
-interface GitStatusChange {
-  readonly status: "M" | "A" | "D" | "R" | "?" | "U";
-  readonly path: string;
-}
-
-function parseGitStatus(raw: string): GitStatusChange[] {
-  const changes: GitStatusChange[] = [];
-  const lines = raw.split("\n");
-  let section: "modified" | "untracked" | "staged" | null = null;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("Changes to be committed")) {
-      section = "staged";
-      continue;
-    }
-    if (trimmed.startsWith("Changes not staged")) {
-      section = "modified";
-      continue;
-    }
-    if (trimmed.startsWith("Untracked files")) {
-      section = "untracked";
-      continue;
-    }
-    if (trimmed.startsWith("(use ")) continue;
-    if (trimmed === "") continue;
-
-    const m = trimmed.match(/^(?:modified|new file|deleted|renamed):\s+(.+)$/);
-    if (m && (section === "modified" || section === "staged")) {
-      const verb = trimmed.split(":")[0]!;
-      const status: GitStatusChange["status"] =
-        verb === "deleted" ? "D" :
-        verb === "renamed" ? "R" :
-        verb === "new file" ? "A" : "M";
-      changes.push({ status, path: m[1]! });
-      continue;
-    }
-    if (section === "untracked" && !trimmed.startsWith("(") && trimmed !== "") {
-      changes.push({ status: "?", path: trimmed });
-    }
-  }
-  return changes;
-}
-
-export const filterGitStatus: FilterFn = (raw) => {
-  if (/nothing to commit|working tree clean/i.test(raw)) {
-    return makeResult("git-status", raw, "git: working tree clean");
-  }
-  const changes = parseGitStatus(raw);
-  if (changes.length === 0) return makeResult("git-status", raw, raw);
-  const filtered = changes.map((c) => `${c.status} ${c.path}`).join("\n");
-  return makeResult("git-status", raw, filtered);
+export const rewriteGitStatus: RewriterFn = (input) => {
+  const cmd = String(input.command ?? "");
+  if (!commandStartsWith(cmd, "git status")) return null;
+  if (hasFlag(cmd, "-s", "--short", "--porcelain")) return null;
+  const updated = cmd.replace(/^(\s*git status)/, "$1 -s");
+  return {
+    updatedInput: { ...input, command: updated },
+    savedTokensEstimate: 800, // heuristic
+    rewriterName: "git-status",
+  };
 };
 
-export const filterGitLog: FilterFn = (raw) => {
-  const lines = raw.split("\n");
-  const subjects: string[] = [];
-  let i = 0;
-  while (i < lines.length && subjects.length < 20) {
-    const line = lines[i] ?? "";
-    if (line.startsWith("commit ")) {
-      const sha = line.slice(7, 15);
-      let j = i + 1;
-      while (j < lines.length && lines[j]!.trim() !== "") j++;
-      j++;
-      while (j < lines.length && lines[j]!.trim() === "") j++;
-      const subject = (lines[j] ?? "").trim();
-      if (subject) subjects.push(`${sha} ${subject}`);
-      i = j + 1;
-    } else {
-      i++;
-    }
-  }
-  if (subjects.length === 0) return makeResult("git-log", raw, raw);
-  return makeResult("git-log", raw, subjects.join("\n"));
+/**
+ * git log: add `--oneline -n 20` if no --oneline/--pretty/--format and no -n already.
+ * Typical reduction: 90-98% on repositories with > 20 commits in history.
+ */
+export const rewriteGitLog: RewriterFn = (input) => {
+  const cmd = String(input.command ?? "");
+  if (!commandStartsWith(cmd, "git log")) return null;
+  if (hasFlag(cmd, "--oneline", "--pretty", "--format", "-n")) return null;
+  if (/--max-count/.test(cmd)) return null;
+  const updated = cmd.replace(/^(\s*git log)/, "$1 --oneline -n 20");
+  return {
+    updatedInput: { ...input, command: updated },
+    savedTokensEstimate: 3000,
+    rewriterName: "git-log",
+  };
 };
-
-export const filterGitDiff: FilterFn = (raw) =>
-  makeResult("git-diff", raw, raw);
 ```
 
 - [ ] **Step 5: Run tests** — Expected: PASS (4 tests).
@@ -289,281 +303,251 @@ export const filterGitDiff: FilterFn = (raw) =>
 - [ ] **Step 6: Commit:**
 
 ```bash
-git add src/modules/proxy/filters/base.ts src/modules/proxy/filters/git.ts tests/modules/proxy/filters/git.test.ts
-git commit -m "feat(proxy): git filter — status compacted to short-format; log keeps subjects only"
+git add src/modules/proxy/rewriters/base.ts src/modules/proxy/rewriters/git.ts tests/modules/proxy/rewriters/git.test.ts
+git commit -m "feat(proxy): git rewriter — status -s + log --oneline -n 20 when absent"
 ```
 
 ---
 
-## Task 3: `npm` filters (ls + install)
+## Task 3: `npm ls` rewriter
 
-**Files:** `src/modules/proxy/filters/npm.ts`, `tests/modules/proxy/filters/npm.test.ts`
+**Files:** `src/modules/proxy/rewriters/npm.ts`, `tests/modules/proxy/rewriters/npm.test.ts`
 
 - [ ] **Step 1: Write 3 failing tests:**
-  1. `filterNpmLs` flattens tree to root + direct deps only; transitive deps dropped.
-  2. `filterNpmLs` dedupes `deduped` suffixes — same `foo@1.0.0` appears once.
-  3. `filterNpmInstall` keeps `added N packages` + `N vulnerabilities` lines; drops funding/audit-fix advisories.
+  1. `rewriteNpmLs({ command: "npm ls" })` returns `{ updatedInput: { command: "npm ls --depth=0" } }`.
+  2. `rewriteNpmLs({ command: "npm ls --depth=1" })` returns `null` (depth already set).
+  3. `rewriteNpmLs({ command: "npm install foo" })` returns `null` (not `npm ls`).
 
 - [ ] **Step 2: Run** — Expected: FAIL.
 
-- [ ] **Step 3: Implement** with these algorithms:
+- [ ] **Step 3: Implement:**
 
-**`filterNpmLs`:** walk lines. First line matching root-package pattern → keep. Lines starting with `+--` or `` `-- `` followed by `package@version` → keep ONLY if not seen before AND does not contain `deduped`. Indented continuation lines (transitive deps) → drop. Use a `Set<string>` to dedupe.
+```typescript
+import type { RewriterFn } from "../types.js";
+import { commandStartsWith, hasFlag } from "./base.js";
 
-**`filterNpmInstall`:** keep lines matching `^(added|removed|changed|audited)\s+\d+\s+package` OR `\d+\s+vulnerabilit`. Drop everything else.
+export const rewriteNpmLs: RewriterFn = (input) => {
+  const cmd = String(input.command ?? "");
+  const isLs =
+    commandStartsWith(cmd, "npm ls") || commandStartsWith(cmd, "npm list");
+  if (!isLs) return null;
+  if (hasFlag(cmd, "--depth", "-a", "--all", "--json")) return null;
+  const updated = cmd.replace(/^(\s*npm (?:ls|list))/, "$1 --depth=0");
+  return {
+    updatedInput: { ...input, command: updated },
+    savedTokensEstimate: 5000,
+    rewriterName: "npm-ls",
+  };
+};
+```
 
-- [ ] **Step 4: Run** — Expected: PASS.
-
-- [ ] **Step 5: Commit** `feat(proxy): npm filters — ls flattens to direct deps, install drops noise`
-
----
-
-## Task 4: `filterCargoBuild`
-
-**Files:** `src/modules/proxy/filters/cargo.ts`, `tests/modules/proxy/filters/cargo.test.ts`
-
-- [ ] **Step 1: Write 2 failing tests:**
-  1. Drops `Compiling X v1.2.3` progress lines, keeps `error[E...]` and final `Finished` line.
-  2. Keeps `warning:` lines for visibility.
-
-- [ ] **Step 2: Run** — Expected: FAIL.
-
-- [ ] **Step 3: Implement** — algorithm: regex `^\s*Compiling\s+\S+\s+v[\d.]+(?:\s+.*)?$` drops the line; everything else is kept.
-
-- [ ] **Step 4: Run** — Expected: PASS.
-
-- [ ] **Step 5: Commit** `feat(proxy): cargo filter — drops Compiling progress, keeps errors + warnings`
+- [ ] **Step 4: Commit** `feat(proxy): npm-ls rewriter — flatten to depth=0 when no --depth set`
 
 ---
 
-## Task 5: `filterLs`
+## Task 4: `cargo build` / `cargo check` rewriter
 
-**Files:** `src/modules/proxy/filters/ls.ts`, `tests/modules/proxy/filters/ls.test.ts`
+**Files:** `src/modules/proxy/rewriters/cargo.ts`, `tests/modules/proxy/rewriters/cargo.test.ts`
 
-- [ ] **Step 1: Write 2 failing tests:**
-  1. Collapses 500-entry node_modules listing to head + `... (N more entries elided)` + tail. Saves > 1000 tokens.
-  2. Keeps small listings (≤ 50 entries) unchanged; `savedTokens === 0`.
+The "Compiling X" progress lines come on stderr. Cargo accepts `--quiet` to suppress them.
 
-- [ ] **Step 2: Implement** — algorithm:
-  - `LARGE_THRESHOLD = 50`, `SAMPLE_SIZE = 10`
-  - Split by newlines, filter non-empty
-  - If `lines.length <= LARGE_THRESHOLD`: identity
-  - Else: keep first 10 + `... (N more entries elided by sipcode-proxy)` + last 10
+- [ ] **Step 1: Test:**
+  1. `rewriteCargoBuild({ command: "cargo build" })` → adds `--quiet`.
+  2. `rewriteCargoBuild({ command: "cargo build --quiet" })` → `null`.
+  3. `rewriteCargoBuild({ command: "cargo build -q" })` → `null`.
 
-- [ ] **Step 3: Commit** `feat(proxy): ls filter — large dir listings collapsed to head + tail + count`
+- [ ] **Step 2: Implement** — add `--quiet` when neither `--quiet` nor `-q` is present.
 
----
-
-## Task 6: `filterFind`
-
-**Files:** `src/modules/proxy/filters/find.ts`, `tests/modules/proxy/filters/find.test.ts`
-
-Identical algorithm to `filterLs`. Copy `ls.ts` to `find.ts`. Change `filterName` from `"ls"` to `"find"` in `makeResult`. Same test pattern with filterName assertion `"find"`.
-
-- [ ] Step 1, 2, 3 follow Task 5 — Commit `feat(proxy): find filter — large result sets compressed`
+- [ ] **Step 3: Commit** `feat(proxy): cargo rewriter — --quiet when verbosity not set`
 
 ---
 
-## Task 7: `filterGrep`
+## Task 5: `ls` rewriter — pipe to head if no length limiter present
 
-**Files:** `src/modules/proxy/filters/grep.ts`, `tests/modules/proxy/filters/grep.test.ts`
+**Files:** `src/modules/proxy/rewriters/ls.ts`, `tests/modules/proxy/rewriters/ls.test.ts`
 
-- [ ] **Step 1: Write 2 failing tests:**
-  1. Three files with `return new Error('failed')` collapses to one line: `3 files: a.ts, b.ts, c.ts → return new Error('failed')`; a 4th unique line stays as-is.
-  2. Small unique-match results unchanged.
+- [ ] **Step 1: Test:**
+  1. `rewriteLs({ command: "ls" })` → `{ updatedInput: { command: "ls | head -50" } }`.
+  2. `rewriteLs({ command: "ls /tmp" })` → `{ updatedInput: { command: "ls /tmp | head -50" } }`.
+  3. `rewriteLs({ command: "ls | head -10" })` → `null` (already limited).
+  4. `rewriteLs({ command: "ls | less" })` → `null`.
 
-- [ ] **Step 2: Implement** — algorithm:
-  - Regex pattern `^([^:]+):(\d+):(.*)$` (file:line:text)
-  - For each line: if it matches the pattern, group by trimmed text. Otherwise: append to passthrough list.
-  - For each group: if 1 file → emit `file: text`. Else → emit `N files: file1, file2, ... → text`.
-  - If filtered length ≥ raw length, return identity (no savings).
+- [ ] **Step 2: Implement** — use `commandStartsWith(cmd, "ls")` + `!hasOutputLimit(cmd)` → append `| head -50`.
 
-- [ ] **Step 3: Commit** `feat(proxy): grep filter — identical matches across files deduplicated`
+- [ ] **Step 3: Commit** `feat(proxy): ls rewriter — append | head -50 when no limit`
 
 ---
 
-## Task 8: `filterCat`
+## Task 6: `find` rewriter — same pattern as ls
 
-**Files:** `src/modules/proxy/filters/cat.ts`, `tests/modules/proxy/filters/cat.test.ts`
+**Files:** `src/modules/proxy/rewriters/find.ts`, `tests/modules/proxy/rewriters/find.test.ts`
 
-- [ ] **Step 1: Test** — files ≤ 1000 chars unchanged; > 1000 chars truncated to head (200 chars) + `... N chars elided ...` + tail (100 chars).
+Mirror `rewriteLs`. Pipe to `head -100`.
 
-- [ ] **Step 2: Implement** — straightforward slicing.
-
-- [ ] **Step 3: Commit** `feat(proxy): cat filter — large files compressed to head + tail + elide`
+- [ ] **Step 1, 2, 3:** Same pattern as Task 5. Commit `feat(proxy): find rewriter — append | head -100 when no limit`
 
 ---
 
-## Task 9: Claude Code `Read` tool filter
+## Task 7: `grep` rewriter — count mode for `-r`
 
-**Files:** `src/modules/proxy/filters/read.ts`, `tests/modules/proxy/filters/read.test.ts`
+**Files:** `src/modules/proxy/rewriters/grep.ts`, `tests/modules/proxy/rewriters/grep.test.ts`
 
-Algorithm: same as `cat`. The Claude Code `Read` tool emits file contents prefixed with `cat -n` line numbers. Apply the head + tail + elide pattern. Dispatch is by `tool_name === "Read"` (not by `Bash` + `cat` prefix).
+Recursive grep without a count flag often produces hundreds of identical match lines across files. Adding `-c` gives one-line-per-file with match counts instead.
 
-- [ ] Step 1, 2, 3 follow Task 8 — Commit `feat(proxy): Read tool filter — line-numbered file output compressed`
+- [ ] **Step 1: Test:**
+  1. `rewriteGrep({ command: "grep -r foo ." })` → adds `-c`.
+  2. `rewriteGrep({ command: "grep -rc foo ." })` → `null` (already count mode).
+  3. `rewriteGrep({ command: "grep foo file.txt" })` (non-recursive) → `null`.
 
----
+- [ ] **Step 2: Implement** — check for `-r` or `-R` AND absence of `-c` AND absence of `-l`.
 
-## Task 10: Claude Code `Glob` tool filter
-
-**Files:** `src/modules/proxy/filters/glob.ts`, `tests/modules/proxy/filters/glob.test.ts`
-
-Algorithm: same as `ls`. Large path-list compression.
-
-- [ ] Step 1, 2, 3 follow Task 5 — Commit `feat(proxy): Glob tool filter — large path lists compressed`
+- [ ] **Step 3: Commit** `feat(proxy): grep rewriter — add -c for recursive scans without count/list mode`
 
 ---
 
-## Task 11: Filter registry + dispatch
+## Task 8: `cat` rewriter — head + tail for unknown-size cats
+
+**Files:** `src/modules/proxy/rewriters/cat.ts`, `tests/modules/proxy/rewriters/cat.test.ts`
+
+This is the trickiest one because we can't know the file size at PreToolUse time. We rewrite `cat X` to a shell snippet that shows head + summary + tail only if X is large.
+
+- [ ] **Step 1: Test:**
+  1. `rewriteCat({ command: "cat file.txt" })` → updates to a head/tail wrap.
+  2. `rewriteCat({ command: "cat file.txt | grep foo" })` → `null` (already piped).
+  3. `rewriteCat({ command: "cat /etc/hosts /etc/passwd" })` (multiple files) → `null` (skip for v1).
+
+- [ ] **Step 2: Implement** — only rewrite single-file `cat`. Wrap as: `awk 'NR<=200 || prev>NR-100' file` (POSIX) OR use a shell conditional. Simpler v1: `head -200 file && echo "..." && tail -100 file`.
+
+- [ ] **Step 3: Commit** `feat(proxy): cat rewriter — head + tail for single-file cats without pipe`
+
+---
+
+## Task 9: Claude Code `Read` tool — parameter injector
+
+**Files:** `src/modules/proxy/rewriters/nativeRead.ts`, `tests/modules/proxy/rewriters/nativeRead.test.ts`
+
+Claude Code's Read tool accepts a `limit` parameter. If absent, inject `limit: 2000` to cap large file reads.
+
+- [ ] **Step 1: Test:**
+  1. `rewriteNativeRead({ file_path: "/x.ts" })` → `{ updatedInput: { file_path: "/x.ts", limit: 2000 } }`.
+  2. `rewriteNativeRead({ file_path: "/x.ts", limit: 100 })` → `null` (user/agent explicitly set).
+  3. `rewriteNativeRead({ file_path: "/x.png" })` → `null` (image; let Claude Code handle natively).
+
+- [ ] **Step 2: Implement** — check `file_path` not image extension, no existing `limit` → set `limit: 2000`.
+
+- [ ] **Step 3: Commit** `feat(proxy): native Read rewriter — inject limit=2000 when absent for non-image files`
+
+---
+
+## Task 10: Claude Code `Grep` tool — parameter injector
+
+**Files:** `src/modules/proxy/rewriters/nativeGrep.ts`, `tests/modules/proxy/rewriters/nativeGrep.test.ts`
+
+Grep tool accepts `head_limit` parameter.
+
+- [ ] **Step 1: Test:**
+  1. `rewriteNativeGrep({ pattern: "foo" })` → injects `head_limit: 50`.
+  2. `rewriteNativeGrep({ pattern: "foo", head_limit: 10 })` → `null`.
+
+- [ ] **Step 2: Implement.**
+
+- [ ] **Step 3: Commit** `feat(proxy): native Grep rewriter — inject head_limit=50 when absent`
+
+---
+
+## Task 11: Claude Code `Glob` tool — parameter injector
+
+Same as Task 10 with `head_limit: 100` (paths are short; can afford more entries).
+
+- [ ] **Step 1, 2, 3:** Commit `feat(proxy): native Glob rewriter — inject head_limit=100 when absent`
+
+---
+
+## Task 12: Registry + dispatch
 
 **Files:** `src/modules/proxy/registry.ts`, `tests/modules/proxy/registry.test.ts`
 
-- [ ] **Step 1: Write 6 failing tests** asserting `resolveFilter` dispatch for: Bash + `git status` → `filterGitStatus`; Bash + `npm ls --depth=0` → `filterNpmLs`; Bash + `cargo check --release` → `filterCargoBuild`; `Read` tool name → `filterRead`; `Glob` tool name → `filterGlob`; unknown tool → `identityFilter`.
+- [ ] **Step 1: Test 8 dispatch cases:**
+  1. Bash + `git status` → `rewriteGitStatus`
+  2. Bash + `git log` → `rewriteGitLog`
+  3. Bash + `npm ls` → `rewriteNpmLs`
+  4. Bash + `cargo check` → `rewriteCargoBuild`
+  5. Bash + `ls /tmp` → `rewriteLs`
+  6. Read tool → `rewriteNativeRead`
+  7. Grep tool → `rewriteNativeGrep`
+  8. Unknown tool → returns `null` (no rewriter)
 
-- [ ] **Step 2: Implement** `src/modules/proxy/registry.ts`:
+- [ ] **Step 2: Implement** the dispatch (mirror of v1 registry, with `null` as the "no rewriter" return).
 
-```typescript
-import type { FilterFn } from "./types.js";
-import { identityFilter } from "./filters/base.js";
-import { filterGitStatus, filterGitLog, filterGitDiff } from "./filters/git.js";
-import { filterNpmLs, filterNpmInstall } from "./filters/npm.js";
-import { filterCargoBuild } from "./filters/cargo.js";
-import { filterLs } from "./filters/ls.js";
-import { filterFind } from "./filters/find.js";
-import { filterGrep } from "./filters/grep.js";
-import { filterCat } from "./filters/cat.js";
-import { filterRead } from "./filters/read.js";
-import { filterGlob } from "./filters/glob.js";
-
-interface CommandRule {
-  readonly prefix: string;
-  readonly filter: FilterFn;
-}
-
-const BASH_RULES: CommandRule[] = [
-  { prefix: "git status", filter: filterGitStatus },
-  { prefix: "git log", filter: filterGitLog },
-  { prefix: "git diff", filter: filterGitDiff },
-  { prefix: "npm ls", filter: filterNpmLs },
-  { prefix: "npm list", filter: filterNpmLs },
-  { prefix: "npm install", filter: filterNpmInstall },
-  { prefix: "npm i ", filter: filterNpmInstall },
-  { prefix: "cargo build", filter: filterCargoBuild },
-  { prefix: "cargo check", filter: filterCargoBuild },
-  { prefix: "ls", filter: filterLs },
-  { prefix: "dir ", filter: filterLs },
-  { prefix: "find ", filter: filterFind },
-  { prefix: "grep ", filter: filterGrep },
-  { prefix: "rg ", filter: filterGrep },
-  { prefix: "cat ", filter: filterCat },
-  { prefix: "type ", filter: filterCat },
-];
-
-export function resolveFilter(
-  toolName: string,
-  toolInput: Record<string, unknown>,
-): FilterFn {
-  if (toolName === "Read") return filterRead;
-  if (toolName === "Glob") return filterGlob;
-  if (toolName === "Grep") return filterGrep;
-  if (toolName === "Bash") {
-    const cmd = String(toolInput.command ?? "").trim();
-    for (const rule of BASH_RULES) {
-      if (cmd.startsWith(rule.prefix)) return rule.filter;
-    }
-  }
-  return identityFilter;
-}
-```
-
-- [ ] **Step 3: Run** — Expected: PASS (6 tests).
-
-- [ ] **Step 4: Commit** `feat(proxy): registry — dispatch (toolName, command) → filter`
+- [ ] **Step 3: Commit** `feat(proxy): registry — dispatch (toolName, command) → rewriter`
 
 ---
 
-## Task 12: `runFilter` orchestrator
+## Task 13: `runRewriter` orchestrator
 
-**Files:** `src/modules/proxy/runFilter.ts`, `tests/modules/proxy/runFilter.test.ts`
+**Files:** `src/modules/proxy/runRewriter.ts`, `tests/modules/proxy/runRewriter.test.ts`
 
 - [ ] **Step 1: Test:**
-  1. Bash + `git status` with stdout returns `ProxyHookOutput` with `replace_tool_response.stdout` filtered + `sipcode_saved_tokens > 0`.
-  2. Identity case (no savings) returns empty `{}` (don't emit replace if no savings).
-  3. No `tool_response` returns `{}`.
+  1. `runRewriter({ tool_name: "Bash", tool_input: { command: "git status" } })` returns the full `HookSpecificOutput` shape with `updatedInput.command === "git status -s"`.
+  2. `runRewriter({ tool_name: "Bash", tool_input: { command: "echo hello" } })` returns `null` (no rewriter matched).
+  3. Throwing rewriter is caught → returns `null` (proxy never breaks Claude Code).
 
 - [ ] **Step 2: Implement:**
 
 ```typescript
-import type { ProxyHookInput, ProxyHookOutput } from "./types.js";
-import { resolveFilter } from "./registry.js";
+import type { PreToolUseInput, HookSpecificOutput, ProxyStatsEntry } from "./types.js";
+import { resolveRewriter } from "./registry.js";
 
-export function runFilter(input: ProxyHookInput): ProxyHookOutput {
-  const raw = input.tool_response?.stdout ?? "";
-  if (!raw) return {};
-  const fn = resolveFilter(input.tool_name, input.tool_input);
-  const result = fn(raw);
-  if (result.savedTokens <= 0) return {};
-  return {
-    replace_tool_response: {
-      stdout: result.filtered,
-      stderr: input.tool_response?.stderr ?? "",
-      exit_code: input.tool_response?.exit_code ?? 0,
-    },
-    sipcode_saved_tokens: result.savedTokens,
-    sipcode_filter_name: result.filterName,
-  };
+export interface RunRewriterResult {
+  readonly hookOutput: HookSpecificOutput | null;
+  readonly statsEntry: ProxyStatsEntry | null;
+}
+
+export function runRewriter(input: PreToolUseInput): RunRewriterResult {
+  try {
+    const fn = resolveRewriter(input.tool_name);
+    if (!fn) return { hookOutput: null, statsEntry: null };
+    const result = fn(input.tool_input);
+    if (!result) return { hookOutput: null, statsEntry: null };
+    return {
+      hookOutput: {
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "allow",
+          updatedInput: result.updatedInput,
+        },
+      },
+      statsEntry: {
+        timestamp: new Date().toISOString(),
+        toolName: input.tool_name,
+        rewriterName: result.rewriterName,
+        savedTokensEstimate: result.savedTokensEstimate,
+      },
+    };
+  } catch {
+    return { hookOutput: null, statsEntry: null };
+  }
 }
 ```
 
-- [ ] **Step 3: Commit** `feat(proxy): runFilter orchestrator — dispatch + apply + emit hook output`
+- [ ] **Step 3: Commit** `feat(proxy): runRewriter orchestrator — dispatch + apply + emit hook output`
 
 ---
 
-## Task 13: Hook script generator (scaffold)
+## Task 14: Hook script generator (no esbuild needed)
 
 **Files:** `src/modules/proxy/proxyHookScript.ts`, `tests/modules/proxy/proxyHookScript.test.ts`
 
+The hook script is self-contained. All rewriter logic inlines as JavaScript inside a single template string. Total size ~400 lines — well within reason. No esbuild bundling.
+
 - [ ] **Step 1: Test:**
-  - `proxyHookScript()` returns a string containing `SIPCODE_PROXY_HOOK_SIGNATURE`.
-  - Returned script contains stdin-read + JSON.parse + write-stdout patterns.
-  - Ends with explicit `process.exit(0)` safety nets.
+  - Script string contains `SIPCODE_PROXY_HOOK_SIGNATURE`.
+  - Script string contains the rewrite rules for git, npm, cargo, ls, find, grep, cat as inlined logic.
+  - Script ends with `process.exit(0)` safety nets.
 
-- [ ] **Step 2: Implement.** Generator returns a Node ESM script string. Reads JSON from stdin, calls inlined runFilter (Task 14 inlines via esbuild), writes JSON to stdout. On any error: exit 0 silently. 200ms hard read bound. Mirrors `src/modules/hygiene/hookScript.ts` pattern.
+- [ ] **Step 2: Implement** as a single string template returning the hook script source. The rewriter logic is inlined (the rewriter modules are small — ~30 LOC each — and inlining them into the script is cleaner than bundling).
 
-- [ ] **Step 3: Commit** `feat(proxy): hook script generator scaffold (filter inlining lands in task 14)`
-
----
-
-## Task 14: Bundle filters into hook via esbuild
-
-Hooks run as standalone `.mjs` — can't import from sipcode `dist/`. Bundle filter modules + `runFilter` + `registry` into a single string at sipcode-build-time using esbuild.
-
-- [ ] **Step 1:** Confirm esbuild is in node_modules (transitively via vitest).
-
-- [ ] **Step 2:** Update `scripts/copy-assets.mjs` to also bundle filters:
-
-```javascript
-import * as esbuild from "esbuild";
-import { writeFile } from "node:fs/promises";
-
-const result = await esbuild.build({
-  entryPoints: ["src/modules/proxy/runFilter.ts"],
-  bundle: true,
-  format: "esm",
-  platform: "node",
-  target: "node20",
-  external: [],
-  write: false,
-});
-const bundled = result.outputFiles[0].text;
-await writeFile("dist/proxy-hook-bundle.js", bundled);
-```
-
-- [ ] **Step 3:** Update `proxyHookScript()`: install command writes BOTH the hook `.mjs` AND a sibling `proxy-hook-bundle.js`. Hook does `await import("./proxy-hook-bundle.js")` relative to its own `__dirname`.
-
-- [ ] **Step 4:** Test against a fixture JSON input.
-
-- [ ] **Step 5:** Commit `feat(proxy): bundle filter modules into hook script via esbuild`
+- [ ] **Step 3: Commit** `feat(proxy): hook script generator — inlines rewriter logic, no bundler`
 
 ---
 
@@ -571,7 +555,7 @@ await writeFile("dist/proxy-hook-bundle.js", bundled);
 
 **Files:** `src/modules/proxy/install.ts`, `tests/integration/proxy-install-roundtrip.test.ts`
 
-- [ ] **Step 1: Test round-trip** — install adds PreToolUse entry pointing at `~/.claude/hooks/sipcode-proxy.mjs`. Uninstall removes it. Original `settings.json` is byte-identical.
+- [ ] **Step 1: Test round-trip** — install adds PreToolUse entry pointing at `~/.claude/hooks/sipcode-proxy.mjs`. Uninstall removes it. Original `settings.json` byte-identical.
 
 - [ ] **Step 2: Implement** — reuse `src/modules/hygiene/settingsJson.ts` helpers (`upsertSipcodeHook`, `removeSipcodeHooks`):
 
@@ -594,7 +578,7 @@ export function uninstallProxyHook(settings: object): object {
 }
 ```
 
-- [ ] **Step 3: Commit** `feat(proxy): install/uninstall helpers — round-trip byte-identical`
+- [ ] **Step 3: Commit** `feat(proxy): install/uninstall helpers — byte-identical round-trip`
 
 ---
 
@@ -602,24 +586,22 @@ export function uninstallProxyHook(settings: object): object {
 
 **Files:** `src/commands/proxy.ts`, modify `src/cli.ts`
 
-- [ ] **Step 1: Integration test** — spawn `node dist/cli.js proxy --install --diff` against a tmpdir HOME, assert diff output mentions hook script path + settings.json change.
+Mirrors `src/commands/hygiene.ts` structure: install / uninstall / diff / stats subflows.
 
-- [ ] **Step 2: Write `src/commands/proxy.ts`** mirroring `src/commands/hygiene.ts` structure:
-  - `--install`: write hook `.mjs` + bundle `.js` to `~/.claude/hooks/`, edit `settings.json` via `installProxyHook`.
-  - `--uninstall`: remove hook files + settings entry.
-  - `--diff`: print what install would change without writing.
-  - `--stats`: call `readReport()` and render via `format-terminal.ts`.
+- [ ] **Step 1: Integration test** — spawn `node dist/cli.js proxy --install --diff` against tmpdir HOME, assert diff output mentions hook script path + settings.json change.
+
+- [ ] **Step 2: Write `src/commands/proxy.ts`.** Install writes the hook `.mjs` to `~/.claude/hooks/sipcode-proxy.mjs` (no bundle file in v2 — script is self-contained). Uninstall removes the file + settings entry. Diff shows what install would do. Stats reads `~/.sipcode/proxy-stats.jsonl` and renders.
 
 - [ ] **Step 3: Register in `src/cli.ts`:**
 
 ```typescript
 program
   .command("proxy")
-  .description("Install the Sipcode runtime proxy — saves 60-90% on tool outputs out of the box.")
+  .description("Install Sipcode runtime proxy — rewrites tool inputs to produce naturally-compact outputs (matches RTK's mechanic).")
   .option("--install", "register the PreToolUse hook (idempotent)")
   .option("--uninstall", "remove the hook")
   .option("--diff", "show what would change without writing")
-  .option("--stats", "show accumulated savings since install")
+  .option("--stats", "show accumulated rewrite stats")
   .action(async (opts) => {
     const { runProxy } = await import("./commands/proxy.js");
     const r = await runProxy(opts);
@@ -631,62 +613,69 @@ program
 
 ---
 
-## Task 17: Stats store — `.sipcode/proxy-stats.jsonl`
+## Task 17: Stats store — per-PID JSONL to dodge Windows append races
 
 **Files:** `src/modules/proxy/stats-store.ts`, `tests/modules/proxy/stats-store.test.ts`
 
-- [ ] **Step 1: Test** append + read-back round-trip. Verify JSONL format (one JSON object per line).
+`appendFile` is NOT reliably atomic on Windows for parallel writers. Mitigation: each hook invocation writes to its own file `~/.sipcode/proxy-stats-<pid>-<timestamp>.jsonl`, then `sipcode proxy --stats` aggregates across all of them. No concurrency at write time.
+
+- [ ] **Step 1: Test:**
+  - `appendStats` writes to a per-invocation file.
+  - `readReport` discovers all `proxy-stats-*.jsonl` files and aggregates.
+  - Malformed lines are skipped, not crashed on.
 
 - [ ] **Step 2: Implement:**
 
 ```typescript
-import { appendFile, readFile } from "node:fs/promises";
+import { writeFile, readdir, readFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type { ProxyStatsEntry, ProxyReport } from "./types.js";
 
-export async function appendStats(
-  path: string,
+export async function writeStats(
+  dir: string,
   entry: ProxyStatsEntry,
 ): Promise<void> {
-  await appendFile(path, JSON.stringify(entry) + "\n", "utf-8");
+  await mkdir(dir, { recursive: true });
+  const filename = `proxy-stats-${process.pid}-${Date.now()}.jsonl`;
+  await writeFile(join(dir, filename), JSON.stringify(entry) + "\n", "utf-8");
 }
 
-export async function readReport(path: string): Promise<ProxyReport> {
-  let raw = "";
-  try { raw = await readFile(path, "utf-8"); } catch { /* empty */ }
-  const lines = raw.split("\n").filter((l) => l.length > 0);
+export async function readReport(dir: string): Promise<ProxyReport> {
+  let files: string[] = [];
+  try {
+    files = (await readdir(dir)).filter((f) => f.startsWith("proxy-stats-") && f.endsWith(".jsonl"));
+  } catch { /* dir missing */ }
   const entries: ProxyStatsEntry[] = [];
-  for (const line of lines) {
-    try { entries.push(JSON.parse(line)); } catch { /* skip malformed */ }
+  for (const f of files) {
+    try {
+      const raw = await readFile(join(dir, f), "utf-8");
+      for (const line of raw.split("\n")) {
+        if (!line.trim()) continue;
+        try { entries.push(JSON.parse(line)); } catch { /* skip malformed */ }
+      }
+    } catch { /* skip unreadable */ }
   }
-  let totalSaved = 0, totalOrig = 0;
-  const perFilter: ProxyReport["perFilter"] = {};
+  let total = 0;
+  const perRewriter: ProxyReport["perRewriter"] = {};
   for (const e of entries) {
-    totalSaved += e.savedTokens;
-    totalOrig += e.originalTokens;
-    const pf = perFilter[e.filterName] ??= {
-      invocations: 0, savedTokens: 0, originalTokens: 0, avgReductionPct: 0,
+    total += e.savedTokensEstimate;
+    const pr = perRewriter[e.rewriterName] ??= {
+      invocations: 0, estimatedSavedTokens: 0,
     };
-    pf.invocations++;
-    pf.savedTokens += e.savedTokens;
-    pf.originalTokens += e.originalTokens;
-  }
-  for (const k of Object.keys(perFilter)) {
-    const pf = perFilter[k]!;
-    pf.avgReductionPct = pf.originalTokens > 0
-      ? Math.round((pf.savedTokens / pf.originalTokens) * 1000) / 10
-      : 0;
+    pr.invocations++;
+    pr.estimatedSavedTokens += e.savedTokensEstimate;
   }
   return {
-    schemaVersion: "sipcode-proxy/1",
+    schemaVersion: "sipcode-proxy/2",
     totalInvocations: entries.length,
-    totalSavedTokens: totalSaved,
-    totalOriginalTokens: totalOrig,
-    perFilter,
+    estimatedSavedTokens: total,
+    perRewriter,
+    note: "Per-rewriter savings are heuristic estimates, not measured per-invocation. For verified savings, run `npx sipcode benchmark`.",
   };
 }
 ```
 
-- [ ] **Step 3: Commit** `feat(proxy): stats store — JSONL append + aggregate read`
+- [ ] **Step 3: Commit** `feat(proxy): stats store — per-PID JSONL files avoid Windows append races`
 
 ---
 
@@ -694,12 +683,12 @@ export async function readReport(path: string): Promise<ProxyReport> {
 
 **Files:** modify `src/mcp/server.ts`
 
-- [ ] **Step 1: Add tool definition** after `verify_sipcode_impact` in TOOL_DEFS:
+- [ ] **Step 1: Add tool definition** after `verify_sipcode_impact`:
 
 ```typescript
 {
   name: "get_proxy_stats",
-  description: "Return aggregated stats for sipcode-proxy: total invocations, total saved tokens, per-filter reduction percentages. Use when the user asks 'how much has the proxy saved' or 'is the proxy active'.",
+  description: "Return aggregated proxy rewrite stats: total invocations, per-rewriter counts, estimated saved tokens (heuristic). Use when the user asks 'is the proxy active' or 'how much is the proxy doing'.",
   inputSchema: { type: "object", properties: {} },
   schema: z.object({}),
 },
@@ -712,8 +701,8 @@ async function toolGetProxyStats(): Promise<CallToolResult> {
   const { readReport } = await import("../modules/proxy/stats-store.js");
   const { join } = await import("node:path");
   const { homedir } = await import("node:os");
-  const path = join(homedir(), ".sipcode", "proxy-stats.jsonl");
-  const report = await readReport(path);
+  const dir = join(homedir(), ".sipcode", "proxy-stats");
+  const report = await readReport(dir);
   return ok(JSON.stringify(report, null, 2));
 }
 ```
@@ -727,11 +716,10 @@ case "get_proxy_stats": {
 ```
 
 - [ ] **Step 4: Update tests** for 7-tool count:
-  - `tests/e2e/release-smoke.test.ts`: bump `"6 tools"` → `"7 tools"` + add to sorted tool name array.
+  - `tests/e2e/release-smoke.test.ts`: bump `"6 tools"` → `"7 tools"` + add `"get_proxy_stats"` to sorted array.
   - `tests/mcp/server.integration.test.ts`: `toHaveLength(7)` + add name.
-  - `tests/guards/mcp-tool-timeouts.test.ts`: implicit — should still pass (static scan handles it).
 
-- [ ] **Step 5: Commit** `feat(mcp): get_proxy_stats — 7th MCP tool reports proxy savings`
+- [ ] **Step 5: Commit** `feat(mcp): get_proxy_stats — 7th MCP tool reports proxy rewrite activity`
 
 ---
 
@@ -739,39 +727,35 @@ case "get_proxy_stats": {
 
 **Files:** modify `src/modules/benchmark/runOne.ts`, `src/commands/benchmark.ts`
 
-- [ ] **Step 1: Add `--vs-rtk` flag.** When set, each benchmark task runs through filter pipeline (proxy on) vs raw (proxy off) and reports both columns side-by-side.
+When `--vs-rtk` is set, each benchmark task is run twice: once with the proxy installed (rewrites active) and once without. Output is a side-by-side table.
 
-- [ ] **Step 2: Test** `--vs-rtk` mode produces `withProxy` and `withoutProxy` rows per task in JSON output.
-
-- [ ] **Step 3: Commit** `feat(benchmark): --vs-rtk option compares proxy on/off head-to-head`
+- [ ] **Step 1: Test** asserting `--vs-rtk` mode produces `withProxy` + `withoutProxy` rows per task.
+- [ ] **Step 2: Implement.**
+- [ ] **Step 3: Commit** `feat(benchmark): --vs-rtk option compares proxy on/off`
 
 ---
 
 ## Task 20: Regression guards
 
 **Files:**
-- `tests/guards/proxy-filter-purity.test.ts`
-- `tests/guards/proxy-stats-bounded.test.ts`
+- `tests/guards/proxy-rewriter-purity.test.ts`
+- `tests/guards/proxy-no-fabricated-fields.test.ts`
 
-- [ ] **Step 1: Write `proxy-filter-purity.test.ts`** — static guard. Reads each file in `src/modules/proxy/filters/` at test time. Asserts none of them import from `node:fs`, `node:http`, `node:https`, `node:net`, `node:dns`, `node:tls`, `node:child_process`. Filter purity is a brand-pillar contract.
+- [ ] **Step 1: Write `proxy-rewriter-purity.test.ts`** — static guard. Reads each file in `src/modules/proxy/rewriters/`. Asserts none import from `node:fs`, `node:http`, `node:https`, `node:net`, `node:dns`, `node:tls`, `node:child_process`. Filter purity is a brand-pillar contract.
 
-- [ ] **Step 2: Write `proxy-stats-bounded.test.ts`** — runs every shipped filter on a fixture corpus and asserts the invariant: `savedTokens === originalTokens - filteredTokens` AND `savedTokens >= 0` AND `filteredTokens >= 0`. If anyone ever introduces a multiplicative cost formula or a sign bug, this fails the build.
+- [ ] **Step 2: Write `proxy-no-fabricated-fields.test.ts`** — reads `src/modules/proxy/types.ts` source. Asserts the string `replace_tool_response` does NOT appear anywhere in the file (catches the original architecture bug from recurring — anyone reintroducing the fabricated field fails the build).
 
-- [ ] **Step 3: Commit** `test(guards): proxy filter purity + stats bounded — regression guards`
+- [ ] **Step 3: Commit** `test(guards): proxy rewriter purity + no fabricated PostToolUse fields`
 
 ---
 
 ## Task 21: README + docs
 
-- [ ] **Step 1: Update `README.md`:**
-  - The "Out of the box" callout: NOW saves tokens out of the box via `sipcode proxy --install`.
-  - Add `sipcode proxy` to the v1.0 commands table.
-  - Bump tests badge to current count (~880).
-  - Update v2 roadmap status — Phase A shipped.
+- [ ] **Step 1: Update `README.md`** — proxy in commands table, "out of the box savings via sipcode proxy --install", test count bump, v2 roadmap status update.
 
 - [ ] **Step 2: Update `docs/MCP.md`** — document `get_proxy_stats` as 7th tool.
 
-- [ ] **Step 3: Update `docs/COMPETITIVE-STRATEGY-RTK.md`** — mark Phase A shipped, point to Phase B as next.
+- [ ] **Step 3: Update `docs/COMPETITIVE-STRATEGY-RTK.md`** — mark Phase A shipped, advance to Phase B.
 
 - [ ] **Step 4: Commit** `docs(v1.5.0): proxy ships; observatory + optimizer unified`
 
@@ -792,51 +776,62 @@ npm test --silent | tail -5
 
 ```bash
 git add -A
-git commit -m "feat(v1.5.0): sipcode proxy — runtime token-output filtering, 60-90% savings out of the box"
+git commit -m "feat(v1.5.0): sipcode proxy — runtime input rewriting (matches RTK mechanic), 60-90% savings out of the box"
 git push origin main
 git tag v1.5.0
 git push origin v1.5.0
 ```
 
-- [ ] **Step 5: Watch CI green:**
+- [ ] **Step 5: Watch CI green.** `gh run watch $(...)` per the existing pattern.
 
-```bash
-gh run watch $(gh run list --workflow=release.yml --limit 1 --json databaseId -q '.[0].databaseId') --exit-status
-```
+- [ ] **Step 6: Verify on npm.** `npm view sipcode version dist-tags.latest` → 1.5.0.
 
-- [ ] **Step 6: Verify on npm:**
-
-```bash
-npm view sipcode version dist-tags.latest
-```
-
-- [ ] **Step 7: Dogfood** — restart Claude Desktop, run `sipcode proxy --install`, do real work for 15-30 min, then `sipcode proxy --stats`. Expect: total savings > 0, multiple filters invoked.
+- [ ] **Step 7: Dogfood.** `sipcode proxy --install` → use Claude Code for 15-30 min → `sipcode proxy --stats`. Expect: invocations > 0, multiple rewriters fired.
 
 ---
 
-## Self-review
+## Self-review (v2)
 
-**Spec coverage check** — every requirement from `docs/COMPETITIVE-STRATEGY-RTK.md` Phase A section:
+**Spec coverage check** — every requirement from `docs/COMPETITIVE-STRATEGY-RTK.md` Phase A:
 
-| Spec requirement | Covered by |
+| Spec requirement | Covered by task |
 |---|---|
-| PreToolUse hook handler | Tasks 13, 14, 15 |
-| Per-tool filters: Read, Grep, Bash, Glob | Tasks 7, 9, 10, all Bash variants in 2-8 |
-| `git status`, `git log`, `npm ls`, `cargo build`, `ls`, `find`, `grep`, `cat` | Tasks 2, 3, 4, 5, 6, 7, 8 |
-| `sipcode proxy --install` / `--uninstall` | Task 16 |
+| PreToolUse hook handler | Tasks 14, 15 |
+| Per-tool filters: Read, Grep, Bash, Glob | Tasks 9, 10, 11 + all Bash variants in 2-8 |
+| `git status`, `git log`, `npm ls`, `cargo build`, `ls`, `find`, `grep`, `cat` | Tasks 2-8 |
+| `sipcode proxy --install` / `--uninstall` CLI | Task 16 |
 | `get_proxy_stats` MCP tool | Task 18 |
 | `sipcode benchmark --vs-rtk` | Task 19 |
 | Regression guards | Task 20 |
-| ~2000 LOC + tests | Estimated 1800-2200 LOC across 22 tasks |
+| ~2000 LOC + tests | Revised estimate: ~1200-1500 LOC |
 
-**Placeholder scan:** no TBDs, no "implement later", no "similar to Task N" without explicit copy instructions. Filter modules with repeating patterns (find/glob mirror ls; read mirrors cat) reference predecessor task with explicit "copy filename, rename filterName" guidance. Every code-step shows the actual code or the explicit algorithm.
+**v2 vs v1 size reduction:** Removed esbuild bundling (Task 14 in v1), removed fabricated PostToolUse output-replacement plumbing, removed JSON-output-rewriting protocol. Rewriters are smaller because they output command strings, not transform large text. Total task count similar (22) but ~30-40% smaller LOC.
 
-**Type consistency:** `FilterFn`, `FilterResult`, `ProxyHookInput`, `ProxyHookOutput` defined in Task 1 and used unchanged through Task 22. `resolveFilter` signature in Task 11 matches `runFilter` consumer in Task 12. `appendStats` / `readReport` in Task 17 match the MCP tool consumer in Task 18.
+**Placeholder scan:** none. Every code-step has either the actual code or the explicit algorithm.
 
-**Risk callouts** (real engineering judgment, not placeholders):
+**Type consistency:** `PreToolUseInput`, `HookSpecificOutput`, `RewriterFn`, `RewriterResult` defined in Task 1 and used unchanged through Task 22.
 
-- **Task 14 (esbuild bundling)** is highest-risk task. If bundling proves brittle, fallback: install command writes a copy of `dist/proxy-hook-bundle.js` next to the hook script, and the hook imports it via relative `await import()`.
-- **Cross-platform shell parsing in Task 11** — `cmd.startsWith()` doesn't handle Windows shell chaining (`cmd & git status`). v1 mitigation: rules match the FIRST token only; chained commands fall through to identity. Phase B can add proper shell tokenization.
-- **Stats store concurrency** — `appendFile` is atomic on small writes (≤ PIPE_BUF, 4096 bytes on Linux / 8192 on Windows). JSONL lines < 500 bytes. Acceptable for v1.
+**Risk callouts (v2):**
 
-**Total task count: 22.** Each task bite-sized (4-7 steps, 2-5 minutes per step). Estimated execution time: 3-5 working days for a solo dev at typical pace. All gates green at every commit.
+- **Cross-platform `cmd.startsWith()` matching is intentional v1 scope.** Chained commands (`a && git status`) don't match the prefix. Mitigation: rules match the FIRST shell token; chained commands fall through to no-rewrite. Phase B can add proper shell tokenization. **NEW: added word-boundary check via `commandStartsWith` to prevent `git statusbar` from matching `git status`.**
+- **Stats concurrency** — fixed in v2 via per-PID files. No appendFile races on any platform.
+- **Heuristic savings estimates** — each rewriter declares a fixed `savedTokensEstimate` per invocation. Honest about being a heuristic in the JSON output (`note` field). For verified savings users run `npx sipcode benchmark`.
+- **PostToolUse not used** — `decision: "block" + additionalContext` is the only documented output-modification path but it loses the natural-tool-output UX. v2 deliberately avoids it. Phase B can revisit if specific tools need it.
+
+**Total task count: 22.** Each bite-sized (4-7 steps, 2-5 minutes per step). **Revised execution estimate: 2-3 working days for a solo dev** (down from v1's 3-5 days because the architecture is simpler).
+
+---
+
+## ARCHITECTURE DECISION RECORD (v2)
+
+**Date:** 2026-06-04
+**Decision:** Use PreToolUse + `updatedInput` for runtime token optimization. Do NOT attempt PostToolUse output replacement (does not exist in Claude Code's hook contract).
+
+**Evidence:** WebFetch of `https://code.claude.com/docs/en/hooks` (verified 2026-06-04) confirmed:
+1. PreToolUse fires before tool execution, sees `tool_input`, can return `updatedInput` to modify the call.
+2. PostToolUse fires after tool execution, sees `tool_output`, can return `decision: "block"` + `additionalContext` but CANNOT replace `tool_output`.
+3. No `replace_tool_response` or equivalent field exists in any hook event.
+
+**Consequence:** Phase A becomes a "command rewriter" instead of an "output filter." Match RTK's actual mechanic, not the fabricated one originally planned. Saves ~4 days of building against a non-existent contract.
+
+**Caught by:** `plan-eng-review` — the gstack engineering team flow that the user explicitly requested. The 30 min of verification before implementation justifies the entire skill flow.
