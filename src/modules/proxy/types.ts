@@ -3,16 +3,16 @@
  * Source: https://code.claude.com/docs/en/hooks (verified 2026-06-04).
  *
  * IMPORTANT: PostToolUse is intentionally not used. Claude Code's
- * PostToolUse cannot replace tool_output (verified). The only
+ * PostToolUse cannot replace a tool's output (verified). The only
  * documented output-modification path is `decision: "block"` plus
  * `additionalContext`, which is intentionally NOT exercised in
  * Phase A — it would lose the natural-tool-output UX that makes
  * the proxy transparent.
  *
- * The fabricated field `replace_tool_response` from an earlier draft
- * of this design DOES NOT EXIST in Claude Code's hook contract.
- * tests/guards/proxy-no-fabricated-fields.test.ts asserts that
- * string never appears in this module's source.
+ * An earlier draft of this design assumed a PostToolUse
+ * output-replacement field that DOES NOT EXIST in Claude Code's hook
+ * contract. tests/guards/proxy-no-fabricated-fields.test.ts asserts the
+ * fabricated field name never reappears in this module's source.
  */
 
 /** PreToolUse JSON delivered on stdin to the hook script. */
