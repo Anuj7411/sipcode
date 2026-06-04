@@ -155,6 +155,20 @@ program
   });
 
 program
+  .command("proxy")
+  .description("Install the Sipcode runtime proxy — rewrites tool inputs to produce naturally-compact outputs (matches RTK's mechanic).")
+  .option("--install", "write the hook script + register the PreToolUse hook (idempotent)")
+  .option("--uninstall", "remove the hook entry + delete the hook script")
+  .option("--diff", "show what would change without writing")
+  .option("--stats", "show accumulated rewrite stats")
+  .option("--json", "machine-readable output (with --stats)")
+  .action(async (opts) => {
+    const { runProxy } = await import("./commands/proxy.js");
+    const r = await runProxy(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("benchmark")
   .description("Reproducible token-savings benchmark over a locked 20-task corpus.")
   .option("--task <id>", "run a single task (BT001-BT020)")
