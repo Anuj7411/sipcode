@@ -6,7 +6,7 @@
  * the first non-null result; native tools map to their single injector.
  */
 import type { RewriterFn } from "./types.js";
-import { rewriteGitStatus, rewriteGitLog } from "./rewriters/git.js";
+import { rewriteGitStatus, rewriteGitLog, rewriteGitDiff } from "./rewriters/git.js";
 import { rewriteNpmLs } from "./rewriters/npm.js";
 import { rewriteCargoBuild } from "./rewriters/cargo.js";
 import { rewriteLs } from "./rewriters/ls.js";
@@ -20,6 +20,7 @@ import { rewriteNativeGlob } from "./rewriters/nativeGlob.js";
 const BASH_REWRITERS: readonly RewriterFn[] = [
   rewriteGitStatus,
   rewriteGitLog,
+  rewriteGitDiff,
   rewriteNpmLs,
   rewriteCargoBuild,
   rewriteLs,

@@ -7,7 +7,9 @@
  * tool I/O at the hook layer.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag } from "./base.js";
+import { commandStartsWith, hasFlag, hasOutputLimit } from "./base.js";
+
+const DIFF_HEAD = 200;
 
 /**
  * `git status` → `git status -s` (short format).
@@ -44,5 +46,32 @@ export const rewriteGitLog: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 3000,
     rewriterName: "git-log",
+  };
+};
+
+/**
+ * git diff / git show: cap unbounded diff output with `| head -200`. Diffs are
+ * one of the largest token sinks in coding sessions. Skipped when the diff is
+ * already in a compact summary mode (--stat/--numstat/--name-only/--name-status),
+ * already length-limited, or part of a compound shell command (we'd misplace the
+ * pipe). The agent can always re-run for a specific file to see the full diff.
+ */
+export const rewriteGitDiff: RewriterFn = (input) => {
+  const cmd = String(input.command ?? "").trim();
+  if (!commandStartsWith(cmd, "git diff") && !commandStartsWith(cmd, "git show")) {
+    return null;
+  }
+  if (hasFlag(cmd, "--stat", "--numstat", "--name-only", "--name-status", "--shortstat")) {
+    return null;
+  }
+  if (hasOutputLimit(cmd)) return null;
+  // Don't append a pipe to a command that already has shell glue.
+  if (cmd.includes("|") || cmd.includes("&&") || cmd.includes("||") || cmd.includes(";")) {
+    return null;
+  }
+  return {
+    updatedInput: { ...input, command: `${cmd} | head -${DIFF_HEAD}` },
+    savedTokensEstimate: 3500,
+    rewriterName: "git-diff",
   };
 };

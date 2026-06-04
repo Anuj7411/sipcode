@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rewriteGitStatus, rewriteGitLog } from "../../../../src/modules/proxy/rewriters/git.js";
+import { rewriteGitStatus, rewriteGitLog, rewriteGitDiff } from "../../../../src/modules/proxy/rewriters/git.js";
 
 describe("rewriteGitStatus", () => {
   it("rewrites `git status` to `git status -s`", () => {
@@ -62,5 +62,31 @@ describe("rewriteGitLog", () => {
 
   it("does NOT match `git logout` (word-boundary check)", () => {
     expect(rewriteGitLog({ command: "git logout" })).toBeNull();
+  });
+});
+
+describe("rewriteGitDiff", () => {
+  it("caps `git diff` with | head -200", () => {
+    const r = rewriteGitDiff({ command: "git diff" });
+    expect(r?.updatedInput.command).toBe("git diff | head -200");
+    expect(r?.rewriterName).toBe("git-diff");
+  });
+  it("caps `git show` too", () => {
+    expect(rewriteGitDiff({ command: "git show" })?.updatedInput.command).toBe(
+      "git show | head -200",
+    );
+  });
+  it("does NOT rewrite compact summary modes", () => {
+    expect(rewriteGitDiff({ command: "git diff --stat" })).toBeNull();
+    expect(rewriteGitDiff({ command: "git diff --name-only" })).toBeNull();
+  });
+  it("does NOT rewrite when already length-limited", () => {
+    expect(rewriteGitDiff({ command: "git diff | head -50" })).toBeNull();
+  });
+  it("does NOT rewrite compound commands (would misplace the pipe)", () => {
+    expect(rewriteGitDiff({ command: "git diff && echo done" })).toBeNull();
+  });
+  it("does NOT match `git difftool` (word-boundary check)", () => {
+    expect(rewriteGitDiff({ command: "git difftool" })).toBeNull();
   });
 });
