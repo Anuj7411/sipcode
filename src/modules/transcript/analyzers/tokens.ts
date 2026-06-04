@@ -80,8 +80,22 @@ export function analyzeTokens(
     });
   }
 
+  // Total tokens (raw — includes cache reads). Used for cost math and
+  // session aggregate stats. Cache reads are the cheap path — billed at
+  // the cache_read price, ~10% of input.
   const total = input + output + cacheRead + cacheCreation;
-  const outputRatio = total > 0 ? output / total : 0;
+  // Effective denominator EXCLUDES cacheRead (CORRECTNESS FIX, v1.4.0).
+  // Why: cache reads are the GOOD/efficient path — prompt caching working
+  // as intended. Including them in the denominator made the output ratio
+  // ~0.5% on cache-heavy sessions and conflated "efficient caching" with
+  // "waste." The honest output ratio is: % of NEW-token work (input you
+  // had to send fresh + output Claude produced + new cache material) that
+  // became code. Subtracting cacheRead from the denominator gives that.
+  // Comparison with the previous formula is still meaningful for relative
+  // metrics (before/after impact) because the formula is consistent on
+  // both sides.
+  const effectiveDenom = input + output + cacheCreation;
+  const outputRatio = effectiveDenom > 0 ? output / effectiveDenom : 0;
   const totalUSD = Array.from(perModel.values()).reduce(
     (acc, v) => acc + v.usd,
     0,

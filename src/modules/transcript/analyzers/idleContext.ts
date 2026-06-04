@@ -6,11 +6,20 @@
  * (by Read again, by Edit, by Write, by Bash) for >= IDLE_TURN_THRESHOLD
  * subsequent assistant turns through end-of-session.
  *
- * Cost: per-turn input-tokens-while-in-context, roughly = file's
- * first-read input_tokens × idle_turn_count. We use the per-call
- * cache_read cost as the in-context "drag" since after the first read
- * the file lives in cache; tokens × cache_read_per_mtok is the actual
- * recurring cost.
+ * Cost model (CORRECTNESS FIX, v1.4.0): the wasted token cost of an idle
+ * file is the ONE-TIME read that brought it into context, not that cost
+ * multiplied by the number of idle turns. The earlier per-turn
+ * multiplication produced mathematically impossible aggregate numbers —
+ * for example, a 363K-token file held idle for 451 turns reported 164M
+ * "wasted" tokens in a session that totaled only 316M tokens. The
+ * resident-cache cost is paid ONCE; the file simply sitting in cache on
+ * subsequent turns doesn't re-bill its full size each turn (cache_read
+ * pricing already counts the bytes we actually re-sent on each call,
+ * which is already in the session totals as cacheReadTokens).
+ *
+ * Invariant guarded by tests: sum(idleTokenCost) <= session totalTokens.
+ * If you see ">= totalTokens" anywhere downstream, this analyzer is the
+ * bug to look at first.
  */
 import path from "node:path";
 import type { ParsedSession, ToolCall } from "../parse.js";
@@ -97,7 +106,13 @@ export function analyzeIdleContext(session: ParsedSession): IdleContextResult {
     const ref = lastRef.get(norm) ?? first.turn;
     const idleTurns = lastTurn - ref;
     if (idleTurns >= IDLE_TURN_THRESHOLD) {
-      const cost = first.cost * idleTurns;
+      // Wasted one-time read. Do NOT multiply by idleTurns — that
+      // produces > total-session-tokens values. The cost is what was
+      // paid to bring this file into context, full stop. The idleTurns
+      // count is retained in the result for diagnostic surfacing (so a
+      // user can see "this file sat idle for 451 turns") but does NOT
+      // scale the cost.
+      const cost = first.cost;
       total += cost;
       idle.push({
         filePath: first.displayPath,

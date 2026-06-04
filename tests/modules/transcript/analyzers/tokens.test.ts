@@ -22,13 +22,19 @@ describe("analyzeTokens", () => {
     expect(t.cacheCreationTokens).toBe(1200 + 40);
   });
 
-  it("M010 output ratio = output / total", () => {
+  it("M010 output ratio = output / (input + output + cacheCreation) — cacheRead EXCLUDED [v1.4.0 correctness fix regression guard]", () => {
+    // Why this changed: the previous formula put cacheRead in the
+    // denominator. Sessions with heavy prompt caching showed output
+    // ratio near 0% because cache reads are typically 90%+ of "total"
+    // tokens. Including them conflated efficient caching with waste.
+    // The honest ratio asks: of the new-token work this session, what
+    // fraction became code output? Cache reads are the cheap efficient
+    // path, not waste.
     const r = parseTranscript(load("minimal-2turn.jsonl"));
     if (!r.ok) throw new Error("parse failed");
     const t = analyzeTokens(r.value, pricing);
-    const total =
-      t.inputTokens + t.outputTokens + t.cacheReadTokens + t.cacheCreationTokens;
-    expect(t.outputRatio).toBeCloseTo(t.outputTokens / total, 6);
+    const effectiveDenom = t.inputTokens + t.outputTokens + t.cacheCreationTokens;
+    expect(t.outputRatio).toBeCloseTo(t.outputTokens / effectiveDenom, 6);
   });
 
   it("M011 USD cost is computed and non-negative", () => {

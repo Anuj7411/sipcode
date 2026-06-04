@@ -27,7 +27,7 @@ exports[`renderReport > matches JSON snapshot for minimal-2turn 1`] = `
   "punchline": {
     "nonOutputTokens": 2502,
     "oneLiner": "you burned 2,622 tokens. 120 were code output. the other 2,502 were exploration, re-reads, and idle context.",
-    "outputRatioPct": 4.6,
+    "outputRatioPct": 8.4,
     "outputTokens": 120,
     "totalTokens": 2622,
   },
@@ -94,7 +94,7 @@ exports[`renderReport > matches JSON snapshot for multi-model 1`] = `
   "punchline": {
     "nonOutputTokens": 2730,
     "oneLiner": "you burned 3,380 tokens. 650 were code output. the other 2,730 were exploration, re-reads, and idle context.",
-    "outputRatioPct": 19.2,
+    "outputRatioPct": 21.8,
     "outputTokens": 650,
     "totalTokens": 3380,
   },
@@ -165,7 +165,7 @@ exports[`renderReport > matches JSON snapshot for read-heavy 1`] = `
   "punchline": {
     "nonOutputTokens": 46995,
     "oneLiner": "you burned 47,965 tokens. 970 were code output. the other 46,995 were exploration, re-reads, and idle context.",
-    "outputRatioPct": 2,
+    "outputRatioPct": 8.6,
     "outputTokens": 970,
     "totalTokens": 47965,
   },
