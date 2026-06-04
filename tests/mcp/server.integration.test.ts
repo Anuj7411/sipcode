@@ -138,7 +138,7 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.serverVersion?.startsWith("1.")).toBe(true);
     });
 
-    it("registers exactly the seven documented tools", () => {
+    it("registers exactly the twelve documented tools", () => {
       expect(result.tools).toBeDefined();
       expect(result.tools).toContain("get_sipcode_info");
       expect(result.tools).toContain("list_recent_sessions");
@@ -147,7 +147,12 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.tools).toContain("estimate_task_cost");
       expect(result.tools).toContain("verify_sipcode_impact");
       expect(result.tools).toContain("get_proxy_stats");
-      expect(result.tools).toHaveLength(7);
+      expect(result.tools).toContain("get_agent_score");
+      expect(result.tools).toContain("get_session_stats");
+      expect(result.tools).toContain("install_proxy");
+      expect(result.tools).toContain("uninstall_proxy");
+      expect(result.tools).toContain("get_proxy_status");
+      expect(result.tools).toHaveLength(12);
     });
   },
 );

@@ -342,6 +342,57 @@ async function toolGetProxyStats(): Promise<CallToolResult> {
   return ok(JSON.stringify(report, null, 2));
 }
 
+async function toolGetAgentScore(cwd: string): Promise<CallToolResult> {
+  const { runScoreCmd } = await import("../commands/score.js");
+  const buf: string[] = [];
+  const errs: string[] = [];
+  const r = await runScoreCmd(
+    { cwd, json: true, html: false },
+    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s), writeFile: async () => {} },
+  );
+  if (r.exitCode !== 0) return fail(errs.join("\n") || "score failed");
+  return ok(buf.join("\n"));
+}
+
+async function toolGetSessionStats(): Promise<CallToolResult> {
+  const { runStats } = await import("../commands/stats.js");
+  const buf: string[] = [];
+  const errs: string[] = [];
+  const r = await runStats(
+    { json: true },
+    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s), writeFile: async () => {} },
+  );
+  if (r.exitCode !== 0) return fail(errs.join("\n") || "stats failed");
+  return ok(buf.join("\n"));
+}
+
+async function toolInstallProxy(): Promise<CallToolResult> {
+  const { runProxy } = await import("../commands/proxy.js");
+  const buf: string[] = [];
+  await runProxy({ install: true }, { stdout: (s: string) => buf.push(s) });
+  return ok(buf.join("\n") || "sipcode proxy installed.");
+}
+
+async function toolUninstallProxy(): Promise<CallToolResult> {
+  const { runProxy } = await import("../commands/proxy.js");
+  const buf: string[] = [];
+  await runProxy({ uninstall: true }, { stdout: (s: string) => buf.push(s) });
+  return ok(buf.join("\n") || "sipcode proxy uninstalled.");
+}
+
+async function toolGetProxyStatus(): Promise<CallToolResult> {
+  const { runProxy } = await import("../commands/proxy.js");
+  const buf: string[] = [];
+  await runProxy({}, { stdout: (s: string) => buf.push(s) });
+  const { readReport } = await import("../modules/proxy/stats-store.js");
+  const { join } = await import("node:path");
+  const { homedir } = await import("node:os");
+  const report = await readReport(join(homedir(), ".sipcode", "proxy-stats"));
+  return ok(
+    `${buf.join("\n")}\nRewrites recorded: ${report.totalInvocations} · est. tokens saved: ~${report.estimatedSavedTokens} (heuristic)`,
+  );
+}
+
 // ---- Tool registry ----
 
 const TOOL_DEFS = [
@@ -468,6 +519,50 @@ const TOOL_DEFS = [
     },
     schema: z.object({}),
   },
+  {
+    name: "get_agent_score",
+    description:
+      "Run Sipcode's 24-check static audit of a project's agent-friendliness and return the tier + composite score as JSON. Use when the user asks 'how agent-friendly is this codebase?' or 'what's my sipcode score?'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        cwd: {
+          type: "string",
+          description: "Absolute path to the project root to audit.",
+        },
+      },
+      required: ["cwd"],
+    },
+    schema: z.object({ cwd: z.string().min(1) }),
+  },
+  {
+    name: "get_session_stats",
+    description:
+      "Return cross-session token analytics (totals, per-session breakdown, top expensive sessions) as JSON, read from the local Claude Code transcripts. Use when the user asks 'how many tokens have I used?' or 'what are my most expensive sessions?'.",
+    inputSchema: { type: "object", properties: {} },
+    schema: z.object({}),
+  },
+  {
+    name: "install_proxy",
+    description:
+      "Install the Sipcode runtime proxy: writes the PreToolUse hook and registers it in ~/.claude/settings.json so Claude Code rewrites tool inputs for compact output. WRITES to settings.json (reversible with uninstall_proxy). Use when the user asks to 'turn on the proxy' or 'start saving tokens'.",
+    inputSchema: { type: "object", properties: {} },
+    schema: z.object({}),
+  },
+  {
+    name: "uninstall_proxy",
+    description:
+      "Remove the Sipcode proxy hook from ~/.claude/settings.json and delete the hook script. WRITES to settings.json. Use when the user asks to 'turn off the proxy'.",
+    inputSchema: { type: "object", properties: {} },
+    schema: z.object({}),
+  },
+  {
+    name: "get_proxy_status",
+    description:
+      "Report whether the Sipcode proxy is installed plus its accumulated rewrite stats. Read-only. Use when the user asks 'is the proxy on?'.",
+    inputSchema: { type: "object", properties: {} },
+    schema: z.object({}),
+  },
 ] as const;
 
 // ---- Wire up the server ----
@@ -569,6 +664,31 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
       case "get_proxy_stats": {
         return await withTimeout(name, 5_000, toolGetProxyStats());
+      }
+      case "get_agent_score": {
+        return await withTimeout(
+          name,
+          30_000,
+          toolGetAgentScore(args["cwd"] as string),
+          "the project at this cwd may be large — point cwd at a specific package, or run `sipcode score` in your terminal",
+        );
+      }
+      case "get_session_stats": {
+        return await withTimeout(
+          name,
+          30_000,
+          toolGetSessionStats(),
+          "your session catalog may be large — run `sipcode stats` in your terminal, or pass a recent `since` window via the CLI",
+        );
+      }
+      case "install_proxy": {
+        return await withTimeout(name, 10_000, toolInstallProxy());
+      }
+      case "uninstall_proxy": {
+        return await withTimeout(name, 10_000, toolUninstallProxy());
+      }
+      case "get_proxy_status": {
+        return await withTimeout(name, 5_000, toolGetProxyStatus());
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);
