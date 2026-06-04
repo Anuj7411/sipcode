@@ -3,7 +3,7 @@
   "name": "sipcode",
   "displayName": "Sipcode",
   "description": "Token-economy observatory for Claude Code: forensic per-session audit, A/B savings verifier, reproducible benchmark, and cost prediction — directly in Claude chat. Auto-installs via npx on first use; no separate npm install required.",
-  "version": "1.3.3",
+  "version": "1.5.0",
   "author": {
     "name": "Anuj Ojha",
     "url": "https://github.com/Anuj7411"
