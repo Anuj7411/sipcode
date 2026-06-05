@@ -1,6 +1,42 @@
 # Competitive strategy — Sipcode vs RTK
 
 **Decision date:** 2026-05-22
+**Status:** ⚠️ SUPERSEDED on 2026-06-05 — see the reconciliation note below.
+
+---
+
+## ⚠️ 2026-06-05 — Strategic reconciliation (READ FIRST)
+
+The "beat RTK / leapfrog on compression %" framing in this document is **retired.**
+After research + validation (2026-06-05) we concluded we cannot — and should not —
+win a head-to-head compression-ratio war against a 52k-star Rust incumbent with the
+same mechanic. The validated direction is a **different lane**: position Sipcode as a
+**context-reliability** tool for the individual Claude Code developer ("clean context
+= right answers, and lower cost as a side effect"), under the existing *"sip, don't
+gulp"* brand. Full design: [`superpowers/specs/2026-06-05-sipcode-reliability-reposition-design.md`](superpowers/specs/2026-06-05-sipcode-reliability-reposition-design.md).
+
+**What this means for the phases below (nothing engineering is wasted — only the
+RTK-war framing is):**
+
+| Old phase element | New verdict |
+|---|---|
+| Phase A — proxy/valve | ✅ Shipped (v1.5.0). Kept as the "automatic context cleaning" layer. |
+| Phase B — symbol-level *relevant* reads | **Keep, reframed** as a reliability feature ("clean context"). Deferred until after the drift detector. |
+| Phase B — read-once cache | **Dropped** — already built by others (`read-once`, Read Cache). |
+| Phase B — "96% vs RTK 88%" race | **Dropped** — we don't race RTK on %. |
+| Phase C — compression-integrity scoring | **Keep, reframed** as the reliability honesty-guardrail. Future increment. |
+| Phase C — adaptive pressure compression | **Deferred/risk** — Anthropic ships context editing natively. |
+| Phase C — co-edit prediction / cross-session recycling | **Dropped/deferred** — speculative / overlaps existing memory MCPs. |
+
+**Unified roadmap now:** (1) README reposition → (2) `drift` detector [new flagship]
+→ (3) reframed survivors (symbol-level relevant reads, integrity scoring) by evidence.
+RTK stays acknowledged as **complementary, different lane** — not a target to beat.
+
+The phase definitions below are kept **for historical context only.**
+
+---
+
+### (historical) Decision date: 2026-05-22
 **Status:** Committed strategic path. Updated when post-launch signal arrives.
 
 > **This document is the OPERATIONAL plan for executing the North Star captured in [`docs/VISION.md`](VISION.md).** The North Star says: be the best token-saving tool for every AI coding agent, built with latest semantic technologies rather than heuristic filters. This doc is HOW we get there over the next 4 weeks vs. competitors who already hold optimizer ground.

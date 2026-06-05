@@ -151,6 +151,14 @@ detector — the build. They don't block each other.
 scoring of answers; multi-project dashboards. The MCP tool-consolidation (§8) is a
 *separate* decision, not part of this spec.
 
+**Reframed survivors from the old RTK roadmap** (now reliability features, after the
+drift detector, prioritized by evidence — see the reconciliation note in
+[`COMPETITIVE-STRATEGY-RTK.md`](../../COMPETITIVE-STRATEGY-RTK.md)): symbol-level
+*relevant* reads ("clean context"), and compression-integrity scoring (the
+honesty-guardrail: "we tell you if cleaning hid something"). The old "beat RTK on
+compression %" framing is retired; RTK is acknowledged as a complementary, different
+lane, not a target.
+
 ## 8. Open decision (not blocking this spec)
 
 The MCP server currently has 12 tools (~1,534 tokens/turn — measured). Adding
