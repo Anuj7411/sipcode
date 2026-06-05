@@ -169,6 +169,16 @@ program
   });
 
 program
+  .command("drift")
+  .description("Detect context/cost drift — flags when recent sessions get more expensive or context-bloated vs your baseline. Silent unless something regressed.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => {
+    const { runDriftCommand } = await import("./commands/drift.js");
+    const r = await runDriftCommand(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("benchmark")
   .description("Reproducible token-savings benchmark over a locked 20-task corpus.")
   .option("--task <id>", "run a single task (BT001-BT020)")
