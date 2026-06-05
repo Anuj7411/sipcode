@@ -15,24 +15,44 @@ same mechanic. The validated direction is a **different lane**: position Sipcode
 = right answers, and lower cost as a side effect"), under the existing *"sip, don't
 gulp"* brand. Full design: [`superpowers/specs/2026-06-05-sipcode-reliability-reposition-design.md`](superpowers/specs/2026-06-05-sipcode-reliability-reposition-design.md).
 
-**What this means for the phases below (nothing engineering is wasted — only the
-RTK-war framing is):**
+**Two pillars (both non-negotiable):**
+- **Positioning = DIFFERENT** from RTK → reliability / clean context. We don't fight
+  on marketing.
+- **Performance = EQUAL-OR-BETTER** than RTK on token savings (compression ratio).
+  If a user can save more tokens with RTK, we've failed: they'd split tools and our
+  "also saves tokens" proof collapses. **One tool, no splitting.**
+
+This is winnable on the only axis that matters for tokens: RTK filters output with
+**regex/line rules**; our Phase-B **AST/semantic** compression parses the syntax tree
+and returns only the symbols that matter. Semantic > mechanical on *ratio*. RTK's
+Rust *speed* is irrelevant to token count. The same engineering is *also* "cleanest
+context," so it serves both pillars at once.
+
+**What this means for the phases below — almost nothing is dropped; only the
+trash-talk framing dies:**
 
 | Old phase element | New verdict |
 |---|---|
-| Phase A — proxy/valve | ✅ Shipped (v1.5.0). Kept as the "automatic context cleaning" layer. |
-| Phase B — symbol-level *relevant* reads | **Keep, reframed** as a reliability feature ("clean context"). Deferred until after the drift detector. |
-| Phase B — read-once cache | **Dropped** — already built by others (`read-once`, Read Cache). |
-| Phase B — "96% vs RTK 88%" race | **Dropped** — we don't race RTK on %. |
-| Phase C — compression-integrity scoring | **Keep, reframed** as the reliability honesty-guardrail. Future increment. |
-| Phase C — adaptive pressure compression | **Deferred/risk** — Anthropic ships context editing natively. |
-| Phase C — co-edit prediction / cross-session recycling | **Dropped/deferred** — speculative / overlaps existing memory MCPs. |
+| Phase A — proxy/valve | ✅ Shipped (v1.5.0). Core performance layer — **never degrade.** |
+| Phase B — AST/semantic compression + symbol-level *relevant* reads | **KEEP — core performance feature.** Deepest token optimization *and* cleanest context. The engine of both pillars. |
+| Phase B — read-once / re-read dedup cache | **KEEP (integrated).** Real token saver; others ship standalone versions, so not claimed as novel — included so users never need a second tool. |
+| Phase B — "96% vs RTK 88%" bragging | **Drop the bragging only.** Keep the goal: token savings ≥ RTK, *proven* (not claimed) by the vs-rtk benchmark. |
+| Phase C — adaptive context-pressure compression | **KEEP.** Dual-purpose: performance + reliability (manages rot as the window fills). Watch Anthropic's native context editing. |
+| Phase C — compression-integrity scoring | **KEEP.** Reliability honesty-guardrail ("we tell you if cleaning hid something"). |
+| Phase C — co-edit prediction | **KEEP (ambitious/future).** Genuine moat; speculative. |
+| Phase C — cross-session output recycling | **KEEP (future).** Performance; acknowledge overlap with existing memory MCPs. |
 
-**Unified roadmap now:** (1) README reposition → (2) `drift` detector [new flagship]
-→ (3) reframed survivors (symbol-level relevant reads, integrity scoring) by evidence.
-RTK stays acknowledged as **complementary, different lane** — not a target to beat.
+**Performance proof:** revive the **live `benchmark --vs-rtk` harness** (deferred in
+Phase A) so we can *demonstrate* token parity/superiority honestly — that proof is
+what reassures users they don't need RTK.
 
-The phase definitions below are kept **for historical context only.**
+**Unified roadmap now:** (1) README reposition → (2) `drift` detector [reliability
+flagship] → (3) **token-performance depth** (integrated re-read dedup → AST/symbol
+relevant reads) to reach/exceed RTK, proven by vs-rtk → (4) adaptive compression +
+integrity scoring. RTK is acknowledged as **complementary, different lane** — we beat
+it on token *performance* while not competing on its *positioning*.
+
+The phase definitions below are kept **for detail** — they remain live, reframed.
 
 ---
 

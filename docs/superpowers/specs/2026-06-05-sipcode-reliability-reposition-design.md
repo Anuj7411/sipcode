@@ -40,8 +40,17 @@ This is **additive + a reframe**. Explicitly:
 | README / positioning | **Reframed** (story only, no code removed) |
 | **Drift detector** | **Added** (new code, new feature) |
 
-The token-saver becomes the **proof layer**, not the headline. Measurable token/
-context reduction is the verifiable evidence that we're actually cleaning context.
+**Two pillars, both non-negotiable:**
+- **Performance** — token optimization stays **best-in-class: equal-or-better than
+  RTK** on compression ratio. We do *not* trade performance for the new story. If a
+  user could save more with RTK, the strategy fails (they'd split tools). The
+  semantic/AST roadmap (below) is how we stay ahead; the live `benchmark --vs-rtk`
+  harness is how we *prove* it.
+- **Positioning** — reliability / clean context is the *headline and differentiator*.
+
+The token-saving is therefore **both** a real performance commitment **and** the
+verifiable proof that we're actually cleaning context. It is not demoted to a
+footnote — it is the floor we must never drop below.
 
 ## 4. Positioning (the reframe)
 
@@ -151,13 +160,22 @@ detector — the build. They don't block each other.
 scoring of answers; multi-project dashboards. The MCP tool-consolidation (§8) is a
 *separate* decision, not part of this spec.
 
-**Reframed survivors from the old RTK roadmap** (now reliability features, after the
-drift detector, prioritized by evidence — see the reconciliation note in
-[`COMPETITIVE-STRATEGY-RTK.md`](../../COMPETITIVE-STRATEGY-RTK.md)): symbol-level
-*relevant* reads ("clean context"), and compression-integrity scoring (the
-honesty-guardrail: "we tell you if cleaning hid something"). The old "beat RTK on
-compression %" framing is retired; RTK is acknowledged as a complementary, different
-lane, not a target.
+**Token-performance roadmap (the other pillar — kept live, NOT dropped).** These reach
+or exceed RTK on token savings and are tracked in the reconciliation note in
+[`COMPETITIVE-STRATEGY-RTK.md`](../../COMPETITIVE-STRATEGY-RTK.md). Sequenced after the
+drift detector, by ROI:
+- **Integrated re-read dedup** — return a diff/"unchanged" instead of re-sending a
+  file. Real saver; others ship standalone versions, so included (not claimed novel)
+  so users never need a second tool.
+- **AST/semantic compression + symbol-level relevant reads** — parse the syntax tree,
+  return only relevant symbols. Deepest token optimization *and* cleanest context.
+- **Adaptive context-pressure compression** + **compression-integrity scoring**
+  (the honesty-guardrail).
+- **Revive the live `benchmark --vs-rtk` harness** — to *prove* token parity/superiority,
+  not claim it.
+
+The old "beat RTK on compression %" *trash-talk* is retired; the *performance bar*
+(≥ RTK) is not. RTK = complementary, different lane, beaten on token performance.
 
 ## 8. Open decision (not blocking this spec)
 
