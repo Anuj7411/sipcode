@@ -2,11 +2,11 @@
 
 # Sipcode
 
-**Cut Claude Code's token usage on everyday commands — and prove how much you saved.**
+**Sip your tokens — don't gulp them.** Keep Claude Code's context clean: fewer tokens spent, sharper answers, and the savings measured so you can trust them.
 
 [![npm version](https://img.shields.io/npm/v/sipcode.svg?color=5B4FCF&label=npm)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0A0A0A.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-972%20passing-5B4FCF)](#)
+[![Tests](https://img.shields.io/badge/tests-996%20passing-5B4FCF)](#)
 [![Benchmark](https://img.shields.io/badge/corpus%20median-62.6%25-5B4FCF)](benchmark/METHODOLOGY.md)
 
 </div>
@@ -42,6 +42,14 @@ Sipcode is two things, and it matters which surface you're on:
 | **The meter** — audit, cost prediction, savings proof, score | ✅ via CLI **and** MCP tools | ✅ via MCP tools |
 
 **Plain-English version:** if you use Claude Code in your terminal, install the **valve** and it quietly saves you tokens. If you only use the Claude **Desktop chat app**, you get the **meter** (analytics + cost tools) inside chat, and you can use it to turn on the valve for whenever you do use Claude Code.
+
+### Why clean context matters — not just cost
+
+A bloated, redundant context doesn't only cost more tokens — it makes the model *worse*. As stale junk piles up, Claude starts hedging, forgetting fixes you already made, and mixing up files. People call it **context rot**. Keeping context lean is both a measured token win **and** — per Anthropic's own published research — a quality win (leaner context ≈ **29% better outcomes**; well-maintained context ≈ **40% fewer agent errors**).
+
+So "sip, don't gulp" cuts two ways: a *gulp* is a bloated context that's expensive *and* makes your agent sloppy; a *sip* is clean, measured context that's cheaper *and* sharper. Sipcode cleans context automatically (the **valve**), measures it (the **meter**), and warns you when it starts to rot (**drift**, below). The token savings are your proof the cleaning is real.
+
+> We **cite** the reliability numbers above from published research — we don't claim them as Sipcode's own measurement. The part Sipcode measures and proves is the token/context reduction.
 
 ---
 
@@ -190,6 +198,19 @@ The meter reads only the transcripts Claude Code already writes to `~/.claude/pr
 
 ---
 
+## Catch context drift
+
+`sipcode drift` watches whether your recent Claude Code sessions are quietly getting more expensive or context-bloated — and **stays silent unless something actually regressed.** A smoke alarm, not a dashboard you have to babysit.
+
+```bash
+sipcode drift          # e.g. ⚠ cost/turn up ~34%; cache hit rate 71% → 48%
+sipcode drift --json   # machine-readable   (also the get_drift_report MCP tool)
+```
+
+It compares your latest session against the median of your recent ones — conservative thresholds, so no false alarms — and names what moved: **cost/turn up**, **cache-hit-rate down**, or **re-read waste up**. These cost tokens *and* degrade answer quality (context rot), so catching them early keeps your agent both cheap and sharp.
+
+---
+
 ## The benchmark — the one number you can reproduce
 
 ```bash
@@ -200,9 +221,9 @@ npx sipcode benchmark
 
 ---
 
-## MCP tools (12, for Claude Desktop & Claude Code)
+## MCP tools (13, for Claude Desktop & Claude Code)
 
-**Meter (read-only):** `get_sipcode_info`, `verify_sipcode_impact`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`, `get_agent_score`, `get_session_stats`, `get_proxy_stats`, `get_proxy_status`
+**Meter (read-only):** `get_sipcode_info`, `verify_sipcode_impact`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`, `get_agent_score`, `get_session_stats`, `get_proxy_stats`, `get_proxy_status`, `get_drift_report`
 **Valve control (writes settings.json):** `install_proxy`, `uninstall_proxy`
 
 So a Desktop user never has to touch a terminal: ask Claude to *install the proxy*, *check savings*, *audit a project*, or *predict a cost* — all from chat. Full docs: [`docs/MCP.md`](docs/MCP.md).
@@ -238,6 +259,7 @@ Local-first by engineering, not by promise. A CI test fails the build if `node:h
 | `sipcode stats` | Cross-session analytics |
 | `sipcode estimate "<task>"` | Per-model cost prediction |
 | `sipcode score` | Agent-friendliness audit + badge |
+| `sipcode drift` | Flag context/cost regressions vs your baseline (silent unless it regressed) |
 | `sipcode benchmark` | Reproducible corpus (`--hardest`, `--vs-rtk`) |
 | `sipcode receipt` | Shareable PNG of a session's savings |
 | `sipcode hygiene` | Read-once rules + context-pressure hooks |
