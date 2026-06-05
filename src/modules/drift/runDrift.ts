@@ -1,7 +1,5 @@
 import type { SessionMetrics, DriftReport } from "./types.js";
-import { computeBaseline, detectRegression } from "./baseline.js";
-
-const MIN_BASELINE = 3;
+import { computeBaseline, detectRegression, MIN_BASELINE } from "./baseline.js";
 const NOTE =
   "Drift compares your latest session against the median of recent ones. Conservative by design — it stays silent unless something really moved. Run `sipcode why` for a per-session forensic breakdown.";
 

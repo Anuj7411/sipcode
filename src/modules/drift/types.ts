@@ -13,7 +13,7 @@ export interface SessionMetrics {
   readonly cacheHitRate: number;
   /** Tokens spent re-reading files already read (waste). */
   readonly duplicateReadTokens: number;
-  /** output / (input + output + cacheCreation), 0..1. */
+  /** output / (input + output + cacheCreation), 0..1. Reserved — collected but NOT checked in v1 regression detection. */
   readonly outputRatio: number;
 }
 

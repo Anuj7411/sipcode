@@ -66,4 +66,15 @@ describe("detectRegression", () => {
     const r = detectRegression(m({ tokensPerTurn: 999 }), thin);
     expect(r.hasRegression).toBe(false);
   });
+
+  it("flags a re-read waste spike above the absolute floor", () => {
+    const r = detectRegression(m({ duplicateReadTokens: 6000 }), baseline);
+    expect(r.hasRegression).toBe(true);
+    expect(r.causes.some((c) => c.label.includes("re-read"))).toBe(true);
+  });
+
+  it("does NOT flag re-read tokens below the 5000 absolute floor", () => {
+    const r = detectRegression(m({ duplicateReadTokens: 3000 }), baseline);
+    expect(r.hasRegression).toBe(false);
+  });
 });

@@ -21,7 +21,7 @@ const CACHE_DROP_POINTS = 0.15; // 15 percentage points
 const CACHE_MIN_BASELINE = 0.2; // only flag drops if caching mattered before
 const DUP_RATIO = 2.0;
 const DUP_ABS_FLOOR = 5000;
-const MIN_BASELINE = 3;
+export const MIN_BASELINE = 3;
 
 function pctUp(latest: number, base: number): number {
   if (base <= 0) return 0;
