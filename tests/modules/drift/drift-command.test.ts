@@ -64,4 +64,19 @@ describe("runDriftCommand", () => {
     await runDriftCommand({}, d);
     expect(out.join("\n")).toContain("not enough");
   });
+
+  it("skips an unparseable newest session without corrupting the split", async () => {
+    const files = {
+      A: "",                       // newest — empty, must be skipped
+      B: transcript("B", 100),     // becomes the effective latest
+      C: transcript("C", 100),
+      D: transcript("D", 100),
+      E: transcript("E", 100),
+    };
+    const { deps: d, out } = deps(files, ["A", "B", "C", "D", "E"]);
+    const r = await runDriftCommand({}, d);
+    expect(r.exitCode).toBe(0);
+    // B(latest)=100 vs history C/D/E=100 → stable, NOT a false spike.
+    expect(out.join("\n")).toContain("stable");
+  });
 });

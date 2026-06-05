@@ -70,26 +70,33 @@ export async function runDriftCommand(
     });
 
   const sessions = (await listSessions()).slice(0, WINDOW + 1);
-  const metrics: SessionMetrics[] = [];
+  let latest: SessionMetrics | undefined;
+  const history: SessionMetrics[] = [];
   for (const s of sessions) {
     const contents = await readFile(s.filePath);
     if (!contents) continue;
     const parsed = parseTranscript(contents);
     if (!parsed.ok) continue;
-    metrics.push(
-      computeSessionMetrics(
-        { sessionId: s.sessionId, endedAtMs: s.mtimeMs },
-        parsed.value,
-        pricing,
-      ),
+    const m = computeSessionMetrics(
+      { sessionId: s.sessionId, endedAtMs: s.mtimeMs },
+      parsed.value,
+      pricing,
     );
+    if (!latest) latest = m;
+    else history.push(m);
   }
 
-  const latest = metrics[0];
-  const history = metrics.slice(1);
-
   if (!latest) {
-    stdout("Sipcode drift: no sessions found yet. Use Claude Code, then re-run.");
+    const msg = "no sessions found yet. Use Claude Code, then re-run.";
+    stdout(
+      opts.json
+        ? JSON.stringify(
+            { schemaVersion: "sipcode-drift/1", hasRegression: false, status: "no-data", summary: msg },
+            null,
+            2,
+          )
+        : `Sipcode drift: ${msg}`,
+    );
     return { exitCode: 0 };
   }
 
