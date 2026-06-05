@@ -342,6 +342,13 @@ async function toolGetProxyStats(): Promise<CallToolResult> {
   return ok(JSON.stringify(report, null, 2));
 }
 
+async function toolGetDriftReport(): Promise<CallToolResult> {
+  const { runDriftCommand } = await import("../commands/drift.js");
+  const buf: string[] = [];
+  await runDriftCommand({ json: true }, { stdout: (s: string) => buf.push(s) });
+  return ok(buf.join("\n"));
+}
+
 async function toolGetAgentScore(cwd: string): Promise<CallToolResult> {
   const { runScoreCmd } = await import("../commands/score.js");
   const buf: string[] = [];
@@ -563,6 +570,13 @@ const TOOL_DEFS = [
     inputSchema: { type: "object", properties: {} },
     schema: z.object({}),
   },
+  {
+    name: "get_drift_report",
+    description:
+      "Detect context/cost drift: whether the user's recent Claude Code sessions regressed (cost/turn up, cache-hit-rate down, re-read waste up) vs their own baseline. Returns JSON. Use when the user asks 'is my agent getting more expensive / sloppier?' or 'has anything regressed?'.",
+    inputSchema: { type: "object", properties: {} },
+    schema: z.object({}),
+  },
 ] as const;
 
 // ---- Wire up the server ----
@@ -689,6 +703,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
       case "get_proxy_status": {
         return await withTimeout(name, 5_000, toolGetProxyStatus());
+      }
+      case "get_drift_report": {
+        return await withTimeout(name, 15_000, toolGetDriftReport());
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);
