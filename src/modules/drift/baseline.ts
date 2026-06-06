@@ -28,6 +28,11 @@ function pctUp(latest: number, base: number): number {
   return Math.round(((latest - base) / base) * 100);
 }
 
+/** Thousands-separated integer for readable token counts. */
+function fmt(n: number): string {
+  return Math.round(n).toLocaleString("en-US");
+}
+
 export function detectRegression(
   latest: SessionMetrics,
   baseline: Baseline,
@@ -39,8 +44,14 @@ export function detectRegression(
 
   if (latest.tokensPerTurn > baseline.medianTokensPerTurn * COST_PER_TURN_RATIO) {
     causes.push({
-      label: "cost/turn up",
-      detail: `tokens/turn rose ~${pctUp(latest.tokensPerTurn, baseline.medianTokensPerTurn)}% (${Math.round(baseline.medianTokensPerTurn)} → ${Math.round(latest.tokensPerTurn)})`,
+      metric: "Tokens per turn",
+      direction: "up",
+      changeDisplay: `up ${pctUp(latest.tokensPerTurn, baseline.medianTokensPerTurn)}%`,
+      baselineDisplay: fmt(baseline.medianTokensPerTurn),
+      latestDisplay: fmt(latest.tokensPerTurn),
+      meaning:
+        "Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail Claude needs — the heart of context rot.",
+      fix: "Start a fresh chat for your next task to reset the context, and run `sipcode why` to see which turns and files are heaviest.",
     });
   }
 
@@ -48,9 +59,18 @@ export function detectRegression(
     baseline.medianCacheHitRate >= CACHE_MIN_BASELINE &&
     latest.cacheHitRate < baseline.medianCacheHitRate - CACHE_DROP_POINTS
   ) {
+    const dropPts = Math.round(
+      (baseline.medianCacheHitRate - latest.cacheHitRate) * 100,
+    );
     causes.push({
-      label: "cache hit rate down",
-      detail: `cache hit rate dropped ${Math.round(baseline.medianCacheHitRate * 100)}% → ${Math.round(latest.cacheHitRate * 100)}% (more cache misses than usual — e.g. config changing mid-session, or idle gaps past the cache TTL)`,
+      metric: "Cache reuse",
+      direction: "down",
+      changeDisplay: `down ${dropPts} points`,
+      baselineDisplay: `${Math.round(baseline.medianCacheHitRate * 100)}%`,
+      latestDisplay: `${Math.round(latest.cacheHitRate * 100)}%`,
+      meaning:
+        "Much less of your context is being reused from cache (cached tokens are ~10x cheaper). Usually from settings/MCP servers changing mid-session, or idle gaps longer than the ~5-minute cache window.",
+      fix: "Avoid changing MCP servers or config mid-task, and work in steady bursts so the cache stays warm.",
     });
   }
 
@@ -59,8 +79,14 @@ export function detectRegression(
     latest.duplicateReadTokens > DUP_ABS_FLOOR
   ) {
     causes.push({
-      label: "re-read waste up",
-      detail: `~${Math.round(latest.duplicateReadTokens)} tokens spent re-reading unchanged files`,
+      metric: "Repeated file reads",
+      direction: "up",
+      changeDisplay: `~${fmt(latest.duplicateReadTokens)} tokens wasted`,
+      baselineDisplay: fmt(baseline.medianDuplicateReadTokens),
+      latestDisplay: fmt(latest.duplicateReadTokens),
+      meaning:
+        "Claude re-read files it had already seen, paying again for content it already had in context.",
+      fix: "Install the Sipcode proxy (`sipcode proxy --install`) — it automatically skips redundant re-reads.",
     });
   }
 

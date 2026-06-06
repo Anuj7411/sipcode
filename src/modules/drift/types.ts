@@ -25,10 +25,21 @@ export interface Baseline {
   readonly medianDuplicateReadTokens: number;
 }
 
-/** One detected, human-readable regression signal. */
+/** One detected regression signal, structured for a clear, educational render. */
 export interface DriftCause {
-  readonly label: string;
-  readonly detail: string;
+  /** Human label, e.g. "Tokens per turn". */
+  readonly metric: string;
+  readonly direction: "up" | "down";
+  /** Headline change, e.g. "up 662%" or "down 90 points". */
+  readonly changeDisplay: string;
+  /** Recent-norm value, formatted, e.g. "1,050" or "90%". */
+  readonly baselineDisplay: string;
+  /** This session's value, formatted, e.g. "8,000" or "0%". */
+  readonly latestDisplay: string;
+  /** Plain-English: what it means + why it matters. */
+  readonly meaning: string;
+  /** Concrete action the user can take. */
+  readonly fix: string;
 }
 
 export interface RegressionResult {

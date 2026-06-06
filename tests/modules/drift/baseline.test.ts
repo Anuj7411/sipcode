@@ -47,7 +47,7 @@ describe("detectRegression", () => {
   it("flags a >30% cost/turn jump", () => {
     const r = detectRegression(m({ tokensPerTurn: 140 }), baseline);
     expect(r.hasRegression).toBe(true);
-    expect(r.causes.some((c) => c.label.includes("cost/turn"))).toBe(true);
+    expect(r.causes.some((c) => c.metric === "Tokens per turn")).toBe(true);
   });
 
   it("does NOT flag a small (<30%) cost/turn change", () => {
@@ -58,7 +58,7 @@ describe("detectRegression", () => {
   it("flags a cache-hit-rate drop > 15 points", () => {
     const r = detectRegression(m({ cacheHitRate: 0.5 }), baseline);
     expect(r.hasRegression).toBe(true);
-    expect(r.causes.some((c) => c.label.includes("cache"))).toBe(true);
+    expect(r.causes.some((c) => c.metric === "Cache reuse")).toBe(true);
   });
 
   it("does NOT flag when baseline has < 3 sessions", () => {
@@ -70,7 +70,7 @@ describe("detectRegression", () => {
   it("flags a re-read waste spike above the absolute floor", () => {
     const r = detectRegression(m({ duplicateReadTokens: 6000 }), baseline);
     expect(r.hasRegression).toBe(true);
-    expect(r.causes.some((c) => c.label.includes("re-read"))).toBe(true);
+    expect(r.causes.some((c) => c.metric === "Repeated file reads")).toBe(true);
   });
 
   it("does NOT flag re-read tokens below the 5000 absolute floor", () => {
