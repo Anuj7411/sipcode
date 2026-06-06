@@ -18,3 +18,4 @@ _export/
 .claude/settings.local.json
 .vscode/
 .idea/
+page_tmp.html
