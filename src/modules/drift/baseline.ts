@@ -50,7 +50,7 @@ export function detectRegression(
   ) {
     causes.push({
       label: "cache hit rate down",
-      detail: `cache hit rate dropped ${Math.round(baseline.medianCacheHitRate * 100)}% → ${Math.round(latest.cacheHitRate * 100)}% (context prefix is changing mid-session)`,
+      detail: `cache hit rate dropped ${Math.round(baseline.medianCacheHitRate * 100)}% → ${Math.round(latest.cacheHitRate * 100)}% (more cache misses than usual — e.g. config changing mid-session, or idle gaps past the cache TTL)`,
     });
   }
 

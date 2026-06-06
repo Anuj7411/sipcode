@@ -69,10 +69,11 @@ export async function runDriftCommand(
       }
     });
 
-  const sessions = (await listSessions()).slice(0, WINDOW + 1);
+  const candidates = await listSessions(); // newest-first
   let latest: SessionMetrics | undefined;
   const history: SessionMetrics[] = [];
-  for (const s of sessions) {
+  for (const s of candidates) {
+    if (latest && history.length >= WINDOW) break;
     const contents = await readFile(s.filePath);
     if (!contents) continue;
     const parsed = parseTranscript(contents);
@@ -82,6 +83,11 @@ export async function runDriftCommand(
       parsed.value,
       pricing,
     );
+    // Skip sessions with no assistant activity (empty / in-flight): their
+    // cacheHitRate=0 and tokensPerTurn=0 would otherwise masquerade as a
+    // catastrophic regression — a FALSE ALARM (found via dogfooding 1.6.2).
+    // Drift only compares sessions that actually did work.
+    if (m.assistantTurns === 0) continue;
     if (!latest) latest = m;
     else history.push(m);
   }

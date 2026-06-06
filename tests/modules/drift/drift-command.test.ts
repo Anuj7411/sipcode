@@ -79,4 +79,29 @@ describe("runDriftCommand", () => {
     // B(latest)=100 vs history C/D/E=100 → stable, NOT a false spike.
     expect(out.join("\n")).toContain("stable");
   });
+
+  it("skips a 0-turn (in-flight/empty) newest session — no false alarm", async () => {
+    // A parses fine but has NO assistant turns (only a user entry), so its
+    // cacheHitRate=0/tokensPerTurn=0 must NOT be treated as 'latest'.
+    // Regression guard for the false alarm found dogfooding 1.6.2.
+    const userOnly = JSON.stringify({
+      type: "user",
+      timestamp: "2026-06-01T00:00:00.000Z",
+      sessionId: "A",
+      message: { role: "user", content: "hi" },
+    });
+    const files = {
+      A: userOnly,
+      B: transcript("B", 100),
+      C: transcript("C", 100),
+      D: transcript("D", 100),
+      E: transcript("E", 100),
+    };
+    const { deps: d, out } = deps(files, ["A", "B", "C", "D", "E"]);
+    const r = await runDriftCommand({}, d);
+    expect(r.exitCode).toBe(0);
+    // A skipped → B(latest)=100 vs C/D/E=100 → stable, NOT a bogus cache-drop.
+    expect(out.join("\n")).toContain("stable");
+    expect(out.join("\n")).not.toContain("⚠");
+  });
 });
