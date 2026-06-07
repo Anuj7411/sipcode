@@ -324,8 +324,67 @@ Three columns max on desktop, stacked on mobile.
 
 ---
 
-## Deliverable
+## Deliverable: Astro component files
 
-A complete set of section components that drop into the existing Astro project. One section per file. Use the existing brand tokens. Match the existing hero and Why section in tone. Provide a one-line description of how to import each component into `src/pages/index.astro`.
+The output must be **Astro component files** (`.astro` extension), not React, not Vue, not raw HTML. One file per section. They drop directly into the existing Astro project at `src/components/`.
+
+**Naming convention:**
+- `DemoSection.astro`
+- `DriftSection.astro`
+- `InstallSection.astro`
+- `HonestySection.astro`
+- `FaqSection.astro`
+- `FinalCta.astro`
+- `Footer.astro`
+
+**Each `.astro` file follows this shape** (study this template before designing):
+
+```astro
+---
+// Optional TypeScript frontmatter. Import other components, declare props,
+// fetch data here. Most static sections need no frontmatter at all.
+---
+
+<section id="demo" class="demo">
+  <div class="container">
+    <!-- Plain HTML markup using the existing CSS tokens: var(--ink),
+         var(--violet), var(--paper), var(--charcoal), var(--font-display),
+         var(--font-body), var(--font-mono). Hairline borders, generous
+         whitespace, no inline style attributes unless dynamic. -->
+  </div>
+</section>
+
+<style>
+  /* Section-scoped CSS. Auto-isolated by Astro (no className clashes).
+     Use the brand CSS variables from global.css. Keep it self-contained;
+     do not write to global selectors. */
+  .demo { /* ... */ }
+</style>
+
+<script>
+  // Optional. Only if interaction needs JS. Ships as a real script tag,
+  // not React. Use vanilla TS/JS, IntersectionObserver, DOM APIs.
+</script>
+```
+
+**Conversion guidance** for claude.design if its default is React or HTML:
+
+If you would normally output a React component, convert by:
+1. Drop the `import React` lines and JSX-only wrappers.
+2. Put any imports or props in the frontmatter (between `---` and `---`).
+3. Replace `className` with `class` everywhere in the markup.
+4. Move component-scoped styles into a `<style>` block at the bottom (Astro auto-scopes it).
+5. Move any interactive JS into a `<script>` block. No React hooks.
+
+If you would normally output plain HTML + CSS, just wrap the markup in `<section>` and append a `<style>` block. That is already valid Astro.
+
+**Reference components already in the project** for tone and structure (claude.design can request these if helpful): `Hero.astro`, `WhySection.astro`, `NavBar.astro`, `NpmInstallPill.astro`, `PlotBackground.astro`. Match their:
+- Use of CSS variables, not hardcoded hex values
+- `@media (min-width: ...)` breakpoint style
+- `clamp(...)` for fluid type sizes
+- Eyebrow + headline + lede + content rhythm
+
+**For each component delivered**, include a one-line import line for `src/pages/index.astro`, like:
+`import DemoSection from "../components/DemoSection.astro";`
 
 End of brief.
