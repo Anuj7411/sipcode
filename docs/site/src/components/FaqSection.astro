@@ -1,0 +1,228 @@
+---
+// FAQ — single column, hairline-divided accordion. Plain + / − toggle, not
+// circle-chevron. First item open by default. Six questions, locked copy.
+import PlotBackground from "./PlotBackground.astro";
+
+const FAQS = [
+  {
+    q: "What is Sipcode?",
+    a: "An open-source toolkit that keeps Claude Code's context clean. It rewrites bulky tool calls before they run (the proxy), measures what got saved (the meter), and warns you when a session starts to drift from your baseline (the drift detector). MIT licensed.",
+  },
+  {
+    q: "How is it different from RTK?",
+    a: "Sipcode covers terminal use through Claude Code and chat use through Claude Desktop's MCP. RTK is terminal only. Beyond that, Sipcode adds a drift detector and a transcript-based meter that nobody else ships. You can use both. They do not conflict.",
+  },
+  {
+    q: "How much will it actually save me?",
+    aHtml: `The reproducible benchmark shows a 62.6 percent median. Your number will depend on your workload. After install, <code class="chip">sipcode proxy --stats</code> shows the exact tokens rewritten on your machine.`,
+  },
+  {
+    q: "Does it change Claude's answer quality?",
+    a: "Research shows leaner context lifts agent reliability. We cite that research. Sipcode measures the tokens it saves, not the quality lift, so we do not put a number on the quality side. You will judge for yourself.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. MIT licensed. No account. No telemetry. No paid tier.",
+  },
+  {
+    q: 'Why "sip, don\'t gulp"?',
+    a: "A gulp is a context dumped into Claude without restraint. It costs more and makes the model worse. A sip is the same information, measured. Sipcode keeps the intake at a sip.",
+  },
+];
+---
+
+<section id="faq" class="faq">
+  <PlotBackground />
+
+  <div class="container">
+
+    <header class="faq-head">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>Honest answers</span>
+        <span class="head-meta">six questions, no spin</span>
+      </div>
+      <h2 class="faq-title">
+        Questions people <span class="accent">actually ask.</span>
+      </h2>
+    </header>
+
+    <div class="faq-list">
+      {FAQS.map((item, i) => (
+        <details class="faq-item" open={i === 0}>
+          <summary class="faq-summary">
+            <span class="faq-q">{item.q}</span>
+            <span class="faq-toggle" aria-hidden="true">
+              <span class="bar bar-h"></span>
+              <span class="bar bar-v"></span>
+            </span>
+          </summary>
+          <div class="faq-answer">
+            {item.aHtml ? <p set:html={item.aHtml} /> : <p>{item.a}</p>}
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(24px, 3.6vh, 56px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- header ---------- */
+  .faq-head { position: relative; z-index: 1; }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+  .faq-title {
+    margin: 0 0 clamp(20px, 2.6vh, 32px);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+  }
+  .faq-title .accent { color: var(--violet); }
+
+  /* ---------- list ---------- */
+  .faq-list {
+    max-width: 820px;
+    border-top: 1px solid rgba(10, 10, 10, 0.10);
+  }
+
+  /* ---------- item ---------- */
+  .faq-item {
+    border-bottom: 1px solid rgba(10, 10, 10, 0.10);
+  }
+  /* hide native disclosure marker (Chrome/Safari) */
+  .faq-summary::-webkit-details-marker { display: none; }
+  .faq-summary::marker { content: ""; }
+
+  .faq-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: clamp(16px, 2vh, 22px) 4px;
+    cursor: pointer;
+    list-style: none;
+    transition: color .15s var(--ease-quint);
+  }
+  .faq-summary:hover .faq-q { color: var(--violet); }
+  .faq-summary:focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  .faq-q {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(16.5px, 1.5vw, 19px);
+    line-height: 1.35;
+    letter-spacing: -.012em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  /* plain + / − toggle (no circle, no chevron) */
+  .faq-toggle {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    color: rgba(45, 49, 66, .55);
+    transition: color .15s var(--ease-quint);
+  }
+  .faq-summary:hover .faq-toggle { color: var(--violet); }
+  .faq-toggle .bar {
+    position: absolute;
+    background: currentColor;
+    border-radius: 1px;
+    transition: transform .25s var(--ease-quint), opacity .2s var(--ease-quint);
+  }
+  .faq-toggle .bar-h {
+    top: 50%; left: 0; right: 0;
+    height: 2px;
+    transform: translateY(-50%);
+  }
+  .faq-toggle .bar-v {
+    top: 0; bottom: 0; left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+  }
+  /* when open, the vertical bar collapses, leaving a minus */
+  .faq-item[open] .faq-toggle .bar-v {
+    transform: translateX(-50%) scaleY(0);
+    opacity: 0;
+  }
+
+  /* ---------- answer ---------- */
+  .faq-answer {
+    padding: 0 4px clamp(16px, 2vh, 22px);
+    max-width: 70ch;
+  }
+  .faq-answer p {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: clamp(14.5px, 1.2vw, 16px);
+    line-height: 1.62;
+    color: var(--charcoal);
+    text-wrap: pretty;
+  }
+  .faq-answer .chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: .92em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(45, 49, 66, .06);
+    border: 1px solid rgba(45, 49, 66, .12);
+    color: var(--violet);
+    white-space: nowrap;
+  }
+
+  /* honest reduced-motion: no toggle animation, no smooth scroll */
+  @media (prefers-reduced-motion: reduce) {
+    .faq-toggle .bar, .faq-summary, .faq-toggle { transition: none; }
+  }
+</style>

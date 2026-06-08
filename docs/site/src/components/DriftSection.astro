@@ -1,0 +1,459 @@
+---
+// Drift section — sipcode drift report rendered as a polished dark terminal.
+// Asymmetric: explanation rail left, live report right.
+import PlotBackground from "./PlotBackground.astro";
+
+// The two signals, structured so the gauge math reads cleanly.
+const SIGNALS = [
+  {
+    glyph: "▲",
+    name: "Tokens per turn",
+    change: "up 662%",
+    norm: "1,050",
+    session: "8,000",
+    normPct: 13,
+    sessionPct: 100,
+    body: "Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail Claude needs.",
+    fix: "Start a fresh chat for your next task to reset the context.",
+  },
+  {
+    glyph: "▼",
+    name: "Cache reuse",
+    change: "down 90 points",
+    norm: "90%",
+    session: "0%",
+    normPct: 90,
+    sessionPct: 2,
+    body: "Much less of your context is being reused from cache (about 10x cheaper).",
+    fix: "Avoid changing MCP servers or config mid-task.",
+  },
+] as const;
+---
+
+<section id="drift" class="drift">
+  <PlotBackground />
+
+  <div class="container">
+    <div class="drift-grid">
+
+      <!-- Left rail: framing + caption -->
+      <aside class="rail">
+        <div class="rail-head">
+          <span class="reticle reticle--tl"></span>
+          <span class="reticle reticle--tr"></span>
+          <span class="eyebrow"><span class="tick"></span>New in 1.6</span>
+        </div>
+
+        <h2 class="rail-title">
+          A smoke alarm for <span class="accent">context rot.</span>
+        </h2>
+
+        <p class="rail-lede">
+          Silent unless your latest session regressed. Names what moved and what to do.
+        </p>
+
+        <div class="rail-caption">
+          <code class="chip">sipcode drift</code> in the CLI · <code class="chip">get_drift_report</code> in chat.
+        </div>
+      </aside>
+
+      <!-- Right: the live terminal -->
+      <div class="report-wrap">
+        <div class="report">
+
+          <!-- terminal chrome -->
+          <header class="report-chrome">
+            <span class="dot dot--r"></span>
+            <span class="dot dot--y"></span>
+            <span class="dot dot--g"></span>
+            <span class="chrome-title">sipcode drift — session report</span>
+            <span class="watching">
+              <span class="pulse" aria-hidden="true"></span>
+              watching
+            </span>
+          </header>
+
+          <!-- terminal body -->
+          <div class="report-body">
+            <div class="warning">
+              <span class="warn-glyph">⚠</span>
+              <span class="warn-text">Context drift detected in your latest Claude Code session</span>
+            </div>
+
+            <p class="what-this">
+              <span class="emph">What this means:</span> your newest session is behaving differently from your recent norm, in ways that waste tokens and can make Claude less reliable.
+            </p>
+            <p class="aside">
+              (This is "context rot": answer quality drops as context gets bloated.)
+            </p>
+
+            <p class="signals-head">
+              Signals that regressed <span class="dim">(2):</span>
+            </p>
+
+            {SIGNALS.map((s) => (
+              <div class="signal">
+                <div class="signal-head">
+                  <span class="signal-glyph">{s.glyph}</span>
+                  <span class="signal-name">{s.name}</span>
+                  <span class="signal-sep">·</span>
+                  <span class="signal-change">{s.change}</span>
+                </div>
+
+                <div class="signal-row">
+                  your norm: <span class="signal-norm">{s.norm}</span>
+                  <span class="signal-arrow">→</span>
+                  this session: <span class="signal-session">{s.session}</span>
+                </div>
+
+                <div class="gauge" role="meter" aria-label={`${s.name} regression`}>
+                  <span class="gauge-track"></span>
+                  <span class="gauge-fill" style={`width: ${s.sessionPct}%`}></span>
+                  <span class="gauge-norm" style={`left: ${s.normPct}%`}></span>
+                  <span class="gauge-norm-label" style={`left: ${s.normPct}%`}>norm</span>
+                </div>
+
+                <p class="signal-body">{s.body}</p>
+
+                <p class="signal-fix">
+                  <span class="fix-arrow">→ Fix:</span>
+                  <span class="fix-text">{s.fix}</span>
+                </p>
+              </div>
+            ))}
+
+            <footer class="report-foot">
+              Measured against the median of your last 6 sessions.<br />
+              Conservative by design: silent unless something really moved.
+            </footer>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .drift {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(24px, 3.6vh, 56px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- grid: rail | report ---------- */
+  .drift-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(28px, 3.5vh, 40px);
+    align-items: start;
+  }
+  @media (min-width: 980px) {
+    .drift-grid {
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: clamp(36px, 3.5vw, 56px);
+      align-items: center;   /* center the short rail vs the tall dashboard */
+    }
+  }
+
+  /* ---------- left rail ---------- */
+  .rail { position: relative; padding-top: 6px; }
+  .rail-head {
+    position: relative;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 14px;
+    margin-bottom: 26px;
+  }
+  .reticle { position: absolute; width: 9px; height: 9px; pointer-events: none; }
+  .reticle--tl {
+    top: -1px; left: -1px;
+    border-top: 1.5px solid #B9831B;
+    border-left: 1.5px solid #B9831B;
+  }
+  .reticle--tr {
+    top: -1px; right: -1px;
+    border-top: 1.5px solid #B9831B;
+    border-right: 1.5px solid #B9831B;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: var(--violet);
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+
+  .rail-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 3.6vw, 44px);
+    line-height: 1.06;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .rail-title .accent { color: var(--violet); }
+
+  .rail-lede {
+    margin: 18px 0 0;
+    font-family: var(--font-body);
+    font-size: clamp(15px, 1.2vw, 17px);
+    line-height: 1.55;
+    color: var(--charcoal);
+    max-width: 320px;
+    text-wrap: pretty;
+  }
+
+  .rail-caption {
+    margin-top: 32px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(45, 49, 66, .10);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.62;
+    color: var(--charcoal);
+    max-width: 320px;
+  }
+  .chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: .9em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: rgba(45, 49, 66, .06);
+    border: 1px solid rgba(45, 49, 66, .12);
+    color: var(--violet);
+    white-space: nowrap;
+  }
+  .rail-quote {
+    margin-top: 10px;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  /* ---------- right: report wrapper ---------- */
+  .report-wrap { min-width: 0; }
+
+  .report {
+    position: relative;
+    background: #131319;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 8px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .06),
+      0 24px 60px -34px rgba(8, 8, 14, .55);
+    overflow: hidden;
+  }
+
+  /* terminal chrome */
+  .report-chrome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .03);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; opacity: .9; }
+  .dot--r { background: #ff5f57; }
+  .dot--y { background: #febc2e; }
+  .dot--g { background: #28c840; }
+  .chrome-title {
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(255, 255, 255, .4);
+  }
+  .watching {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .6);
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 999px;
+    padding: 3px 10px;
+  }
+  .pulse {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #28c840;
+    animation: drift-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes drift-pulse {
+    0%, 100% { opacity: .35; }
+    50% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse { animation: none; opacity: 1; }
+  }
+
+  /* terminal body */
+  .report-body {
+    padding: clamp(16px, 2vh, 22px) clamp(18px, 2.2vw, 28px);
+    font-family: var(--font-mono);
+    font-size: clamp(12.5px, 1vw, 13.5px);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, .82);
+  }
+
+  .warning {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .warn-glyph {
+    color: #E2A23E;
+    font-weight: 700;
+  }
+  .warn-text {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .what-this {
+    margin: 10px 0 0;
+    color: rgba(255, 255, 255, .6);
+    line-height: 1.6;
+    max-width: 68ch;
+  }
+  .what-this .emph { color: rgba(255, 255, 255, .82); }
+  .aside {
+    margin: 2px 0 0;
+    color: rgba(255, 255, 255, .4);
+    line-height: 1.6;
+    max-width: 68ch;
+  }
+
+  .signals-head {
+    margin: 14px 0 0;
+    color: rgba(255, 255, 255, .82);
+    max-width: 65ch;
+  }
+  .signals-head .dim { color: rgba(255, 255, 255, .4); }
+
+  /* ---------- signal block ---------- */
+  .signal {
+    margin-top: 10px;
+    padding: 6px 12px 8px;
+    margin-left: -12px;
+    border-radius: 8px;
+    transition: background .18s var(--ease-quint);
+  }
+  .signal:hover { background: rgba(255, 255, 255, .025); }
+
+  .signal-head { margin-left: 14px; }
+  .signal-glyph { color: #E2A23E; font-weight: 700; margin-right: 6px; }
+  .signal-name { color: #fff; font-weight: 600; }
+  .signal-sep { color: rgba(255, 255, 255, .4); margin: 0 8px; }
+  .signal-change { color: #E2A23E; }
+
+  .signal-row {
+    margin: 4px 0 0 56px;
+    color: rgba(255, 255, 255, .6);
+  }
+  .signal-norm { color: rgba(255, 255, 255, .82); }
+  .signal-arrow { color: rgba(255, 255, 255, .4); margin: 0 8px; }
+  .signal-session { color: #E2A23E; font-weight: 600; }
+
+  /* gauge: track + warn-fill + norm tick + norm label */
+  .gauge {
+    position: relative;
+    width: min(300px, 100%);
+    height: 6px;
+    margin: 14px 0 4px 56px;
+  }
+  .gauge-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .09);
+  }
+  .gauge-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 3px;
+    background: #E2A23E;
+    opacity: .9;
+    transform-origin: left center;
+    animation: drift-fill .9s var(--ease-quint) .15s both;
+  }
+  @keyframes drift-fill {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gauge-fill { animation: none; }
+  }
+  .gauge-norm {
+    position: absolute;
+    top: -3px; bottom: -3px;
+    width: 1.5px;
+    background: rgba(255, 255, 255, .5);
+    transform: translateX(-50%);
+  }
+  .gauge-norm-label {
+    position: absolute;
+    top: -16px;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: .08em;
+    color: rgba(255, 255, 255, .4);
+    white-space: nowrap;
+  }
+
+  .signal-body {
+    margin: 8px 0 0 56px;
+    color: rgba(255, 255, 255, .6);
+    line-height: 1.55;
+    max-width: 64ch;
+  }
+  .signal-fix {
+    margin: 6px 0 0 56px;
+    display: flex;
+    gap: 9px;
+  }
+  .fix-arrow { color: #A99CF7; flex: 0 0 auto; }
+  .fix-text { color: #A99CF7; opacity: .92; line-height: 1.6; max-width: 60ch; }
+
+  .report-foot {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    color: rgba(255, 255, 255, .4);
+    line-height: 1.55;
+    max-width: 65ch;
+  }
+
+  /* ---------- mobile tweaks ---------- */
+  @media (max-width: 560px) {
+    .signal-head, .signal-row, .gauge, .signal-body, .signal-fix {
+      margin-left: 0;
+    }
+    .signal { margin-left: 0; }
+    .gauge { margin-top: 14px; }
+    .signal-fix { flex-wrap: wrap; }
+  }
+</style>

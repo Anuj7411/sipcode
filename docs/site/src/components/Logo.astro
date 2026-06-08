@@ -1,0 +1,26 @@
+---
+// Static logo — small vessel + sipcode wordmark. Pure SVG, no JS.
+import { VESSEL_PATH, TOKENS } from "../lib/brand";
+interface Props { scale?: number; }
+const { scale = 1 } = Astro.props;
+const size = 26 * scale;
+const f = 0.4;
+const drop = 70 * (1 - f);
+---
+<a href="/" aria-label="Sipcode — home" style={`display:inline-flex;align-items:center;gap:${9 * scale}px`}>
+  <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-hidden="true" style="overflow:visible">
+    <defs>
+      <clipPath id="logo-clip"><path d={VESSEL_PATH} /></clipPath>
+    </defs>
+    <g clip-path="url(#logo-clip)">
+      <g style={`transform:translateY(${drop}px)`}>
+        <path fill={TOKENS.violet} d="M-5 15 Q50 19.5 105 15 L105 112 L-5 112 Z" />
+        <path fill="rgba(255,255,255,0.16)" d="M-5 15 Q50 19.5 105 15 L105 16.4 Q50 20.9 -5 16.4 Z" />
+      </g>
+    </g>
+    <path d={VESSEL_PATH} fill="none" stroke={TOKENS.ink} stroke-width="8" stroke-linejoin="round" />
+  </svg>
+  <span style={`font-family:${TOKENS.display};font-weight:600;font-size:${21 * scale}px;letter-spacing:-0.03em;line-height:1`}>
+    <span style={`color:${TOKENS.ink}`}>sip</span><span style={`color:${TOKENS.violet}`}>code</span>
+  </span>
+</a>

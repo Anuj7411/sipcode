@@ -1,0 +1,64 @@
+---
+// NavBar — real anchor links (Tier-1 #5). No fake 52k (Tier-1 #1).
+import Logo from "./Logo.astro";
+const items = [
+  { href: "#why", label: "Why" },
+  { href: "#demo", label: "Demo" },
+  { href: "#drift", label: "Drift" },
+  { href: "#install", label: "Install" },
+  { href: "#faq", label: "FAQ" },
+];
+---
+<nav class="navbar" aria-label="Primary">
+  <Logo />
+  <ul class="nav-items">
+    {items.map(({ href, label }) => (
+      <li><a href={href}>{label}</a></li>
+    ))}
+  </ul>
+  <div class="nav-cta">
+    <a href="https://github.com/Anuj7411/sipcode" class="btn-ghost" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .25a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.3c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 .25Z"/></svg>
+      Star on GitHub
+    </a>
+    <a href="#install" class="btn-primary">Install</a>
+  </div>
+</nav>
+
+<style>
+  .navbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px clamp(20px, 4vw, 40px);
+    gap: 16px;
+  }
+  .nav-items {
+    display: none;
+    list-style: none; margin: 0; padding: 0; gap: 30px;
+  }
+  .nav-items a {
+    font-family: var(--font-body); font-weight: 500; font-size: 14.5px;
+    color: var(--charcoal); text-decoration: none;
+    transition: color .15s;
+  }
+  .nav-items a:hover { color: var(--ink); }
+  .nav-cta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .btn-ghost, .btn-primary {
+    font-family: var(--font-display); font-weight: 600; font-size: 14px;
+    padding: 9px 18px; border-radius: 10px; line-height: 1;
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    transition: transform .15s ease, box-shadow .2s ease;
+  }
+  .btn-ghost {
+    background: transparent; color: var(--ink);
+    border: 1px solid rgba(10,10,10,.18);
+  }
+  .btn-primary {
+    background: var(--violet); color: #fff; border: 1px solid transparent;
+    box-shadow: 0 8px 22px -12px rgba(10,10,10,.28);
+  }
+  .btn-primary:hover, .btn-ghost:hover { transform: translateY(-1px); }
+
+  @media (min-width: 900px) {
+    .nav-items { display: flex; }
+  }
+</style>

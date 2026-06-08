@@ -1,0 +1,50 @@
+---
+// Tier-2 fix #11 — copy-to-clipboard on click. Tiny vanilla JS, no React.
+const cmd = "npm i -g sipcode";
+---
+<button class="pill" type="button" data-cmd={cmd} aria-label={`Copy ${cmd} to clipboard`}>
+  <span class="prompt">$</span>
+  <span class="cmd">{cmd}</span>
+  <svg class="copy-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <rect x="9" y="9" width="11" height="11" rx="2"/>
+    <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+  </svg>
+  <span class="check-icon" aria-hidden="true">✓</span>
+  <span class="sr-only copied-status" role="status" aria-live="polite"></span>
+</button>
+
+<style>
+  .pill {
+    font-family: var(--font-mono); font-weight: 500; font-size: 14.5px;
+    padding: 11px 18px; border-radius: 10px; border: 0;
+    display: inline-flex; align-items: center; gap: 10px;
+    color: #fff; background: var(--violet); cursor: pointer;
+    box-shadow: 0 8px 22px -12px rgba(10,10,10,.28);
+    transition: transform .12s ease, box-shadow .2s ease;
+  }
+  .pill:hover { transform: translateY(-1px); }
+  .prompt { color: #ffffff; font-weight: 700; }
+  .check-icon { display: none; font-size: 14px; }
+  .pill.copied .copy-icon { display: none; }
+  .pill.copied .check-icon { display: inline; }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.pill').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const cmd = btn.dataset.cmd ?? '';
+      try {
+        await navigator.clipboard.writeText(cmd);
+        btn.classList.add('copied');
+        const status = btn.querySelector('.copied-status');
+        if (status) status.textContent = 'Command copied to clipboard';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          if (status) status.textContent = '';
+        }, 1800);
+      } catch {
+        // Clipboard API blocked — graceful no-op. Users can still select + copy.
+      }
+    });
+  });
+</script>

@@ -1,0 +1,508 @@
+---
+// Demo section — "Before and after" token ledger.
+// Ports the design's "ink" (dark panel) theme: paper background, framed dark
+// instrument panel with horizontal before/after bars, caliper marks, dotted
+// savings spans. Responsive (grid collapses on mobile).
+import PlotBackground from "./PlotBackground.astro";
+
+// Real numbers from our actual rewriters. Do not invent.
+const ROWS = [
+  { cmd: "git status", tag: "git",             before: 200,   after: 30,   saved: 85 },
+  { cmd: "git log",    tag: "git",             before: 2500,  after: 500,  saved: 80 },
+  { cmd: "git diff",   tag: "git",             before: 21500, after: 1260, saved: 94 },
+  { cmd: "grep -r",    tag: "recursive shell", before: 12000, after: 2400, saved: 80 },
+  { cmd: "Grep",       tag: "native tool",     before: 10000, after: 2000, saved: 80 },
+  { cmd: "Glob",       tag: "native tool",     before: 4500,  after: 1500, saved: 67 },
+] as const;
+
+const AXIS_MAX = 22000;
+const TICKS = [0, 5000, 10000, 15000, 20000];
+
+const fmt = (n: number) => n.toLocaleString("en-US");
+const pct = (n: number) => (n / AXIS_MAX) * 100;
+---
+
+<section id="demo" class="demo">
+  <PlotBackground />
+
+  <div class="container">
+
+    <!-- Section header on paper -->
+    <header class="demo-header">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>Before and after</span>
+        <span class="head-meta">measured by sipcode</span>
+      </div>
+
+      <div class="head-grid">
+        <div>
+          <h2 class="demo-title">
+            Six commands.<br />
+            The same answer, <span class="accent">fewer tokens.</span>
+          </h2>
+        </div>
+
+        <aside class="head-stat">
+          <div class="stat-label">median tokens saved</div>
+          <div class="stat-num">−62.6<span class="stat-pct">%</span></div>
+          <div class="stat-sub">across a locked 20-task corpus</div>
+        </aside>
+      </div>
+    </header>
+
+    <!-- Dark instrument panel (the token ledger) -->
+    <div class="panel">
+      <!-- Corner reticles -->
+      <span class="reticle reticle--tl"></span>
+      <span class="reticle reticle--tr"></span>
+      <span class="reticle reticle--bl"></span>
+      <span class="reticle reticle--br"></span>
+
+      <!-- Header row -->
+      <div class="panel-head">
+        <div class="col-cmd">Command</div>
+        <div class="col-bar">
+          {TICKS.map((t) => (
+            <span class="tick-label" style={`left:${pct(t)}%`}>
+              {t === 0 ? "0" : `${t / 1000}k`}
+            </span>
+          ))}
+        </div>
+        <div class="col-num">Before → After · Saved</div>
+      </div>
+
+      <!-- Body: grid lines + rows -->
+      <div class="panel-body">
+        <div class="grid-overlay" aria-hidden="true">
+          <div class="col-cmd"></div>
+          <div class="col-bar">
+            {TICKS.map((t) => (
+              <span class={`grid-line ${t === 0 ? "grid-line--zero" : ""}`} style={`left:${pct(t)}%`}></span>
+            ))}
+          </div>
+          <div class="col-num"></div>
+        </div>
+
+        {ROWS.map((row, i) => {
+          const bx = Math.max(2, pct(row.before));
+          const ax = Math.max(1.5, pct(row.after));
+          const big = row.saved >= 90;
+          return (
+            <div class={`row ${i === ROWS.length - 1 ? "row--last" : ""}`}>
+              <div class="col-cmd cmd-cell">
+                <div class="cmd-name">{row.cmd}</div>
+                <div class="cmd-tag">{row.tag}</div>
+              </div>
+
+              <div class="col-bar bar-cell">
+                <span class="bar-track"></span>
+                <span class="bar-before" style={`width:${bx}%`}></span>
+                <span class="bar-caliper" style={`left:${bx}%`}></span>
+                <span class="bar-dotted" style={`left:${ax}%; width:${Math.max(0, bx - ax)}%`}></span>
+                <span class="bar-after sx-grow" style={`width:${ax}%; animation-delay:${i * 80}ms`}></span>
+              </div>
+
+              <div class="col-num num-cell">
+                <div class="num-row">
+                  <span class="num-before">{fmt(row.before)}</span>
+                  <span class="num-arrow">→</span>
+                  <span class="num-after">{fmt(row.after)}</span>
+                </div>
+                <div class={`num-saved ${big ? "num-saved--big" : ""}`}>
+                  −{row.saved}<span class="num-saved-pct">%</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <!-- Footer row -->
+      <div class="panel-foot">
+        <div class="foot-line">
+          <span class="foot-pct">62.6%</span> median across a locked 20-task corpus.
+          Reproduce in 90 seconds with <code class="code-chip">npx sipcode benchmark</code>
+        </div>
+        <a class="foot-link" href="https://github.com/Anuj7411/sipcode/blob/main/benchmark/METHODOLOGY.md" target="_blank" rel="noopener">
+          See the benchmark methodology
+          <span class="link-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Vertical padding scales with viewport HEIGHT (vh), not width — so the
+     section breathes correctly on short laptops AND tall desktops without
+     manual tuning. Real browser viewports are ~160px less than monitor
+     height (URL bar + taskbar), so vh floor is small enough for 720p laptops. */
+  .demo {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(24px, 3.6vh, 56px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- header on paper ---------- */
+  .demo-header { position: relative; z-index: 1; }
+
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px;
+    height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+
+  .head-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    align-items: end;
+  }
+  @media (min-width: 820px) {
+    .head-grid { grid-template-columns: 1.4fr auto; gap: 64px; }
+  }
+
+  .demo-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+  }
+  .demo-title .accent { color: var(--violet); }
+
+  .demo-lede {
+    margin: 10px 0 0;
+    font-family: var(--font-body);
+    font-size: clamp(14.5px, 1.1vw, 15.5px);
+    line-height: 1.5;
+    color: var(--charcoal);
+    max-width: 520px;
+    text-wrap: pretty;
+  }
+
+  .head-stat { text-align: right; padding-bottom: 4px; }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .65);
+  }
+  .stat-num {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: clamp(36px, 4vw, 46px);
+    line-height: 1;
+    letter-spacing: -.03em;
+    color: var(--violet);
+    font-variant-numeric: tabular-nums;
+    margin: 4px 0 6px;
+  }
+  .stat-pct { font-size: .5em; font-weight: 600; }
+  .stat-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(45, 49, 66, .68);
+  }
+
+  /* ---------- the dark panel ---------- */
+  .panel {
+    position: relative;
+    margin-top: 16px;
+    background: #14141B;
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: 3px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .07),
+      0 30px 70px -36px rgba(10, 10, 16, .72);
+    --row-hover: rgba(255, 255, 255, .045);
+  }
+
+  /* Corner reticles */
+  .reticle {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    pointer-events: none;
+  }
+  .reticle--tl { top: 7px; left: 7px;
+    border-top: 1.5px solid #D6A23E; border-left: 1.5px solid #D6A23E; }
+  .reticle--tr { top: 7px; right: 7px;
+    border-top: 1.5px solid #D6A23E; border-right: 1.5px solid #D6A23E; }
+  .reticle--bl { bottom: 7px; left: 7px;
+    border-bottom: 1.5px solid #D6A23E; border-left: 1.5px solid #D6A23E; }
+  .reticle--br { bottom: 7px; right: 7px;
+    border-bottom: 1.5px solid #D6A23E; border-right: 1.5px solid #D6A23E; }
+
+  /* Three-column grid shared between head/body/foot rows.
+     minmax(0, ...) on the bar column prevents 1fr from expanding past viewport. */
+  .panel-head,
+  .row,
+  .grid-overlay {
+    display: grid;
+    grid-template-columns: minmax(140px, 184px) minmax(0, 1fr) minmax(170px, 210px);
+    gap: clamp(14px, 1.8vw, 24px);
+    padding: 0 clamp(18px, 2.2vw, 28px);
+  }
+  @media (max-width: 860px) {
+    .panel-head, .row, .grid-overlay {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 0 20px;
+    }
+  }
+
+  .col-cmd { min-width: 0; }
+  .col-bar { position: relative; min-width: 0; }
+  .col-num { text-align: right; }
+  @media (max-width: 860px) {
+    .col-num { text-align: left; }
+  }
+
+  /* ---------- panel header (tick labels) ---------- */
+  .panel-head {
+    align-items: flex-end;
+    height: 36px;
+    border-bottom: 1px solid rgba(255, 255, 255, .13);
+  }
+  .panel-head .col-cmd,
+  .panel-head .col-num {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .62);
+    padding-bottom: 13px;
+  }
+  .panel-head .col-bar { height: 100%; }
+  .tick-label {
+    position: absolute;
+    bottom: 11px;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, .5);
+    white-space: nowrap;
+  }
+  @media (max-width: 860px) {
+    .tick-label { display: none; }
+  }
+
+  /* ---------- grid overlay (vertical lines behind bars) ---------- */
+  .panel-body { position: relative; }
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .grid-overlay .col-bar { position: relative; }
+  .grid-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, .05);
+  }
+  .grid-line--zero { background: rgba(255, 255, 255, .12); }
+  @media (max-width: 860px) {
+    .grid-overlay { display: none; }
+  }
+
+  /* ---------- a row ---------- */
+  /* Row vertical padding also tracks viewport height so 6 rows fit comfortably
+     even on a 720p laptop (real ~560px browser viewport after chrome). */
+  .row {
+    align-items: center;
+    padding-top: clamp(8px, 1.1vh, 16px);
+    padding-bottom: clamp(8px, 1.1vh, 16px);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    transition: background .16s var(--ease-quint);
+  }
+  .row--last { border-bottom: none; }
+  .row:hover { background: var(--row-hover); }
+  @media (max-width: 860px) {
+    .row { padding-top: 20px; padding-bottom: 20px; }
+  }
+
+  .cmd-cell { padding-right: 8px; }
+  .cmd-name {
+    font-family: var(--font-mono);
+    font-size: 15.5px;
+    font-weight: 500;
+    color: #fff;
+    letter-spacing: -.01em;
+  }
+  .cmd-tag {
+    margin-top: 5px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .42);
+  }
+
+  /* ---------- bars ---------- */
+  .bar-cell { position: relative; height: 26px; }
+  .bar-track {
+    position: absolute;
+    inset: 50% 0 0 0;
+    height: 2px;
+    margin-top: -1px;
+    background: rgba(255, 255, 255, .08);
+  }
+  .bar-before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 3px;
+    margin-top: -1.5px;
+    background: rgba(255, 255, 255, .32);
+  }
+  .bar-caliper {
+    position: absolute;
+    top: 50%;
+    width: 1.5px;
+    height: 17px;
+    margin-top: -8.5px;
+    background: rgba(255, 255, 255, .55);
+    transform: translateX(-0.75px);
+  }
+  .bar-dotted {
+    position: absolute;
+    top: 50%;
+    height: 0;
+    border-top: 1px dotted rgba(154, 143, 240, .9);
+    opacity: .9;
+  }
+  .bar-after {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 9px;
+    margin-top: -4.5px;
+    border-radius: 2px 5px 5px 2px;
+    background: #8B7FF0;
+    transition: filter .18s var(--ease-quint);
+  }
+  .row:hover .bar-after { filter: brightness(1.12); }
+
+  @media (max-width: 860px) {
+    .bar-cell { height: 22px; margin-top: 4px; }
+  }
+
+  /* ---------- numbers ---------- */
+  .num-cell { padding-left: 8px; }
+  .num-row {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 7px;
+  }
+  .num-before { color: rgba(255, 255, 255, .44); }
+  .num-arrow  { color: rgba(255, 255, 255, .4); margin: 0 7px; }
+  .num-after  { color: #fff; font-weight: 600; }
+
+  .num-saved {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1;
+    color: #A99CF7;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+  }
+  .num-saved--big { font-size: 25px; }
+  .num-saved-pct { font-size: .62em; font-weight: 600; margin-left: 1px; }
+
+  /* ---------- panel foot ---------- */
+  .panel-foot {
+    padding: 12px clamp(18px, 2.2vw, 28px);
+    border-top: 1px solid rgba(255, 255, 255, .13);
+    background: rgba(255, 255, 255, .03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .foot-line {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, .7);
+    line-height: 1.55;
+  }
+  .foot-pct {
+    color: #A99CF7;
+    font-weight: 600;
+  }
+  .code-chip {
+    font-family: var(--font-mono);
+    font-size: .92em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+    color: #A99CF7;
+    white-space: nowrap;
+  }
+  .foot-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14.5px;
+    color: #A99CF7;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: border-color .15s var(--ease-quint);
+  }
+  .foot-link:hover { border-color: #A99CF7; }
+  .foot-link .link-arrow {
+    transition: transform .18s var(--ease-quint);
+  }
+  .foot-link:hover .link-arrow { transform: translateX(3px); }
+  @media (max-width: 860px) {
+    .panel-foot { padding: 18px 20px; }
+  }
+</style>

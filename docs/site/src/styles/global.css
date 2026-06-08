@@ -1,0 +1,188 @@
+/* Sipcode landing — global styles. Mobile-first, real responsive. */
+
+:root {
+  --ink: #0A0A0A;
+  --violet: #5B4FCF;
+  --violet-lite: #7A6FE3;
+  --paper: #F8F8F6;
+  --white: #FFFFFF;
+  --charcoal: #2D3142;
+  --border: rgba(10, 10, 10, 0.1);
+  --muted: rgba(45, 49, 66, 0.6);
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; scroll-behavior: smooth; }
+body { font-family: var(--font-body); background: var(--paper); color: var(--ink); line-height: 1.5; }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* The smooth-scrolling Anuj asked for on every anchor click */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Plot-background styles live in PlotBackground.astro (component-scoped). */
+
+/* ----------------------------------------------------------------------
+   ABOUT IMPECCABLE FALSE-POSITIVES
+   ----------------------------------------------------------------------
+   Our component CSS uses `overflow: hidden` on most section roots and on
+   the plot-background container. Impeccable's `clipped-overflow-container`
+   rule warns this can cut off escaping tooltips/popovers — true in
+   general, but irrelevant here: every clipped container only contains
+   decoration (plot grid, bezier curve, ruler ticks, reticles). No
+   tooltips, no popovers, nothing needs to escape.
+
+   Similarly, .pane-fill in WhySection has its token-count label
+   positioned absolutely and centered inside the bar via flexbox.
+   Impeccable's `cramped-padding` rule sees the text near the bar edges
+   and assumes missing padding. The text is centered by design — there
+   is no edge to push against.
+
+   Both warnings are intentional and documented once here rather than
+   suppressed per file. If you add tooltips/popovers to a clipped
+   section in the future, remove the overflow:hidden on that container.
+   ---------------------------------------------------------------------- */
+
+/* Visible section break: each non-hero section gets a generous gap above it
+   (margin shows the body background through the seam), plus a small ochre
+   tick marker sitting centered in that gap so the eye registers "new
+   section" instead of one continuous newspaper page. */
+body { background: #EFEEEA; }   /* very slightly darker than paper, shows in gaps */
+main > section { position: relative; }
+main > section:not(.hero) {
+  margin-top: clamp(20px, 2.4vh, 36px);
+}
+main > section:not(.hero)::before {
+  content: "";
+  position: absolute;
+  top: calc(clamp(20px, 2.4vh, 36px) * -0.5 - 5px);
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #B9831B;
+  transform: translateX(-50%) rotate(45deg);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Smooth scrolling for in-page anchors (Nav -> #demo etc) */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Scroll-reveal: every <section> fades up as it enters view.
+   Base state is the VISIBLE end state, so anything off-screen still renders
+   for print/no-JS/older browsers. JS adds .is-pre-reveal on load and removes
+   it once the section intersects. */
+section.is-pre-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+section {
+  transition: opacity .7s var(--ease-quint, cubic-bezier(.22,1,.36,1)),
+              transform .7s var(--ease-quint, cubic-bezier(.22,1,.36,1));
+  will-change: opacity, transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  section.is-pre-reveal { opacity: 1; transform: none; }
+  section { transition: none; }
+}
+
+/* Section-level easing tokens + entrance animations (lifted from the design) */
+:root {
+  --ease-quint: cubic-bezier(.22, 1, .36, 1);
+  --ease-expo: cubic-bezier(.16, 1, .3, 1);
+}
+@keyframes sxBarGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes sxFadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes sxFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sxFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+.sx-grow { transform-origin: left center; animation: sxBarGrow .8s var(--ease-quint) both; }
+.sx-fadeup { animation: sxFadeUp .55s ease both; }
+.sx-fade { animation: sxFade .45s ease both; }
+.sx-float1 { animation: sxFloat 5s ease-in-out infinite; }
+.sx-float2 { animation: sxFloat 6.4s ease-in-out infinite .6s; }
+.sx-float3 { animation: sxFloat 5.6s ease-in-out infinite 1.1s; }
+@media (prefers-reduced-motion: reduce) {
+  .sx-grow, .sx-fadeup, .sx-fade, .sx-float1, .sx-float2, .sx-float3 { animation: none !important; }
+}
+
+/* Vessel character animations (lifted from the design exactly) */
+@keyframes scBob {
+  0%, 100% { transform: translateY(0) skewX(0); }
+  50% { transform: translateY(var(--rip, 2px)) skewX(.6deg); }
+}
+.sc-liquid { animation: scBob 4.6s ease-in-out infinite; transform-origin: center; }
+
+@keyframes vcBob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-7px) rotate(-1.2deg); } }
+@keyframes vcShake { 0%, 100% { transform: translateX(0) rotate(0); } 20% { transform: translateX(-2.5px) rotate(-1.4deg); } 60% { transform: translateX(2.5px) rotate(1.4deg); } }
+.vc-happy { animation: vcBob 2.6s ease-in-out infinite; transform-origin: 50% 82%; }
+.vc-stressed { animation: vcShake .5s ease-in-out infinite; transform-origin: 50% 82%; }
+@keyframes vcSweat { 0% { opacity: 0; transform: translateY(0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(11px); } }
+.vc-sweat { animation: vcSweat 1.5s ease-in infinite; }
+@keyframes vcSpark { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.12); } }
+.vc-spark { animation: vcSpark 1.8s ease-in-out infinite; transform-origin: center; }
+@keyframes vcDrip { 0% { opacity: .9; transform: translateY(0); } 100% { opacity: 0; transform: translateY(15px); } }
+.vc-drip path { animation: vcDrip 1.8s ease-in infinite; }
+@keyframes vcPop { 0% { transform: translateY(8px) scale(.95); } 60% { transform: translateY(-1px) scale(1.01); } 100% { transform: none; } }
+.vc-speech { animation: vcPop .34s ease; }
+@keyframes vcFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.vc-float1 { animation: vcFloat 5s ease-in-out infinite; }
+.vc-float2 { animation: vcFloat 6.4s ease-in-out infinite .6s; }
+.vc-float3 { animation: vcFloat 5.6s ease-in-out infinite 1.1s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-liquid, .vc-happy, .vc-stressed, .vc-sweat, .vc-spark, .vc-drip path,
+  .vc-float1, .vc-float2, .vc-float3 { animation: none !important; }
+}
+
+/* Slider — brand-tinted, accessible focus ring */
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 6px;
+  background: rgba(120,120,140,.25);
+  accent-color: var(--violet);
+  cursor: pointer;
+}
+input[type=range]:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 4px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 3px;
+}
+a:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Layout container */
+.container {
+  max-width: 1340px; margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 64px);
+}
+
+/* Visually-hidden for screen-readers only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

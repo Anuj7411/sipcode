@@ -1,0 +1,137 @@
+---
+// Final CTA — short, decisive close. Centered band, two CTAs, no padding around
+// it. Brand vessel as a tiny visual signature on the right.
+import PlotBackground from "./PlotBackground.astro";
+---
+
+<section id="cta" class="cta">
+  <PlotBackground />
+
+  <div class="container">
+    <div class="cta-block">
+      <span class="kicker">Sip your tokens</span>
+      <h2 class="cta-headline">
+        Stop <span class="strike">gulping</span> them.
+      </h2>
+      <p class="cta-sub">
+        Runs locally. No account. No telemetry. About 60 seconds to set up.
+      </p>
+
+      <div class="cta-actions">
+        <a href="#install" class="btn btn--primary">
+          Install
+          <span class="btn-arrow" aria-hidden="true">→</span>
+        </a>
+        <a href="https://github.com/Anuj7411/sipcode" target="_blank" rel="noopener" class="btn btn--secondary">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 .25a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.3c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 .25Z"/>
+          </svg>
+          Star on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta {
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(48px, 7vh, 100px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  .cta-block {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+
+  .cta-headline {
+    margin: 14px 0 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(36px, 5vw, 60px);
+    line-height: 1.02;
+    letter-spacing: -.03em;
+    color: var(--ink);
+  }
+  .cta-headline .strike {
+    position: relative;
+    color: rgba(10, 10, 10, .34);
+  }
+  .cta-headline .strike::after {
+    content: "";
+    position: absolute;
+    left: -2px; right: -2px;
+    top: 53%;
+    height: 4px;
+    background: var(--violet);
+    border-radius: 4px;
+    transform: rotate(-1.5deg);
+  }
+
+  .cta-sub {
+    margin: 22px auto 0;
+    font-family: var(--font-body);
+    font-size: clamp(15px, 1.2vw, 17px);
+    line-height: 1.5;
+    color: var(--charcoal);
+    max-width: 500px;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: transform .15s var(--ease-quint), background .15s, border-color .15s;
+    line-height: 1;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
+  .btn--primary {
+    background: var(--violet);
+    color: #fff;
+    box-shadow: 0 8px 22px -12px rgba(10, 10, 10, .28);
+  }
+  .btn--primary:hover { background: #4f44b8; }
+  .btn--secondary {
+    background: transparent;
+    color: var(--ink);
+    border-color: rgba(10, 10, 10, .18);
+  }
+  .btn--secondary:hover {
+    border-color: rgba(10, 10, 10, .36);
+    background: rgba(10, 10, 10, .03);
+  }
+  .btn-arrow {
+    transition: transform .15s var(--ease-quint);
+  }
+  .btn:hover .btn-arrow { transform: translateX(3px); }
+</style>

@@ -1,0 +1,216 @@
+---
+// Hero section — static layout + MascotVessel island.
+// Real responsive (no scale-to-fit hack). Mobile-first.
+import NavBar from "./NavBar.astro";
+import NpmInstallPill from "./NpmInstallPill.astro";
+import MascotVessel from "./MascotVessel.astro";
+import PlotBackground from "./PlotBackground.astro";
+
+// Tier-1 fix #2 — test count from the project root. Single source of truth.
+// (Hardcoded for now; later we can read from package.json at build time.)
+const TEST_COUNT = 997;
+---
+
+<section class="hero">
+  <PlotBackground />
+
+  <NavBar />
+
+  <div class="container">
+    <div class="hero-head-row">
+      <span class="hero-eyebrow"><span class="hero-tick"></span>v1.6.4 · MIT licensed</span>
+      <span class="hero-head-meta">997 tests passing</span>
+    </div>
+  </div>
+
+  <div class="container hero-grid">
+    <div class="hero-text">
+      <h1 class="headline">
+        Sip your tokens.<br />
+        <span class="muted">
+          Don't <span class="gulp">gulp<span class="strike" aria-hidden="true"></span></span> them.
+        </span>
+      </h1>
+      <p class="sub">
+        Keep Claude Code's context clean for sharper answers and lower cost, automatically.
+      </p>
+      <div class="cta-row">
+        <NpmInstallPill />
+        <a href="https://github.com/Anuj7411/sipcode" class="btn-secondary" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .25a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.3c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 .25Z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+      <div class="tests-badge">
+        <span class="green-dot" aria-hidden="true"></span>
+        {TEST_COUNT.toLocaleString()} tests passing
+      </div>
+    </div>
+
+    <div class="hero-mascot">
+      <MascotVessel />
+    </div>
+  </div>
+
+  <div class="container stat-row-wrap">
+    <div class="stat-row">
+      <div><strong>62.6%</strong><span>median tokens saved</span></div>
+      <div><strong>13</strong><span>MCP tools</span></div>
+      <div><strong>0</strong><span>network calls</span></div>
+      <div><strong>MIT</strong><span>open source</span></div>
+    </div>
+    <p class="stat-footnote">measured from your transcripts, not a brochure number.</p>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    overflow: hidden;
+    padding-bottom: 28px;
+  }
+
+  /* Match the head-row pattern used by Demo/Drift/Install/FAQ:
+     hairline border-top + ochre square-tick eyebrow + mono right meta.
+     Kept small + factual to avoid the AI-template hero-eyebrow-chip flag. */
+  .hero-head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-top: 8px;
+    margin-bottom: 6px;
+    gap: 16px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .hero-tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .hero-head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+    padding-top: 18px;
+    padding-bottom: 40px;
+    position: relative;
+  }
+
+  .hero-text { position: relative; }
+  .eyebrow-removed-keep-rule-for-future {
+    font-family: var(--font-mono); font-size: 12.5px; font-weight: 500;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: rgba(45,49,66,.6); margin-bottom: 22px;
+  }
+  .headline {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.02; letter-spacing: -0.035em;
+    margin: 0; color: var(--ink);
+  }
+  .muted { color: rgba(10,10,10,.34); position: relative; }
+  .gulp { position: relative; display: inline-block; }
+  .strike {
+    position: absolute; left: -2px; right: -2px; top: 53%;
+    height: 4px; background: var(--violet); border-radius: 4px;
+    transform: rotate(-1.5deg);
+  }
+  .sub {
+    font-family: var(--font-body); font-size: clamp(16px, 1.6vw, 18px);
+    line-height: 1.55; color: var(--charcoal);
+    max-width: 440px; margin: 22px 0 0;
+  }
+  .cta-row {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin: 30px 0 15px;
+  }
+  .btn-secondary {
+    font-family: var(--font-display); font-weight: 600; font-size: 14.5px;
+    padding: 11px 20px; border-radius: 10px; line-height: 1;
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    background: transparent; color: var(--ink);
+    border: 1px solid rgba(10,10,10,.18);
+    transition: transform .15s ease;
+  }
+  .btn-secondary:hover { transform: translateY(-1px); }
+
+  .tests-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 12.5px;
+    color: rgba(45,49,66,.7);
+  }
+  .green-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #28c840; box-shadow: 0 0 0 4px rgba(40,200,64,.16);
+  }
+
+  .hero-mascot {
+    display: flex; justify-content: center; align-items: center;
+    position: relative; min-height: 540px;
+  }
+
+  .stat-row-wrap {
+    position: relative;
+    border-top: 1px solid rgba(10,10,10,.1);
+    padding-top: 18px; margin-top: 8px;
+  }
+  .stat-row {
+    display: flex; flex-wrap: wrap; gap: 0;
+  }
+  .stat-row > div {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 4px 22px;
+  }
+  .stat-row > div + div {
+    border-left: 1px solid rgba(10,10,10,.12);
+  }
+  .stat-row strong {
+    font-family: var(--font-mono); font-weight: 600; font-size: 15px;
+    color: var(--ink);
+  }
+  .stat-row span {
+    font-family: var(--font-body); font-size: 13px;
+    color: var(--charcoal);
+  }
+  .stat-footnote {
+    font-family: var(--font-mono); font-size: 12px;
+    color: rgba(45,49,66,.65);
+    margin: 11px 0 0;
+  }
+
+  @media (min-width: 960px) {
+    .hero-grid {
+      grid-template-columns: 1.02fr .98fr;
+      gap: 30px;
+      padding-top: 18px;
+    }
+  }
+</style>

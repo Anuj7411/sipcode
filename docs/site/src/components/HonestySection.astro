@@ -1,0 +1,185 @@
+---
+// Honesty — four things Sipcode does NOT do. Single dark panel, four
+// hairline-divided rows. No "no" glyph repeated per row — restraint IS the
+// brand statement. Dark card so it stands out from paper and reads as a
+// deliberate "we name our limits" block.
+import PlotBackground from "./PlotBackground.astro";
+
+const NOTS = [
+  {
+    title: "Optimize Claude Desktop chat itself.",
+    body: "The Desktop pipeline is closed. The proxy only works in Claude Code. Desktop gets the analytics tools.",
+  },
+  {
+    title: "Change anything until you turn it on.",
+    bodyHtml: `<code class="chip">npm install -g sipcode</code> puts the package on your machine. Tokens drop after you run <code class="chip">sipcode proxy --install</code>.`,
+  },
+  {
+    title: "Claim Claude got smarter.",
+    body: "The 29% and 40% reliability numbers come from published research, cited not measured. We measure the tokens we save.",
+  },
+  {
+    title: "Phone home.",
+    body: "No telemetry. No network calls in any core path. A CI guard fails the build if that ever changes.",
+  },
+];
+---
+
+<section id="honesty" class="honesty">
+  <PlotBackground />
+  <div class="container">
+
+    <header class="honesty-head">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>What we won't pretend</span>
+        <span class="head-meta">stated limits · CI-enforced</span>
+      </div>
+      <h2 class="honesty-title">
+        Sipcode <span class="accent">does not</span> do these things.
+      </h2>
+    </header>
+
+    <article class="panel">
+      {NOTS.map((item, i) => (
+        <div class={`row ${i === NOTS.length - 1 ? "row--last" : ""}`}>
+          <div class="row-num" aria-hidden="true">×</div>
+          <div class="row-text">
+            <div class="row-title">{item.title}</div>
+            {item.bodyHtml
+              ? <p class="row-body" set:html={item.bodyHtml} />
+              : <p class="row-body">{item.body}</p>}
+          </div>
+        </div>
+      ))}
+    </article>
+  </div>
+</section>
+
+<style>
+  .honesty {
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(36px, 5vh, 72px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  .honesty-head {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin-bottom: clamp(20px, 2.6vh, 32px);
+  }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+  .honesty-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .honesty-title .accent { color: var(--violet); }
+
+  /* dark statement panel */
+  .panel {
+    position: relative;
+    z-index: 1;
+    background: #14141B;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .06),
+      0 28px 60px -38px rgba(8, 8, 14, .55);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 18px;
+    align-items: start;
+    padding: clamp(18px, 2.2vh, 24px) clamp(20px, 2vw, 28px);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    transition: background .18s var(--ease-quint);
+  }
+  .row--last { border-bottom: none; }
+  .row:hover { background: rgba(255, 255, 255, .025); }
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 32px 1fr; gap: 12px; }
+  }
+
+  .row-num {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--violet);
+    line-height: 1;
+    padding-top: 2px;
+    text-align: center;
+  }
+
+  .row-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(16px, 1.5vw, 19px);
+    line-height: 1.35;
+    letter-spacing: -.015em;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .row-body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, .68);
+    max-width: 70ch;
+  }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: .92em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+    color: #A99CF7;
+    white-space: nowrap;
+  }
+</style>

@@ -1,0 +1,335 @@
+---
+// Install section — two side-by-side cards, one per surface (Claude Code,
+// Claude Desktop). Each card: surface label, instruction, copyable code block,
+// restart note. Stacks on mobile. Designed against real browser viewports,
+// not full monitor heights.
+import PlotBackground from "./PlotBackground.astro";
+---
+
+<section id="install" class="install">
+  <PlotBackground />
+
+  <div class="container">
+
+    <header class="install-head">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>Get running in under a minute</span>
+        <span class="head-meta">node 20+ · macOS · linux · windows</span>
+      </div>
+      <h2 class="install-title">
+        Two surfaces. <span class="accent">Same toolkit.</span>
+      </h2>
+    </header>
+
+    <div class="cards">
+
+      <!-- Card A: Claude Code -->
+      <article class="card">
+        <header class="card-head">
+          <span class="card-glyph" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 5.5l4 3.5-4 3.5" /><path d="M9.5 13h4.5" />
+            </svg>
+          </span>
+          <span class="card-name">Claude Code</span>
+          <span class="card-sub">terminal</span>
+        </header>
+
+        <p class="card-instruction">
+          Install the package, then turn on the proxy hook.
+        </p>
+
+        <div class="code-block">
+          <button class="copy-btn" type="button" data-code="npm install -g sipcode
+sipcode proxy --install" aria-label="Copy install commands to clipboard">
+            <span class="copy-label">Copy</span>
+            <span class="copy-done" aria-hidden="true">Copied</span>
+          </button>
+          <pre><code><span class="prompt">$</span> npm install <span class="flag">-g</span> sipcode
+<span class="prompt">$</span> sipcode proxy <span class="flag">--install</span></code></pre>
+        </div>
+
+        <p class="card-note">
+          Restart Claude Code. You are done.
+        </p>
+      </article>
+
+      <!-- Card B: Claude Desktop -->
+      <article class="card">
+        <header class="card-head">
+          <span class="card-glyph" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 4.5h12v8H8l-3.5 2.5V12.5H3z" />
+            </svg>
+          </span>
+          <span class="card-name">Claude Desktop</span>
+          <span class="card-sub">chat</span>
+        </header>
+
+        <p class="card-instruction">
+          Add the MCP server to your config, then restart Desktop.
+        </p>
+
+        <div class="code-block">
+          <button class="copy-btn" type="button" data-code={`{
+  "mcpServers": {
+    "sipcode": { "command": "npx", "args": ["-y", "sipcode-mcp"] }
+  }
+}`} aria-label="Copy MCP config to clipboard">
+            <span class="copy-label">Copy</span>
+            <span class="copy-done" aria-hidden="true">Copied</span>
+          </button>
+          <pre><code><span class="punct">{`{`}</span>
+  <span class="key">"mcpServers"</span><span class="punct">:</span> <span class="punct">{`{`}</span>
+    <span class="key">"sipcode"</span><span class="punct">:</span> <span class="punct">{`{`}</span> <span class="key">"command"</span><span class="punct">:</span> <span class="str">"npx"</span><span class="punct">,</span> <span class="key">"args"</span><span class="punct">:</span> <span class="punct">[</span><span class="str">"-y"</span><span class="punct">,</span> <span class="str">"sipcode-mcp"</span><span class="punct">]</span> <span class="punct">{`}`}</span>
+  <span class="punct">{`}`}</span>
+<span class="punct">{`}`}</span></code></pre>
+        </div>
+
+        <p class="card-note">
+          After restart, ask Claude "what sipcode tools do you have?" to confirm.
+        </p>
+      </article>
+
+    </div>
+
+    <p class="footnote">
+      The npm route is what we ship. No <code class="footnote-chip">curl | sh</code>, no one-click installer that does nothing.
+    </p>
+  </div>
+</section>
+
+<script>
+  // Copy-to-clipboard for every install card.
+  document.querySelectorAll<HTMLButtonElement>('#install .copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.code ?? '';
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.classList.add('is-copied');
+        setTimeout(() => btn.classList.remove('is-copied'), 1600);
+      } catch {
+        // Best-effort; if clipboard is blocked, do nothing.
+      }
+    });
+  });
+</script>
+
+<style>
+  .install {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(24px, 3.6vh, 56px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- header ---------- */
+  .install-head { position: relative; z-index: 1; }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+  .install-title {
+    margin: 0 0 clamp(20px, 2.6vh, 32px);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+  }
+  .install-title .accent { color: var(--violet); }
+
+  /* ---------- cards: side by side, stack on mobile ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 2vw, 24px);
+  }
+  @media (min-width: 820px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+  }
+
+  .card {
+    position: relative;
+    background: #fff;
+    border: 1px solid rgba(10, 10, 10, 0.09);
+    border-radius: 12px;
+    padding: clamp(18px, 2.4vh, 24px) clamp(18px, 2.2vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.4vh, 14px);
+    transition: border-color .2s var(--ease-quint);
+  }
+  .card:hover { border-color: rgba(91, 79, 207, 0.28); }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-glyph {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(91, 79, 207, 0.28);
+    background: rgba(91, 79, 207, 0.05);
+    color: var(--violet);
+    flex: 0 0 auto;
+  }
+  .card-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(17px, 1.6vw, 19px);
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .card-sub {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+    border: 1px solid rgba(45, 49, 66, .12);
+    border-radius: 4px;
+    padding: 2px 7px;
+  }
+
+  .card-instruction {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--charcoal);
+  }
+
+  /* ---------- code block ---------- */
+  .code-block {
+    position: relative;
+    background: #14141B;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 8px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, .82);
+    overflow: hidden;
+  }
+  .code-block pre {
+    margin: 0;
+    padding-right: 70px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .code-block code {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+  .prompt { color: rgba(139, 127, 240, .9); user-select: none; }
+  .flag { color: rgba(255, 255, 255, .5); }
+  .punct { color: rgba(255, 255, 255, .42); }
+  .key { color: #A99CF7; }
+  .str { color: #8FBF9F; }
+
+  /* copy button */
+  .copy-btn {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .12);
+    color: rgba(255, 255, 255, .72);
+    border-radius: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    transition: background .15s var(--ease-quint), border-color .15s, color .15s;
+  }
+  .copy-btn:hover {
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+  }
+  .copy-btn:active { transform: scale(.96); }
+  .copy-done { display: none; }
+  .copy-btn.is-copied {
+    background: rgba(122, 111, 227, .18);
+    border-color: rgba(139, 127, 240, .5);
+    color: #A99CF7;
+  }
+  .copy-btn.is-copied .copy-label { display: none; }
+  .copy-btn.is-copied .copy-done { display: inline; }
+
+  .card-note {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(45, 49, 66, .72);
+  }
+
+  /* ---------- footnote ---------- */
+  .footnote {
+    margin: clamp(18px, 2.4vh, 28px) 0 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(45, 49, 66, .65);
+    text-align: center;
+  }
+  .footnote-chip {
+    font-family: var(--font-mono);
+    font-size: .92em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(45, 49, 66, .06);
+    border: 1px solid rgba(45, 49, 66, .12);
+    color: var(--charcoal);
+    white-space: nowrap;
+  }
+</style>

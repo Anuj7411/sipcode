@@ -1,0 +1,131 @@
+---
+// Plot-style instrumentation background.
+// Layers (bottom → top):
+//   1. Light grid (48×48 squares, faintly masked)
+//   2. Plotted curve at the bottom with translucent area fill
+//   3. Left-edge measurement column with 22 tick marks
+//   4. Four corner reticles
+// Vector everywhere → stays crisp at any zoom.
+---
+
+<div class="bg-plot" aria-hidden="true">
+  <!-- 1. Grid -->
+  <div class="bg-plot__grid"></div>
+
+  <!-- 2. Plot curve + area (responsive via preserveAspectRatio=none) -->
+  <svg
+    class="bg-plot__curve"
+    viewBox="0 0 1340 858"
+    preserveAspectRatio="none"
+    shape-rendering="geometricPrecision"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M-20 612 C 250 600 380 766 660 774 C 940 782 1090 690 1360 678 L1360 858 L-20 858 Z"
+      fill="rgba(91,79,207,.05)"
+    />
+    <path
+      d="M-20 612 C 250 600 380 766 660 774 C 940 782 1090 690 1360 678"
+      fill="none"
+      stroke="rgba(91,79,207,.26)"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      vector-effect="non-scaling-stroke"
+    />
+  </svg>
+
+  <!-- 3. Left-edge tick column -->
+  <div class="bg-plot__ticks">
+    {Array.from({ length: 22 }).map((_, i) => (
+      <span class={`bg-plot__tick ${i % 5 === 0 ? "is-major" : ""}`} style={`top:${i * 40 + 8}px`}></span>
+    ))}
+  </div>
+
+  <!-- 4. Corner reticles -->
+  <span class="bg-plot__reticle bg-plot__reticle--tl"></span>
+  <span class="bg-plot__reticle bg-plot__reticle--tr"></span>
+  <span class="bg-plot__reticle bg-plot__reticle--bl"></span>
+  <span class="bg-plot__reticle bg-plot__reticle--br"></span>
+</div>
+
+<style>
+  .bg-plot {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* 1. Grid */
+  .bg-plot__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(45,49,66,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(45,49,66,.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(120% 100% at 30% 0%, #000 40%, transparent 100%);
+            mask-image: radial-gradient(120% 100% at 30% 0%, #000 40%, transparent 100%);
+  }
+
+  /* 2. Plot curve */
+  .bg-plot__curve {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 3. Left-edge tick column */
+  .bg-plot__ticks {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 26px;
+    border-right: 1px solid rgba(45,49,66,.2);
+  }
+  .bg-plot__tick {
+    position: absolute;
+    right: 0;
+    width: 7px;
+    height: 1px;
+    background: rgba(45,49,66,.2);
+  }
+  .bg-plot__tick.is-major {
+    width: 14px;
+  }
+
+  /* 4. Corner reticles (L-shaped 14×14 brackets, 44px inset) */
+  .bg-plot__reticle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+  }
+  .bg-plot__reticle--tl {
+    top: 44px; left: 44px;
+    border-top: 1.5px solid rgba(45,49,66,.2);
+    border-left: 1.5px solid rgba(45,49,66,.2);
+  }
+  .bg-plot__reticle--tr {
+    top: 44px; right: 44px;
+    border-top: 1.5px solid rgba(45,49,66,.2);
+    border-right: 1.5px solid rgba(45,49,66,.2);
+  }
+  .bg-plot__reticle--bl {
+    bottom: 44px; left: 44px;
+    border-bottom: 1.5px solid rgba(45,49,66,.2);
+    border-left: 1.5px solid rgba(45,49,66,.2);
+  }
+  .bg-plot__reticle--br {
+    bottom: 44px; right: 44px;
+    border-bottom: 1.5px solid rgba(45,49,66,.2);
+    border-right: 1.5px solid rgba(45,49,66,.2);
+  }
+
+  /* Hide ticks on small screens — they crowd the layout */
+  @media (max-width: 720px) {
+    .bg-plot__ticks { display: none; }
+  }
+</style>

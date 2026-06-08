@@ -1,0 +1,447 @@
+---
+// Interactive mascot vessel — VANILLA TS, no React.
+// All three face variants (happy/neutral/stressed) are pre-rendered in the SVG
+// as separate groups; the script toggles visibility and updates a single
+// transform on the liquid group. Same visual + interactive behavior as the
+// previous React version, but ships ~150KB less JS.
+import { TOKENS, VESSEL_PATH } from "../lib/brand";
+
+const SIP = 1050;
+const GULP = 8000;
+---
+
+<div class="mascot-root" data-sip={SIP} data-gulp={GULP}>
+  <div class="mascot-stage">
+
+    <!-- Floating chips: anchor links to demo -->
+    <a href="#demo" class="vc-float1 chip chip--accent" style="top:-58px;right:-86px;">
+      git diff &minus;94%
+    </a>
+    <a href="#demo" class="vc-float3 chip chip--accent" style="top:40px;left:-150px;">
+      cache reuse 90%
+    </a>
+    <a href="#demo" class="vc-float2 chip" style="top:150px;right:-96px;">
+      &minus;2,400 tok
+    </a>
+
+    <!-- Speech bubble -->
+    <div class="speech-wrap">
+      <div class="vc-speech" role="status" aria-live="polite" data-speech>
+        Clean context. Sharp answers.
+        <span class="speech-tail" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <!-- The vessel itself -->
+    <svg
+      class="vessel-svg"
+      width="300" height="222"
+      viewBox="-26 -10 152 112"
+      shape-rendering="geometricPrecision"
+      role="img"
+      data-vessel
+      aria-label="Sipcode mascot — clean context, sipping calmly."
+    >
+      <defs>
+        <clipPath id="vessel-clip-main">
+          <path d={VESSEL_PATH} />
+        </clipPath>
+      </defs>
+
+      <!-- Shadow -->
+      <ellipse cx="50" cy="92" rx="30" ry="5" fill="rgba(45,49,66,.14)" />
+
+      <!-- Liquid (translated by JS based on fill) -->
+      <g clip-path="url(#vessel-clip-main)">
+        <g class="liquid-wrap" data-liquid>
+          <path
+            class="sc-liquid liquid-body"
+            data-liquid-body
+            fill={TOKENS.violet}
+            d="M-5 15 Q50 19.5 105 15 L105 112 L-5 112 Z"
+          />
+          <path
+            fill="rgba(255,255,255,0.18)"
+            d="M-5 15 Q50 19.5 105 15 L105 16.4 Q50 20.9 -5 16.4 Z"
+          />
+        </g>
+      </g>
+
+      <!-- Drips: visible only when stressed -->
+      <g class="vc-drip drips" data-drips style="display:none">
+        <path d="M22 30 q-3 5 0 9 q3 -4 0 -9 Z" fill={TOKENS.violet} data-drip />
+        <path d="M80 33 q-3 5 0 9 q3 -4 0 -9 Z" fill={TOKENS.violet} data-drip />
+      </g>
+
+      <!-- Vessel outline -->
+      <path d={VESSEL_PATH} fill="none" stroke={TOKENS.ink} stroke-width="6.4" stroke-linejoin="round" />
+
+      <!-- Face: all 3 variants pre-rendered, toggled by JS -->
+      <g class="face-wrap" data-face>
+
+        <!-- HAPPY face -->
+        <g class="face face--happy" data-face-variant="happy">
+          <path d="M-7 7 Q0 16 7 7" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
+          <path d="M-16 0 Q-11 -7 -6 0" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
+          <path d="M6 0 Q11 -7 16 0" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
+          <g class="vc-spark sparkles" stroke={TOKENS.violet} stroke-width="1.6" stroke-linecap="round">
+            <path d="M-22 -16 v5 M-24.5 -13.5 h5" />
+            <path d="M23 -18 v4 M21 -16 h4" />
+          </g>
+        </g>
+
+        <!-- NEUTRAL face -->
+        <g class="face face--neutral" data-face-variant="neutral" style="display:none">
+          <g stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" fill="none">
+            <path d="M-15 -10 L-7 -10" />
+            <path d="M7 -10 L15 -10" />
+          </g>
+          <g>
+            <ellipse cx="-11" cy="-1" rx="4.6" ry="5.4" fill="#fff" stroke={TOKENS.ink} stroke-width="2.1" />
+            <circle cx="-11" cy="-0.4" r="2.4" fill={TOKENS.ink} />
+          </g>
+          <g>
+            <ellipse cx="11" cy="-1" rx="4.6" ry="5.4" fill="#fff" stroke={TOKENS.ink} stroke-width="2.1" />
+            <circle cx="11" cy="-0.4" r="2.4" fill={TOKENS.ink} />
+          </g>
+          <path d="M-6 9 Q0 11 6 9" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
+        </g>
+
+        <!-- STRESSED face -->
+        <g class="face face--stressed" data-face-variant="stressed" style="display:none">
+          <g stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" fill="none">
+            <path d="M-16 -11 L-7 -8.5" />
+            <path d="M16 -11 L7 -8.5" />
+          </g>
+          <g>
+            <ellipse cx="-11" cy="-1" rx="5.4" ry="6.6" fill="#fff" stroke={TOKENS.ink} stroke-width="2.1" />
+            <circle cx="-11" cy="-2.2" r="1.7" fill={TOKENS.ink} />
+          </g>
+          <g>
+            <ellipse cx="11" cy="-1" rx="5.4" ry="6.6" fill="#fff" stroke={TOKENS.ink} stroke-width="2.1" />
+            <circle cx="11" cy="-2.2" r="1.7" fill={TOKENS.ink} />
+          </g>
+          <ellipse cx="0" cy="10" rx="4.4" ry="5.2" fill={TOKENS.ink} />
+          <path class="vc-sweat sweat" d="M20 -9 q-2.6 4.4 0 7.6 q2.6 -3.2 0 -7.6 Z" fill="#5B8DEF" />
+        </g>
+
+      </g>
+    </svg>
+  </div>
+
+  <div class="caption">
+    before sipcode <span class="caption-arrow">→</span> after sipcode
+  </div>
+
+  <!-- Sip/Gulp control + slider -->
+  <div class="control">
+    <div class="seg">
+      <button type="button" class="seg-btn is-active" data-sipgulp="sip" aria-pressed="true">Sip</button>
+      <button type="button" class="seg-btn" data-sipgulp="gulp" aria-pressed="false">Gulp</button>
+    </div>
+    <input
+      type="range"
+      class="slider"
+      data-slider
+      min={SIP}
+      max={GULP}
+      step="50"
+      value={SIP}
+      id="tok-slider"
+      aria-label="Tokens per turn. Drag to compare sipping and gulping."
+      aria-valuetext={`${SIP.toLocaleString()} tokens per turn, happy`}
+    />
+    <div class="readout">
+      <span class="readout-label">tokens / turn</span>
+      <span class="readout-value" data-readout>{SIP.toLocaleString()}</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Vanilla mascot controller. No React; just attribute mutations.
+  const root = document.querySelector<HTMLElement>('.mascot-root');
+  if (root) {
+    const SIP = Number(root.dataset.sip ?? 1050);
+    const GULP = Number(root.dataset.gulp ?? 8000);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const vessel  = root.querySelector<SVGElement>('[data-vessel]')!;
+    const liquid  = root.querySelector<SVGGElement>('[data-liquid]')!;
+    const face    = root.querySelector<SVGGElement>('[data-face]')!;
+    const speech  = root.querySelector<HTMLElement>('[data-speech]')!;
+    const drips   = root.querySelector<SVGGElement>('[data-drips]')!;
+    const slider  = root.querySelector<HTMLInputElement>('[data-slider]')!;
+    const readout = root.querySelector<HTMLElement>('[data-readout]')!;
+    const faceVariants = {
+      happy:    root.querySelector<SVGGElement>('[data-face-variant="happy"]')!,
+      neutral:  root.querySelector<SVGGElement>('[data-face-variant="neutral"]')!,
+      stressed: root.querySelector<SVGGElement>('[data-face-variant="stressed"]')!,
+    };
+    const segBtns = root.querySelectorAll<HTMLButtonElement>('[data-sipgulp]');
+
+    const SPEECH = {
+      happy:    "Clean context. Sharp answers.",
+      neutral:  "Filling up. Answer quality is starting to slip.",
+      stressed: "Bloated. I'm losing the thread of your task.",
+    };
+    const ARIA = {
+      happy:    "Sipcode mascot — clean context, sipping calmly.",
+      neutral:  "Sipcode mascot — context filling up, getting heavier.",
+      stressed: "Sipcode mascot — context overflowing, stressed.",
+    };
+
+    const fillForTokens = (tok: number) =>
+      0.4 + ((Math.max(SIP, Math.min(GULP, tok)) - SIP) / (GULP - SIP)) * (0.9 - 0.4);
+    const emotionForFill = (f: number): 'happy' | 'neutral' | 'stressed' =>
+      f <= 0.46 ? 'happy' : f <= 0.7 ? 'neutral' : 'stressed';
+
+    let lastEmotion: 'happy' | 'neutral' | 'stressed' | null = null;
+    function render(tok: number) {
+      const f = fillForTokens(tok);
+      const emotion = emotionForFill(f);
+      const surfaceTop = 85 - f * 70;
+      const bandH = Math.max(3, surfaceTop - 22);
+      const faceScale = Math.max(0.4, Math.min(1, bandH / 34));
+      const faceY = 22 + bandH / 2;
+
+      // Liquid translate
+      liquid.style.transform = `translateY(${70 * (1 - f)}px)`;
+      // Face translate/scale follows the receding fill so the face moves up
+      face.style.transform = `translate(50px, ${faceY}px) scale(${faceScale})`;
+
+      if (emotion !== lastEmotion) {
+        // Swap face variant
+        faceVariants.happy.style.display    = emotion === 'happy'    ? '' : 'none';
+        faceVariants.neutral.style.display  = emotion === 'neutral'  ? '' : 'none';
+        faceVariants.stressed.style.display = emotion === 'stressed' ? '' : 'none';
+
+        // Show drips only when stressed
+        drips.style.display = emotion === 'stressed' ? '' : 'none';
+
+        // Liquid color: stays brand violet on happy/neutral, dulls on stressed
+        (root.querySelector<SVGPathElement>('[data-liquid-body]'))!
+          .setAttribute('fill', emotion === 'stressed' ? '#9a93b8' : '#5B4FCF');
+
+        // Ripple amplitude via CSS var (the .sc-liquid keyframe reads --rip)
+        liquid.style.setProperty('--rip', emotion === 'stressed' ? '3.4px' : '2px');
+
+        // Speech: replace text + retrigger pop animation
+        speech.textContent = '';
+        const tail = document.createElement('span');
+        tail.className = 'speech-tail';
+        tail.setAttribute('aria-hidden', 'true');
+        speech.textContent = SPEECH[emotion];
+        speech.appendChild(tail);
+        // re-trigger the pop animation
+        speech.classList.remove('vc-speech');
+        void speech.offsetWidth;
+        speech.classList.add('vc-speech');
+
+        // Update SVG ARIA label
+        vessel.setAttribute('aria-label', ARIA[emotion]);
+
+        lastEmotion = emotion;
+      }
+
+      // Slider / readout / button state
+      slider.value = String(tok);
+      slider.setAttribute('aria-valuetext', `${tok.toLocaleString()} tokens per turn, ${emotion}`);
+      readout.textContent = tok.toLocaleString();
+      readout.style.color = emotion === 'stressed' ? '#b9831b' : '#5B4FCF';
+      const isSip = tok < (SIP + GULP) / 2;
+      segBtns.forEach((b) => {
+        const active = (b.dataset.sipgulp === 'sip') === isSip;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', String(active));
+      });
+    }
+
+    // Tween between two token values over ~960ms with ease-out-cubic.
+    let raf: number | null = null;
+    function animTo(from: number, to: number) {
+      if (raf !== null) cancelAnimationFrame(raf);
+      if (reduce) { render(to); return; }
+      const start = performance.now();
+      const dur = 960;
+      const step = (now: number) => {
+        const p = Math.min(1, (now - start) / dur);
+        const e = 1 - Math.pow(1 - p, 3);
+        render(Math.round(from + (to - from) * e));
+        if (p < 1) raf = requestAnimationFrame(step);
+        else raf = null;
+      };
+      raf = requestAnimationFrame(step);
+    }
+
+    // Slider scrubs directly, cancelling any in-flight tween
+    let currentTok = SIP;
+    slider.addEventListener('input', (e) => {
+      if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
+      currentTok = Number((e.target as HTMLInputElement).value);
+      render(currentTok);
+    });
+
+    // Sip/Gulp buttons animate
+    segBtns.forEach((b) => {
+      b.addEventListener('click', () => {
+        const target = b.dataset.sipgulp === 'sip' ? SIP : GULP;
+        animTo(currentTok, target);
+        currentTok = target;
+      });
+    });
+
+    // Initial state + on-load drain animation
+    if (reduce) {
+      currentTok = SIP;
+      render(SIP);
+    } else {
+      // Start at GULP and drain to SIP after a short pause (the brand story)
+      currentTok = GULP;
+      render(GULP);
+      setTimeout(() => {
+        animTo(GULP, SIP);
+        currentTok = SIP;
+      }, 380);
+    }
+  }
+</script>
+
+<style>
+  .mascot-root {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 560px;
+  }
+
+  .mascot-stage {
+    position: relative;
+    width: 300px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .vessel-svg { overflow: visible; }
+
+  /* Liquid translate + face translate use CSS transition for smoothness */
+  .liquid-wrap,
+  .face-wrap {
+    transition: transform 1000ms cubic-bezier(.4, 0, .2, 1);
+  }
+  .liquid-body {
+    transition: fill 1000ms ease;
+  }
+
+  /* Floating chips */
+  .chip {
+    position: absolute;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    z-index: 3;
+    background: #fff;
+    color: var(--charcoal);
+    border: 1px solid rgba(45, 49, 66, .12);
+    box-shadow: 0 6px 18px -10px rgba(45, 49, 66, .4);
+    text-decoration: none;
+  }
+  .chip--accent { color: var(--violet); }
+  .chip:hover { transform: translateY(-1px); }
+
+  /* Speech bubble */
+  .speech-wrap {
+    position: absolute;
+    top: -96px;
+    left: 50%;
+    transform: translateX(-60%);
+    z-index: 5;
+  }
+  .vc-speech {
+    position: relative;
+    width: 250px;
+    background: #fff;
+    border: 1px solid rgba(45, 49, 66, .12);
+    border-radius: 14px;
+    padding: 11px 15px;
+    box-shadow: 0 12px 30px -16px rgba(45, 49, 66, .34);
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.42;
+    color: var(--charcoal);
+  }
+  .speech-tail {
+    position: absolute;
+    bottom: -8px;
+    right: 34px;
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border-right: 1px solid rgba(45, 49, 66, .12);
+    border-bottom: 1px solid rgba(45, 49, 66, .12);
+    transform: rotate(45deg);
+  }
+
+  .caption {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .5);
+    margin-top: 14px;
+  }
+  .caption-arrow { color: var(--violet); }
+
+  /* Control */
+  .control {
+    width: 300px;
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 13px;
+    background: #fff;
+    border: 1px solid rgba(45, 49, 66, .1);
+    box-shadow: 0 8px 22px -14px rgba(45, 49, 66, .18);
+  }
+  .seg {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .seg-btn {
+    flex: 1;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 9px 0;
+    border-radius: 9px;
+    cursor: pointer;
+    border: 1px solid rgba(45, 49, 66, .16);
+    background: transparent;
+    color: var(--charcoal);
+    transition: all .15s;
+  }
+  .seg-btn.is-active {
+    border-color: var(--violet);
+    background: var(--violet);
+    color: #fff;
+  }
+  .slider { width: 100%; accent-color: var(--violet); }
+  .readout {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 7px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .readout-label { color: rgba(45, 49, 66, .55); }
+  .readout-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--violet);
+  }
+</style>

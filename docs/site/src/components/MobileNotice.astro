@@ -1,0 +1,179 @@
+---
+// Desktop-first notice. Sipcode is a tool for Claude Code (a desktop product),
+// so the landing page is desktop-only. On mobile, show a friendly notice
+// telling visitors to come back on desktop. Dismissable so they can preview
+// the page if they insist.
+---
+
+<div id="mobile-notice" class="mobile-notice" role="dialog" aria-labelledby="mn-title" aria-modal="false" hidden>
+  <div class="mn-card">
+    <button class="mn-close" type="button" aria-label="Dismiss notice and view anyway">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6 6l12 12M18 6 6 18"/>
+      </svg>
+    </button>
+
+    <span class="mn-mark" aria-hidden="true">
+      <svg width="44" height="44" viewBox="0 0 100 100">
+        <path d="M85 50 q0 35 -35 35 q-35 0 -35 -35 q0 -35 35 -35 q35 0 35 35Z"
+          fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>
+        <path d="M15 60 q35 5 70 0 L85 85 q0 0 -35 0 q-35 0 -35 0 Z" fill="#5B4FCF"/>
+      </svg>
+    </span>
+
+    <h2 id="mn-title" class="mn-title">Best on desktop.</h2>
+
+    <p class="mn-body">
+      Sipcode is a tool for Claude Code, which lives on your desktop. This site is built for the same screen.
+    </p>
+
+    <p class="mn-body mn-body--quiet">
+      Open this page on your laptop or desktop for the full experience.
+    </p>
+
+    <div class="mn-actions">
+      <a href="https://github.com/Anuj7411/sipcode" class="mn-btn mn-btn--primary" target="_blank" rel="noopener">
+        Star on GitHub
+      </a>
+      <button type="button" class="mn-btn mn-btn--ghost mn-dismiss">
+        View anyway
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Show the notice on viewports below 760px. Use matchMedia so it reacts to
+  // resize (e.g. devtools mobile preview, browser window resize). Once
+  // dismissed, remember for this tab session.
+  const KEY = 'sipcode-mobile-dismissed';
+  const notice = document.getElementById('mobile-notice');
+  if (notice) {
+    const mq = window.matchMedia('(max-width: 760px)');
+    const reveal = () => {
+      if (sessionStorage.getItem(KEY) === '1') return;
+      notice.hidden = !mq.matches;
+      document.documentElement.style.overflow = mq.matches ? 'hidden' : '';
+    };
+    mq.addEventListener('change', reveal);
+    reveal();
+
+    const dismiss = () => {
+      sessionStorage.setItem(KEY, '1');
+      notice.hidden = true;
+      document.documentElement.style.overflow = '';
+    };
+    notice.querySelectorAll('.mn-close, .mn-dismiss').forEach((el) => {
+      el.addEventListener('click', dismiss);
+    });
+  }
+</script>
+
+<style>
+  .mobile-notice {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(10, 10, 10, 0.86);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  /* `hidden` HTML attribute applies display:none, but our `display: flex`
+     above would normally win on specificity. This selector restores the
+     standard `hidden` behavior. */
+  .mobile-notice[hidden] { display: none; }
+
+  .mn-card {
+    position: relative;
+    background: #F8F8F6;
+    border-radius: 16px;
+    padding: 32px 24px 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.5);
+  }
+
+  .mn-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: rgba(45, 49, 66, .55);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .mn-close:hover { background: rgba(10, 10, 10, .05); color: var(--ink); }
+
+  .mn-mark {
+    display: inline-block;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .mn-title {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    color: var(--ink);
+  }
+
+  .mn-body {
+    margin: 0 0 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--charcoal);
+  }
+  .mn-body--quiet {
+    font-size: 13.5px;
+    color: rgba(45, 49, 66, .6);
+    margin-bottom: 22px;
+  }
+
+  .mn-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mn-btn {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .mn-btn--primary {
+    background: var(--violet);
+    color: #fff;
+  }
+  .mn-btn--primary:hover { background: #4f44b8; }
+  .mn-btn--ghost {
+    background: transparent;
+    color: var(--charcoal);
+    border-color: rgba(10, 10, 10, .15);
+  }
+  .mn-btn--ghost:hover { background: rgba(10, 10, 10, .04); }
+</style>

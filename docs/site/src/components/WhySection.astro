@@ -1,0 +1,498 @@
+---
+// Why context rot matters. Shows the phenomenon instead of describing it.
+// Top: tight header. Middle: full-width chat comparison with prominent
+// context-fill bars (the "is that real?" moment). Bottom: supporting
+// evidence as a single horizontal strip (29% stat + arXiv card, equal weight).
+import PlotBackground from "./PlotBackground.astro";
+---
+
+<section id="why" class="why">
+  <PlotBackground />
+  <div class="container">
+
+    <header class="why-head">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>The hidden cost</span>
+        <span class="head-meta">cited from research</span>
+      </div>
+      <h2 class="why-title">
+        Your bill isn't the only thing context rot costs.
+      </h2>
+      <p class="why-lede">
+        Same task, same model. Watch what bloated context does.
+      </p>
+    </header>
+
+    <!-- Full-width comparison: the visual punch of this section -->
+    <div class="compare">
+      <header class="compare-task">
+        <span class="task-label">User asks for</span>
+        <span class="task-text">A sign-out button on the navbar.</span>
+      </header>
+
+      <div class="panes">
+
+        <!-- CLEAN -->
+        <article class="pane pane--clean">
+          <div class="pane-meta">
+            <span class="pane-dot pane-dot--ok"></span>
+            <span class="pane-turn">Turn 5</span>
+            <span class="pane-fill-label">context</span>
+          </div>
+          <div class="pane-fill" aria-label="Context: 8,000 of 200,000 tokens (4 percent full)">
+            <span class="pane-fill-bar pane-fill-bar--ok" style="width:4%"></span>
+            <span class="pane-fill-num"><strong>8K</strong> of 200K tokens</span>
+          </div>
+
+          <div class="msg">
+            <span class="msg-role">You</span>
+            <p>Add a sign-out button to the navbar.</p>
+          </div>
+          <div class="msg msg-claude">
+            <span class="msg-role">Claude</span>
+            <p>
+              Adding a <code>SignOutButton</code> to <code>src/NavBar.tsx</code>, wired to the existing <code>useSession()</code> hook. Diff below.
+            </p>
+          </div>
+
+          <footer class="verdict verdict--ok">
+            <span class="verdict-icon" aria-hidden="true">✓</span>
+            Sharp. Specific. Right answer first try.
+          </footer>
+        </article>
+
+        <!-- ROTTED -->
+        <article class="pane pane--rotted">
+          <div class="pane-meta">
+            <span class="pane-dot pane-dot--bad"></span>
+            <span class="pane-turn">Turn 47</span>
+            <span class="pane-fill-label">context</span>
+          </div>
+          <div class="pane-fill" aria-label="Context: 187,000 of 200,000 tokens (93 percent full, nearly overflowing)">
+            <span class="pane-fill-bar pane-fill-bar--bad" style="width:93%"></span>
+            <span class="pane-fill-num"><strong>187K</strong> of 200K tokens</span>
+          </div>
+
+          <div class="msg">
+            <span class="msg-role">You</span>
+            <p>Add a sign-out button to the navbar.</p>
+          </div>
+          <div class="msg msg-claude">
+            <span class="msg-role">Claude</span>
+            <p>
+              There are a few places this could live. Earlier you mentioned a sidebar, but the project also has a top nav. Should I add it to both? I also want to double-check the session hook still exists.
+            </p>
+          </div>
+
+          <footer class="verdict verdict--bad">
+            <span class="verdict-icon" aria-hidden="true">⚠</span>
+            Hedges. Asks. Forgets context you already gave.
+          </footer>
+        </article>
+
+      </div>
+    </div>
+
+    <!-- Supporting evidence: equal-weight horizontal strip -->
+    <div class="evidence">
+      <article class="evidence-stat">
+        <div class="evidence-label">Anthropic research</div>
+        <div class="evidence-figure">
+          <span class="stat-num" data-target="29">0</span><span class="stat-pct">%</span>
+        </div>
+        <p class="evidence-body">
+          sharper outcomes when context stays lean. About <strong>40% fewer agent errors</strong> under the same conditions.
+        </p>
+        <p class="evidence-cite">Cited from published research. Not measured by Sipcode.</p>
+      </article>
+
+      <a class="evidence-paper" href="https://arxiv.org/abs/2602.07962" target="_blank" rel="noopener">
+        <div class="paper-top">
+          <span class="paper-source">arxiv.org</span>
+          <svg class="paper-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M7 17 17 7"/><path d="M9 7h8v8"/>
+          </svg>
+        </div>
+        <div class="paper-title">
+          LOCA-bench: language agents under controllable and extreme context growth
+        </div>
+        <p class="paper-body">
+          Answer quality drops measurably as input tokens climb. Even on tasks the same model aced at small context sizes.
+        </p>
+        <div class="paper-id">arXiv 2602.07962</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Animate the 29% counter when the section enters view.
+  const counter = document.querySelector<HTMLElement>('#why .stat-num');
+  if (counter) {
+    const target = Number(counter.dataset.target ?? '0');
+    const animate = () => {
+      const start = performance.now();
+      const dur = 1100;
+      const step = (now: number) => {
+        const p = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        counter.textContent = String(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) { animate(); obs.disconnect(); }
+      }, { threshold: 0.4 });
+      obs.observe(counter);
+    } else {
+      animate();
+    }
+  }
+</script>
+
+<style>
+  .why {
+    position: relative;
+    background: var(--paper);
+    padding: clamp(24px, 3.6vh, 56px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- header ---------- */
+  .why-head {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin-bottom: clamp(20px, 2.4vh, 28px);
+  }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+  .why-title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .why-lede {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: clamp(14.5px, 1.1vw, 16px);
+    line-height: 1.55;
+    color: var(--charcoal);
+    max-width: 600px;
+  }
+
+  /* ---------- comparison block (DARK so it stands out from paper) ---------- */
+  .compare {
+    position: relative;
+    z-index: 1;
+    background: #14141B;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: clamp(18px, 2.4vh, 28px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .06),
+      0 28px 60px -38px rgba(8, 8, 14, .55);
+  }
+  .compare-task {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    background: rgba(255, 255, 255, .03);
+  }
+  .task-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .5);
+  }
+  .task-text {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: #fff;
+  }
+
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 760px) {
+    .panes { grid-template-columns: 1fr 1fr; }
+    .pane--clean { border-right: 1px solid rgba(255, 255, 255, .08); }
+  }
+
+  /* ---------- pane (one side of the comparison) ---------- */
+  .pane {
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+  }
+  .pane--clean  { background: linear-gradient(180deg, rgba(43, 182, 115, .08), transparent 50%); }
+  .pane--rotted { background: linear-gradient(180deg, rgba(226, 162, 62, .10), transparent 50%); }
+  @media (max-width: 759px) {
+    .pane + .pane { border-top: 1px solid rgba(255, 255, 255, .08); }
+  }
+
+  .pane-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(255, 255, 255, .65);
+  }
+  .pane-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .pane-dot--ok  { background: #4AD494; box-shadow: 0 0 0 3px rgba(74, 212, 148, .2); }
+  .pane-dot--bad { background: #E2A23E; box-shadow: 0 0 0 3px rgba(226, 162, 62, .25); }
+  .pane-turn { color: #fff; font-weight: 600; }
+  .pane-fill-label {
+    margin-left: auto;
+    font-size: 10.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .45);
+  }
+
+  /* The "oh, that's real?" bar */
+  .pane-fill {
+    position: relative;
+    width: 100%;
+    height: 22px;
+    background: rgba(255, 255, 255, .07);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .pane-fill-bar {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 4px;
+    transform-origin: left center;
+    animation: pane-fill-grow .9s var(--ease-quint) .2s both;
+  }
+  .pane-fill-bar--ok  { background: linear-gradient(90deg, #2BB673, #4AD494); }
+  .pane-fill-bar--bad { background: linear-gradient(90deg, #D99325, #E2A23E); }
+  @keyframes pane-fill-grow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pane-fill-bar { animation: none; }
+  }
+  .pane-fill-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: #fff;
+    z-index: 1;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+  .pane-fill-num strong { font-weight: 700; margin-right: 4px; }
+
+  /* messages */
+  .msg { display: flex; flex-direction: column; gap: 3px; }
+  .msg-role {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .5);
+  }
+  .msg-claude .msg-role { color: #A99CF7; }
+  .msg p {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, .9);
+  }
+  .msg code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: rgba(255, 255, 255, .08);
+    color: #A99CF7;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .verdict {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 255, 255, .12);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .verdict-icon {
+    font-size: 14px;
+    font-weight: 700;
+    flex: 0 0 auto;
+  }
+  .verdict--ok  { color: #4AD494; }
+  .verdict--bad { color: #E2A23E; }
+
+  /* ---------- evidence strip (citations, equal weight) ---------- */
+  .evidence {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(12px, 1.6vw, 16px);
+  }
+  @media (min-width: 820px) {
+    .evidence { grid-template-columns: 1fr 1.4fr; }
+  }
+
+  .evidence-stat,
+  .evidence-paper {
+    background: #fff;
+    border: 1px solid rgba(10, 10, 10, 0.09);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color .2s var(--ease-quint);
+  }
+  .evidence-stat:hover,
+  .evidence-paper:hover { border-color: rgba(91, 79, 207, 0.28); }
+
+  .evidence-label,
+  .paper-source {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--violet);
+  }
+
+  .evidence-figure {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .stat-num {
+    font-size: clamp(40px, 5vw, 56px);
+    letter-spacing: -.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-pct {
+    font-size: clamp(22px, 2.5vw, 30px);
+    color: var(--violet);
+  }
+  .evidence-body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--charcoal);
+  }
+  .evidence-body strong { color: var(--ink); font-weight: 600; }
+  .evidence-cite {
+    margin: auto 0 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(45, 49, 66, .55);
+    padding-top: 8px;
+    border-top: 1px solid rgba(10, 10, 10, 0.07);
+  }
+
+  /* paper card */
+  .evidence-paper {
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .paper-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .paper-arrow {
+    color: var(--violet);
+    transition: transform .2s var(--ease-quint);
+  }
+  .evidence-paper:hover .paper-arrow { transform: translate(3px, -3px); }
+  .paper-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15.5px;
+    line-height: 1.32;
+    letter-spacing: -.012em;
+    color: var(--ink);
+  }
+  .paper-body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--charcoal);
+  }
+  .paper-id {
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: rgba(45, 49, 66, .55);
+    padding-top: 8px;
+    border-top: 1px solid rgba(10, 10, 10, 0.07);
+  }
+</style>

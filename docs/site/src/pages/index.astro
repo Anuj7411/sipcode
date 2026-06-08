@@ -1,0 +1,105 @@
+---
+import "../styles/global.css";
+import Hero from "../components/Hero.astro";
+import WhySection from "../components/WhySection.astro";
+import LayersSection from "../components/LayersSection.astro";
+import DemoSection from "../components/DemoSection.astro";
+import DriftSection from "../components/DriftSection.astro";
+import InstallSection from "../components/InstallSection.astro";
+import FaqSection from "../components/FaqSection.astro";
+import HonestySection from "../components/HonestySection.astro";
+import FinalCta from "../components/FinalCta.astro";
+import Footer from "../components/Footer.astro";
+import MobileNotice from "../components/MobileNotice.astro";
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sipcode — Sip your tokens. Don't gulp them.</title>
+  <meta name="description" content="Keep Claude Code's context clean for sharper answers and lower cost, automatically. Open-source token-economy observatory for Claude. MIT." />
+  <link rel="canonical" href="https://anuj7411.github.io/sipcode/" />
+  <link rel="icon" type="image/png" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#F8F8F6" />
+  <!-- OpenGraph -->
+  <meta property="og:title" content="Sipcode — Sip your tokens. Don't gulp them." />
+  <meta property="og:description" content="Keep Claude Code's context clean for sharper answers and lower cost, automatically." />
+  <meta property="og:image" content="https://anuj7411.github.io/sipcode/opengraph.png" />
+  <meta property="og:url" content="https://anuj7411.github.io/sipcode/" />
+  <meta property="og:type" content="website" />
+  <!-- Twitter card (explicit; doesn't rely on OG fallback) -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Sipcode — Sip your tokens. Don't gulp them." />
+  <meta name="twitter:description" content="Keep Claude Code's context clean for sharper answers and lower cost, automatically." />
+  <meta name="twitter:image" content="https://anuj7411.github.io/sipcode/opengraph.png" />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <MobileNotice />
+  <main id="top">
+    <Hero />
+
+    <WhySection />
+    <LayersSection />
+    <DemoSection />
+    <DriftSection />
+    <InstallSection />
+    <HonestySection />
+    <FaqSection />
+    <FinalCta />
+  </main>
+
+  <Footer />
+
+  <script>
+    // Scroll-reveal: each <section> starts hidden, fades up as it enters view.
+    // The first viewport (above the fold) reveals immediately so nothing pops on load.
+    const sections = document.querySelectorAll<HTMLElement>("main > section");
+    if (sections.length && "IntersectionObserver" in window) {
+      // Mark all sections pre-reveal first.
+      sections.forEach((s) => s.classList.add("is-pre-reveal"));
+
+      // Reveal anything already in the viewport on first paint (the hero).
+      sections.forEach((s) => {
+        const r = s.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.85) s.classList.remove("is-pre-reveal");
+      });
+
+      // Watch the rest.
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.remove("is-pre-reveal");
+              io.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -80px 0px" },
+      );
+      sections.forEach((s) => {
+        if (s.classList.contains("is-pre-reveal")) io.observe(s);
+      });
+    }
+  </script>
+</body>
+</html>
+
+<style is:global>
+  .stub {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+  }
+  .stub.alt {
+    background: #fff;
+  }
+  .stub p {
+    font-family: var(--font-body); color: var(--charcoal);
+    font-size: 17px; max-width: 600px;
+  }
+</style>

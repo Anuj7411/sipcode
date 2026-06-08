@@ -1,0 +1,603 @@
+---
+// Three Layers — the backbone of the product. Asymmetric, full-width layered
+// rows (text side + visual preview side, alternating). Each visual hints at
+// the deeper section's language (Valve -> bars, Meter -> terminal, Drift ->
+// gauge). Substantial vertical space because this IS the product story.
+import PlotBackground from "./PlotBackground.astro";
+
+const VALVE_BARS = [
+  { cmd: "git status", before: 200,   after: 30,   saved: 85 },
+  { cmd: "git log",    before: 2500,  after: 500,  saved: 80 },
+  { cmd: "git diff",   before: 21500, after: 1260, saved: 94 },
+];
+const AXIS = 22000;
+const pct = (n: number) => (n / AXIS) * 100;
+---
+
+<section id="layers" class="layers">
+  <PlotBackground />
+
+  <div class="container">
+
+    <!-- Section header -->
+    <header class="layers-head">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>Our three-part answer</span>
+        <span class="head-meta">one toolkit · three layers</span>
+      </div>
+      <h2 class="layers-title">
+        One install. <span class="accent">Three layers of defense.</span>
+      </h2>
+    </header>
+
+    <!-- LAYER 1: VALVE — text left, visual right -->
+    <article class="layer">
+      <div class="layer-text">
+        <div class="layer-tag">
+          <span class="tag-dot tag-dot--violet"></span>
+          <span class="tag-code">LAYER 01 · VALVE</span>
+        </div>
+        <h3 class="layer-title">
+          Trim before context <span class="line-strike">fills up</span>.
+        </h3>
+        <p class="layer-body">
+          A hook rewrites bulky commands to their compact form before Claude ever sees them.
+        </p>
+        <div class="layer-foot">
+          <code class="layer-cmd">sipcode proxy --install</code>
+          <span class="layer-tagline">automatic · zero config</span>
+        </div>
+      </div>
+
+      <div class="layer-visual">
+        <div class="preview preview--bars">
+          <div class="preview-head">
+            <span class="preview-label">live token rewrites</span>
+            <span class="preview-meta">−62.6% median</span>
+          </div>
+          <div class="preview-body">
+            {VALVE_BARS.map((b, i) => (
+              <div class="bar-row">
+                <div class="bar-cmd">{b.cmd}</div>
+                <div class="bar-track">
+                  <span class="bar-before" style={`width:${pct(b.before)}%`}></span>
+                  <span class="bar-after" style={`width:${pct(b.after)}%; animation-delay:${i * 120}ms`}></span>
+                </div>
+                <div class="bar-saved">−{b.saved}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- LAYER 2: METER — visual left, text right (alternating) -->
+    <article class="layer layer--flip">
+      <div class="layer-text">
+        <div class="layer-tag">
+          <span class="tag-dot tag-dot--ochre"></span>
+          <span class="tag-code">LAYER 02 · METER</span>
+        </div>
+        <h3 class="layer-title">
+          Measure what the cleaning <span class="accent-ochre">earned</span>.
+        </h3>
+        <p class="layer-body">
+          Reads your local Claude transcripts. Tells you where tokens went and what you saved.
+        </p>
+        <div class="layer-foot">
+          <code class="layer-cmd">sipcode why · impact · stats</code>
+          <span class="layer-tagline">13 MCP tools · zero network calls</span>
+        </div>
+      </div>
+
+      <div class="layer-visual">
+        <div class="preview preview--terminal">
+          <header class="preview-chrome">
+            <span class="chrome-dot chrome-dot--r"></span>
+            <span class="chrome-dot chrome-dot--y"></span>
+            <span class="chrome-dot chrome-dot--g"></span>
+            <span class="chrome-title">sipcode why · last session</span>
+          </header>
+          <div class="preview-terminal">
+            <div class="term-line"><span class="term-dim">$</span> <span class="term-cmd">sipcode why</span></div>
+            <div class="term-line term-line--label">output ratio: <span class="term-val">0.6%</span></div>
+            <div class="term-line term-line--label">duplicate reads: <span class="term-val">12,400 tok</span> <span class="term-loss">$3.72</span></div>
+            <div class="term-line term-line--label">idle context: <span class="term-val">22,100 tok</span> <span class="term-loss">$6.63</span></div>
+            <div class="term-rule"></div>
+            <div class="term-line term-line--strong">
+              recoverable: <span class="term-gain">~34,500 tok</span> <span class="term-gain">($10.35)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- LAYER 3: DRIFT — text left, visual right -->
+    <article class="layer">
+      <div class="layer-text">
+        <div class="layer-tag">
+          <span class="tag-dot tag-dot--amber"></span>
+          <span class="tag-code">LAYER 03 · DRIFT</span>
+        </div>
+        <h3 class="layer-title">
+          Catch context rot <span class="accent">before it spreads</span>.
+        </h3>
+        <p class="layer-body">
+          Silent unless your latest session drifts off your baseline. Names what moved and how to fix it.
+        </p>
+        <div class="layer-foot">
+          <code class="layer-cmd">sipcode drift</code>
+          <span class="layer-tagline">silent unless it matters</span>
+        </div>
+      </div>
+
+      <div class="layer-visual">
+        <div class="preview preview--alert">
+          <header class="preview-alert-head">
+            <span class="alert-glyph">⚠</span>
+            <span class="alert-title">Context drift detected</span>
+            <span class="alert-time">just now</span>
+          </header>
+          <div class="preview-alert-body">
+            <div class="alert-row">
+              <div class="alert-row-head">
+                <span class="alert-arrow">▲</span>
+                <span class="alert-metric">Tokens per turn</span>
+                <span class="alert-change">up 662%</span>
+              </div>
+              <div class="alert-gauge">
+                <span class="gauge-track"></span>
+                <span class="gauge-fill"></span>
+                <span class="gauge-norm"></span>
+                <span class="gauge-norm-label">norm</span>
+              </div>
+              <div class="alert-row-foot">
+                <span class="alert-norm">1,050</span>
+                <span class="alert-arrow-r">→</span>
+                <span class="alert-now">8,000</span>
+              </div>
+            </div>
+            <div class="alert-fix">
+              <span class="alert-fix-arrow">→ Fix:</span>
+              Start a fresh chat to reset the context.
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<script>
+  // Per-layer reveal: each .layer fades up as it scrolls into view (not just
+  // the section once). Adds the "alive while you scroll" feeling.
+  const layers = document.querySelectorAll<HTMLElement>('#layers .layer');
+  if (layers.length && 'IntersectionObserver' in window) {
+    layers.forEach((l) => l.classList.add('is-pre'));
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.remove('is-pre');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.18, rootMargin: '0px 0px -60px 0px' });
+    layers.forEach((l) => io.observe(l));
+  }
+</script>
+
+<style>
+  .layers {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(48px, 7vh, 100px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- section header ---------- */
+  .layers-head {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin-bottom: clamp(40px, 6vh, 72px);
+  }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+  .layers-title {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 3.8vw, 46px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+  }
+  .layers-title .accent { color: var(--violet); }
+  .layers-lede {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: clamp(15px, 1.2vw, 16.5px);
+    line-height: 1.55;
+    color: var(--charcoal);
+    max-width: 620px;
+  }
+
+  /* ---------- one layer row ---------- */
+  .layer {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(20px, 3vh, 32px);
+    align-items: center;
+    padding: clamp(36px, 5vh, 64px) 0;
+    border-top: 1px solid rgba(10, 10, 10, 0.07);
+    /* per-layer reveal */
+    opacity: 1;
+    transform: none;
+    transition: opacity .7s var(--ease-quint), transform .7s var(--ease-quint);
+  }
+  .layer.is-pre {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .layer.is-pre { opacity: 1; transform: none; }
+  }
+  @media (min-width: 880px) {
+    .layer {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+      gap: clamp(36px, 4vw, 64px);
+    }
+    .layer--flip .layer-text { order: 2; }
+    .layer--flip .layer-visual { order: 1; }
+  }
+
+  /* ---------- layer text side ---------- */
+  .layer-text { max-width: 520px; }
+  .layer-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .tag-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .tag-dot--violet { background: var(--violet); box-shadow: 0 0 0 3px rgba(91, 79, 207, .15); }
+  .tag-dot--ochre  { background: #B9831B;       box-shadow: 0 0 0 3px rgba(185, 131, 27, .18); }
+  .tag-dot--amber  { background: #E2A23E;       box-shadow: 0 0 0 3px rgba(226, 162, 62, .2); }
+  .tag-code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    color: rgba(45, 49, 66, .72);
+  }
+
+  .layer-title {
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.08;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .layer-title .accent { color: var(--violet); }
+  .layer-title .accent-ochre { color: #B9831B; }
+  .line-strike {
+    position: relative;
+    color: rgba(10, 10, 10, .42);
+  }
+  .line-strike::after {
+    content: "";
+    position: absolute;
+    left: -2px; right: -2px;
+    top: 56%;
+    height: 3px;
+    background: var(--violet);
+    border-radius: 3px;
+    transform: rotate(-1.5deg);
+  }
+
+  .layer-body {
+    margin: 0 0 22px;
+    font-family: var(--font-body);
+    font-size: clamp(15px, 1.2vw, 16.5px);
+    line-height: 1.6;
+    color: var(--charcoal);
+    text-wrap: pretty;
+  }
+
+  .layer-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .layer-cmd {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink);
+    background: rgba(10, 10, 10, .05);
+    border: 1px solid rgba(10, 10, 10, .1);
+    border-radius: 6px;
+    padding: 5px 10px;
+  }
+  .layer-tagline {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: .06em;
+    color: rgba(45, 49, 66, .55);
+  }
+
+  /* =========================================================
+     VISUAL PREVIEW — dark on every layer, distinct per layer
+     ========================================================= */
+  .preview {
+    background: #14141B;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .06),
+      0 28px 60px -38px rgba(8, 8, 14, .55);
+  }
+
+  /* ---------- VALVE preview: live bars ---------- */
+  .preview--bars { padding: 0; }
+  .preview-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .03);
+  }
+  .preview-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .6);
+  }
+  .preview-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: #A99CF7;
+  }
+  .preview-body { padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 16px; }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr) 56px;
+    gap: 14px;
+    align-items: center;
+  }
+  .bar-cmd {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: #fff;
+  }
+  .bar-track {
+    position: relative;
+    height: 18px;
+  }
+  .bar-before {
+    position: absolute;
+    left: 0; top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: rgba(255, 255, 255, .25);
+  }
+  .bar-after {
+    position: absolute;
+    left: 0; top: 50%;
+    height: 8px;
+    margin-top: -4px;
+    border-radius: 2px 4px 4px 2px;
+    background: #8B7FF0;
+    transform-origin: left center;
+    animation: bar-grow .8s var(--ease-quint) both;
+  }
+  @keyframes bar-grow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bar-after { animation: none; }
+  }
+  .bar-saved {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: #A99CF7;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- METER preview: terminal ---------- */
+  .preview-chrome {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .03);
+  }
+  .chrome-dot { width: 10px; height: 10px; border-radius: 50%; opacity: .9; }
+  .chrome-dot--r { background: #ff5f57; }
+  .chrome-dot--y { background: #febc2e; }
+  .chrome-dot--g { background: #28c840; }
+  .chrome-title {
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, .4);
+  }
+  .preview-terminal {
+    padding: 16px 18px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, .82);
+  }
+  .term-line { display: block; }
+  .term-line--label { color: rgba(255, 255, 255, .6); }
+  .term-line--strong { color: #fff; font-weight: 600; }
+  .term-dim { color: rgba(139, 127, 240, .9); }
+  .term-cmd { color: #fff; }
+  .term-val { color: #fff; }
+  .term-loss { color: #E2A23E; margin-left: 8px; }
+  .term-gain { color: #A99CF7; }
+  .term-rule {
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    margin: 8px 0;
+  }
+
+  /* ---------- DRIFT preview: alert ---------- */
+  .preview--alert {
+    background: linear-gradient(180deg, #1B1820, #14141B);
+  }
+  .preview-alert-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(226, 162, 62, .08);
+  }
+  .alert-glyph {
+    color: #E2A23E;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .alert-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .alert-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, .4);
+  }
+  .preview-alert-body {
+    padding: 18px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, .8);
+  }
+  .alert-row-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .alert-arrow { color: #E2A23E; }
+  .alert-metric { color: #fff; font-weight: 600; }
+  .alert-change { color: #E2A23E; margin-left: auto; }
+  .alert-gauge {
+    position: relative;
+    height: 6px;
+    margin: 6px 0;
+  }
+  .gauge-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .1);
+  }
+  .gauge-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 100%;
+    border-radius: 3px;
+    background: #E2A23E;
+    opacity: .9;
+    transform-origin: left center;
+    animation: gauge-grow .9s var(--ease-quint) .2s both;
+  }
+  .gauge-norm {
+    position: absolute;
+    top: -3px; bottom: -3px;
+    left: 13%;
+    width: 1.5px;
+    background: rgba(255, 255, 255, .55);
+  }
+  .gauge-norm-label {
+    position: absolute;
+    top: -16px;
+    left: 13%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: .08em;
+    color: rgba(255, 255, 255, .45);
+  }
+  @keyframes gauge-grow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gauge-fill { animation: none; }
+  }
+  .alert-row-foot {
+    margin-top: 14px;
+    color: rgba(255, 255, 255, .6);
+  }
+  .alert-norm { color: rgba(255, 255, 255, .82); }
+  .alert-arrow-r { color: rgba(255, 255, 255, .4); margin: 0 8px; }
+  .alert-now { color: #E2A23E; font-weight: 700; }
+  .alert-fix {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    color: #A99CF7;
+    line-height: 1.55;
+  }
+  .alert-fix-arrow { color: #A99CF7; margin-right: 6px; }
+</style>
