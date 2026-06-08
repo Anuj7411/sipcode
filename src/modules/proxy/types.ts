@@ -30,10 +30,17 @@ export interface PreToolUseInput {
 export interface HookSpecificOutput {
   readonly hookSpecificOutput: {
     readonly hookEventName: "PreToolUse";
-    /** Always "allow" for the proxy — we never block, only rewrite. */
-    readonly permissionDecision?: "allow";
-    /** The modified tool_input that replaces the original. THIS IS THE LEVER. */
+    /**
+     * "allow" = output-shrinking rewriters (Phase A): tool still runs with rewritten input.
+     * "deny"  = re-read dedup (Phase A+1, v1.6.6+): tool is skipped and
+     *          `permissionDecisionReason` is shown to the model so it knows the
+     *          content is already in its context from an earlier turn.
+     */
+    readonly permissionDecision?: "allow" | "deny";
+    /** Used when permissionDecision="allow". */
     readonly updatedInput?: Record<string, unknown>;
+    /** Reason Claude reads when permissionDecision="deny". */
+    readonly permissionDecisionReason?: string;
     readonly additionalContext?: string;
   };
 }

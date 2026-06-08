@@ -30,6 +30,11 @@ export function runRewriterModuleUrl(): string {
   return new URL("./runRewriter.js", import.meta.url).href;
 }
 
+/** `file://` URL of the compiled `hookReadDedup.js`. Same dist layout. */
+export function hookReadDedupModuleUrl(): string {
+  return new URL("./hookReadDedup.js", import.meta.url).href;
+}
+
 /** Add (or replace) the proxy PreToolUse hook entry. Idempotent. */
 export function installProxyHook(settings: JsonObj, scriptPath: string): JsonObj {
   return upsertSipcodeHook(settings, {

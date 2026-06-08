@@ -22,6 +22,7 @@ import {
   uninstallProxyHook,
   proxyHookScriptPath,
   runRewriterModuleUrl,
+  hookReadDedupModuleUrl,
 } from "../modules/proxy/install.js";
 import { generateProxyHookScript } from "../modules/proxy/proxyHookScript.js";
 import { readReport } from "../modules/proxy/stats-store.js";
@@ -119,7 +120,10 @@ export async function runProxy(
   if (opts.install || opts.diff) {
     const nextObj = installProxyHook(parsed, scriptPath);
     const nextSettings = renderSettings(nextObj);
-    const newScript = generateProxyHookScript(runRewriterModuleUrl());
+    const newScript = generateProxyHookScript(
+      runRewriterModuleUrl(),
+      hookReadDedupModuleUrl(),
+    );
     const existingScript = await readFile(scriptPath);
     const settingsChanged = existingRaw !== nextSettings;
     const scriptChanged = existingScript !== newScript;
