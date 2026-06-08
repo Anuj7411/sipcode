@@ -172,9 +172,14 @@ program
   .command("drift")
   .description("Detect context/cost drift — flags when recent sessions get more expensive or context-bloated vs your baseline. Silent unless something regressed.")
   .option("--json", "machine-readable output")
+  .option("--no-cache", "bypass the persistent baseline cache (parses every transcript fresh)")
   .action(async (opts) => {
     const { runDriftCommand } = await import("./commands/drift.js");
-    const r = await runDriftCommand(opts);
+    // Commander maps `--no-cache` to `opts.cache: false`; translate to noCache.
+    const r = await runDriftCommand({
+      json: !!opts.json,
+      noCache: opts.cache === false,
+    });
     if (r?.exitCode) process.exit(r.exitCode);
   });
 

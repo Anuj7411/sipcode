@@ -20,7 +20,7 @@ describe("buildDriftReport", () => {
     expect(r.hasRegression).toBe(true);
     expect(r.causes.length).toBeGreaterThan(0);
     expect(r.summary).toContain("drift");
-    expect(r.schemaVersion).toBe("sipcode-drift/1");
+    expect(r.schemaVersion).toBe("sipcode-drift/2");
   });
 
   it("reports stable when latest is in range", () => {

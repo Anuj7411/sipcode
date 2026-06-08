@@ -1,13 +1,15 @@
 import type { DriftReport, DriftCause } from "./types.js";
 
-function renderCause(c: DriftCause): string {
+function renderCause(c: DriftCause, normLabel: string): string {
   const arrow = c.direction === "up" ? "▲" : "▼";
-  return [
+  const lines = [
     `  ${arrow} ${c.metric} — ${c.changeDisplay}`,
-    `      your norm: ${c.baselineDisplay}   →   this session: ${c.latestDisplay}`,
+    `      ${normLabel}: ${c.baselineDisplay}   →   this session: ${c.latestDisplay}`,
     `      ${c.meaning}`,
-    `      → Fix: ${c.fix}`,
-  ].join("\n");
+  ];
+  if (c.attribution) lines.push(`      Likely cause: ${c.attribution}`);
+  lines.push(`      → Fix: ${c.fix}`);
+  return lines.join("\n");
 }
 
 export function renderDriftTerminal(report: DriftReport): string {
@@ -17,6 +19,8 @@ export function renderDriftTerminal(report: DriftReport): string {
     return `✓ Sipcode drift: ${report.summary}`;
   }
 
+  const normLabel =
+    report.baselineScope === "project" ? "your norm for this project" : "your norm";
   const n = report.causes.length;
   const baselineN = report.baseline?.count ?? "your last few";
   const lines: string[] = [
@@ -28,9 +32,9 @@ export function renderDriftTerminal(report: DriftReport): string {
     "",
     `Signal${n === 1 ? "" : "s"} that regressed (${n}):`,
     "",
-    report.causes.map(renderCause).join("\n\n"),
+    report.causes.map((c) => renderCause(c, normLabel)).join("\n\n"),
     "",
-    `How this was measured: your latest session vs the median of your last ${baselineN} sessions.`,
+    `How this was measured: your latest session vs the median of your last ${baselineN} ${report.baselineScope === "project" ? "sessions on this project" : "sessions"}.`,
     "Conservative by design — it stays silent unless something really moved.",
     "Run `sipcode why` for a per-session forensic breakdown.",
   ];

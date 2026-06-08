@@ -9,7 +9,7 @@ import type { PricingFile } from "../../lib/pricing/load.js";
 import type { SessionMetrics } from "./types.js";
 
 export function computeSessionMetrics(
-  meta: { sessionId: string; endedAtMs: number },
+  meta: { sessionId: string; endedAtMs: number; projectHash?: string },
   session: ParsedSession,
   pricing: PricingFile,
 ): SessionMetrics {
@@ -28,5 +28,6 @@ export function computeSessionMetrics(
     cacheHitRate: cacheDenom > 0 ? t.cacheReadTokens / cacheDenom : 0,
     duplicateReadTokens: dup.duplicateReadTokenCost,
     outputRatio: t.outputRatio,
+    ...(meta.projectHash !== undefined ? { projectHash: meta.projectHash } : {}),
   };
 }
