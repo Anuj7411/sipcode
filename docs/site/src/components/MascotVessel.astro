@@ -24,10 +24,11 @@ const GULP = 8000;
       &minus;2,400 tok
     </a>
 
-    <!-- Speech bubble -->
+    <!-- Speech bubble. Initial text = stressed (GULP) so it matches the
+         initial face; JS will swap to happy text as the vessel drains. -->
     <div class="speech-wrap">
       <div class="vc-speech" role="status" aria-live="polite" data-speech>
-        Clean context. Sharp answers.
+        Bloated. I'm losing the thread of your task.
         <span class="speech-tail" aria-hidden="true"></span>
       </div>
     </div>
@@ -51,13 +52,15 @@ const GULP = 8000;
       <!-- Shadow -->
       <ellipse cx="50" cy="92" rx="30" ry="5" fill="rgba(45,49,66,.14)" />
 
-      <!-- Liquid (translated by JS based on fill) -->
+      <!-- Liquid (translated by JS based on fill). Initial inline state =
+           GULP (translateY 7px, dulled fill) so the first paint matches the
+           script's starting state and there's no snap-in flash. -->
       <g clip-path="url(#vessel-clip-main)">
-        <g class="liquid-wrap" data-liquid>
+        <g class="liquid-wrap" data-liquid style="transform:translateY(7px)">
           <path
             class="sc-liquid liquid-body"
             data-liquid-body
-            fill={TOKENS.violet}
+            fill="#9a93b8"
             d="M-5 15 Q50 19.5 105 15 L105 112 L-5 112 Z"
           />
           <path
@@ -67,8 +70,8 @@ const GULP = 8000;
         </g>
       </g>
 
-      <!-- Drips: visible only when stressed -->
-      <g class="vc-drip drips" data-drips style="display:none">
+      <!-- Drips: visible in initial GULP state, hidden by JS once we drain -->
+      <g class="vc-drip drips" data-drips>
         <path d="M22 30 q-3 5 0 9 q3 -4 0 -9 Z" fill={TOKENS.violet} data-drip />
         <path d="M80 33 q-3 5 0 9 q3 -4 0 -9 Z" fill={TOKENS.violet} data-drip />
       </g>
@@ -76,11 +79,14 @@ const GULP = 8000;
       <!-- Vessel outline -->
       <path d={VESSEL_PATH} fill="none" stroke={TOKENS.ink} stroke-width="6.4" stroke-linejoin="round" />
 
-      <!-- Face: all 3 variants pre-rendered, toggled by JS -->
-      <g class="face-wrap" data-face>
+      <!-- Face: all 3 variants pre-rendered, toggled by JS. Initial inline
+           transform = GULP state (translated into vessel, scaled down) so the
+           first paint matches; otherwise the face flashes at SVG origin
+           before JS hydrates. -->
+      <g class="face-wrap" data-face style="transform:translate(50px,23.5px) scale(0.4)">
 
-        <!-- HAPPY face -->
-        <g class="face face--happy" data-face-variant="happy">
+        <!-- HAPPY face (hidden initially; we start in stressed GULP state) -->
+        <g class="face face--happy" data-face-variant="happy" style="display:none">
           <path d="M-7 7 Q0 16 7 7" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
           <path d="M-16 0 Q-11 -7 -6 0" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
           <path d="M6 0 Q11 -7 16 0" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
@@ -107,8 +113,8 @@ const GULP = 8000;
           <path d="M-6 9 Q0 11 6 9" fill="none" stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" />
         </g>
 
-        <!-- STRESSED face -->
-        <g class="face face--stressed" data-face-variant="stressed" style="display:none">
+        <!-- STRESSED face (visible initially — matches GULP starting state) -->
+        <g class="face face--stressed" data-face-variant="stressed">
           <g stroke={TOKENS.ink} stroke-width="3" stroke-linecap="round" fill="none">
             <path d="M-16 -11 L-7 -8.5" />
             <path d="M16 -11 L7 -8.5" />
