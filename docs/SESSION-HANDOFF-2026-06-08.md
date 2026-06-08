@@ -1,6 +1,8 @@
 # Session handoff — 2026-06-08
 
 > **For the next Claude session:** read this top to bottom before doing anything else. It is the single source of truth for where we left off. Do not skim. The prior session was almost entirely about building the landing page at `docs/site/`. The project itself (Sipcode, the published npm package) is at v1.6.4 and unchanged this session.
+>
+> **Also read [`INNOVATION-LOG-2026-06-08.md`](INNOVATION-LOG-2026-06-08.md)** — it lists every product idea we evaluated across deep-research sessions (shipped, deferred, dropped-with-reason, false-paths). When the user asks "what should we build next?", that doc has the menu.
 
 ---
 
