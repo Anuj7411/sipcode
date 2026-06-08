@@ -5,7 +5,9 @@ import { defineConfig } from 'astro/config';
 // (Previously used @astrojs/react for the MascotVessel island. Ported to
 // vanilla TS in src/components/MascotVessel.astro to drop ~135 KB of JS.)
 export default defineConfig({
-  // GitHub Pages target: Anuj7411.github.io/sipcode
-  // We keep site config flexible so dev works without a base path
-  // and prod can set `base: '/sipcode'` later when we deploy.
+  // GitHub Pages project site: https://anuj7411.github.io/sipcode/
+  // `base` makes internal asset paths resolve under /sipcode/.
+  // Reference local assets via import.meta.env.BASE_URL (has trailing slash).
+  site: 'https://anuj7411.github.io',
+  base: '/sipcode',
 });

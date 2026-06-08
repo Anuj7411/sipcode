@@ -7,7 +7,7 @@ const size = 26 * scale;
 const f = 0.4;
 const drop = 70 * (1 - f);
 ---
-<a href="/" aria-label="Sipcode — home" style={`display:inline-flex;align-items:center;gap:${9 * scale}px`}>
+<a href={`${import.meta.env.BASE_URL}/`} aria-label="Sipcode — home" style={`display:inline-flex;align-items:center;gap:${9 * scale}px`}>
   <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-hidden="true" style="overflow:visible">
     <defs>
       <clipPath id="logo-clip"><path d={VESSEL_PATH} /></clipPath>
