@@ -7,12 +7,13 @@
  */
 import type { RewriterFn } from "./types.js";
 import { rewriteGitStatus, rewriteGitLog, rewriteGitDiff } from "./rewriters/git.js";
-import { rewriteNpmLs } from "./rewriters/npm.js";
+import { rewriteNpmLs, rewriteNpmInstall, rewriteNpmView } from "./rewriters/npm.js";
 import { rewriteCargoBuild } from "./rewriters/cargo.js";
 import { rewriteLs } from "./rewriters/ls.js";
 import { rewriteFind } from "./rewriters/find.js";
 import { rewriteGrep } from "./rewriters/grep.js";
 import { rewriteCat } from "./rewriters/cat.js";
+import { rewriteTsc } from "./rewriters/tsc.js";
 import { rewriteNativeGrep } from "./rewriters/nativeGrep.js";
 import { rewriteNativeGlob } from "./rewriters/nativeGlob.js";
 
@@ -22,7 +23,10 @@ const BASH_REWRITERS: readonly RewriterFn[] = [
   rewriteGitLog,
   rewriteGitDiff,
   rewriteNpmLs,
+  rewriteNpmInstall,
+  rewriteNpmView,
   rewriteCargoBuild,
+  rewriteTsc,
   rewriteLs,
   rewriteFind,
   rewriteGrep,

@@ -47,6 +47,9 @@ export interface BenchmarkOptions {
   corpus?: string;
   cwd?: string;
   vsRtk?: boolean;
+  live?: boolean;
+  model?: string;
+  maxBudgetUsd?: string;
 }
 
 /** BT011-BT020 — the Hardest Tasks subset (waste-maximizing). */
@@ -124,6 +127,79 @@ export async function runBenchmark(
   if (tasks.length === 0) {
     stderr(MESSAGES.benchmarkEmptyCorpus(corpusDir));
     return { exitCode: 1 };
+  }
+
+  // --vs-rtk --live: REAL execution. Spawn `claude --print` once per task per
+  // condition (off, on), capture reported usage, persist + render measured
+  // savings. Costs real Anthropic credit; opt-in only.
+  if (opts.vsRtk && opts.live) {
+    const { runOneLive, aggregate, renderLiveTable, realLiveIO, defaultResultsPath } =
+      await import("../modules/benchmark/liveRunner.js");
+    const { withSipcodeStripped } = await import(
+      "../modules/benchmark/sipcodeIsolation.js"
+    );
+    const { homedir } = await import("node:os");
+    const resultsPath = defaultResultsPath(homedir());
+    const maxBudgetUsd = opts.maxBudgetUsd ? Number(opts.maxBudgetUsd) : 1.0;
+
+    stderr(
+      `Running ${tasks.length} task(s) live (off + on per task). This will spend Anthropic credit. Results persist at ${resultsPath}.\n`,
+    );
+    stderr(
+      `  off  = same user settings as on, but with the Sipcode hook entry temporarily stripped (claude-mem and other hooks stay).\n`,
+    );
+    stderr(`  on   = your live settings unchanged. Hook fires.\n`);
+
+    for (const task of tasks) {
+      let prompt: string;
+      const promptPath = path.join(task.absPath, "prompt.md");
+      const repoDir = path.join(task.absPath, "repo");
+      try {
+        prompt = readTranscript(promptPath);
+      } catch {
+        stderr(`! ${task.id}: prompt unreadable, skipping\n`);
+        continue;
+      }
+      for (const condition of ["off", "on"] as const) {
+        stderr(`  ${task.id} (${condition})... `);
+        const runFn = async () =>
+          runOneLive(
+            {
+              taskId: task.id,
+              prompt,
+              repoDir,
+              condition,
+              opts: {
+                ...(opts.model ? { model: opts.model } : {}),
+                maxBudgetUsd,
+              },
+            },
+            resultsPath,
+            realLiveIO,
+          );
+        const row =
+          condition === "off"
+            ? await withSipcodeStripped(homedir(), runFn)
+            : await runFn();
+        if (row.exitCode !== 0 && row.totalTokens === 0) {
+          stderr(`exit ${row.exitCode} (no work measured)\n`);
+        } else {
+          const suffix = row.exitCode !== 0 ? " (post-task hook exit; usage still real)" : "";
+          stderr(
+            `${row.totalTokens.toLocaleString("en-US")} tokens, $${row.costUsd.toFixed(4)}${suffix}\n`,
+          );
+        }
+      }
+    }
+
+    const allRows = await realLiveIO.readResults(resultsPath);
+    const aggregates = aggregate(allRows);
+    if (opts.json) {
+      stdout(JSON.stringify({ schemaVersion: "sipcode-benchmark-live/1", aggregates }, null, 2));
+    } else {
+      stdout(renderLiveTable(aggregates));
+    }
+    return { exitCode: 0 };
   }
 
   // --vs-rtk: heuristic proxy preview. Replay the pure rewriters over each

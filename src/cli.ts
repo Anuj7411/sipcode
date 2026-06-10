@@ -194,6 +194,9 @@ program
   .option("--json", "machine-readable output")
   .option("--corpus <dir>", "override the corpus directory (default: <repo>/benchmark/corpus)")
   .option("--vs-rtk", "heuristic proxy preview: replay rewriters over corpus tool calls (no re-execution)")
+  .option("--live", "with --vs-rtk: actually spawn `claude --print` twice per task (off vs on) and measure real token usage (opt-in, costs real API credit)")
+  .option("--model <name>", "with --live: pin the model the runner asks claude to use")
+  .option("--max-budget-usd <amount>", "with --live: safety cap per spawn (default 1.00)")
   .action(async (opts) => {
     const { runBenchmark } = await import("./commands/benchmark.js");
     const r = await runBenchmark(opts);

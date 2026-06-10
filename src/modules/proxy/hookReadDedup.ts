@@ -87,10 +87,20 @@ export async function hookReadDedup(
     if (input.tool_name !== "Read") return EMPTY;
     const filePath = input.tool_input.file_path;
     if (typeof filePath !== "string" || filePath.length === 0) return EMPTY;
-    if (!input.session_id) return EMPTY;
+
+    // session_id is empty in `claude --print --no-session-persistence` runs
+    // (e.g. the benchmark live runner). Fall back to a per-process session
+    // key keyed on cwd so re-reads inside the same spawn still dedup.
+    // Cache files keyed by an ephemeral session live and die with the spawn.
+    const sessionKey =
+      input.session_id && input.session_id.length > 0
+        ? input.session_id
+        : `pid-${process.pid}-${(input.cwd ?? "no-cwd")
+            .replace(/[^a-zA-Z0-9_-]/g, "_")
+            .slice(-40)}`;
 
     const current = await io.hashFile(filePath);
-    const cachePath = sessionCachePath(homeDir, input.session_id);
+    const cachePath = sessionCachePath(homeDir, sessionKey);
     const cache = await loadReadCache(cachePath, io);
     const cached = cache.get(filePath);
 

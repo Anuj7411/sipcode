@@ -82,10 +82,22 @@ describe("hookReadDedup — passthrough cases", () => {
     expect(r.hookOutput).toBeNull();
   });
 
-  it("returns EMPTY when session_id is missing", async () => {
-    const io = makeIO({});
-    const r = await hookReadDedup(input({ session_id: "" }), HOME, io);
-    expect(r.hookOutput).toBeNull();
+  it("uses a pid+cwd fallback session key when session_id is empty (covers claude --print --no-session-persistence)", async () => {
+    const io = makeIO({
+      fileShas: { "/proj/auth.ts": { sha256: "ABC", mtimeMs: 100, sizeBytes: 4000 } },
+    });
+    const r = await hookReadDedup(
+      input({ session_id: "", cwd: "/some/project" }),
+      HOME,
+      io,
+    );
+    // First read with empty session_id should still record (not return EMPTY).
+    expect(io.writes.length).toBe(1);
+    const written = JSON.parse(io.writes[0]!.content.trim());
+    expect(written.filePath).toBe("/proj/auth.ts");
+    // Cache file path should reflect the fallback (not the empty string).
+    expect(io.writes[0]!.path).toContain("pid-");
+    expect(r.hookOutput).toBeNull(); // first read = passthrough
   });
 });
 

@@ -28,15 +28,43 @@ export interface VsRtkRow {
   readonly estimate: ProxyEstimate;
 }
 
-/** Replay the rewriter registry over a transcript's tool calls. Pure. */
+/**
+ * Per-re-read estimated tokens. Conservative: a typical source file in the
+ * corpus is ~6-15 KB → ~1500-3750 tokens. We credit 2000 per dedup. Matches
+ * the savedTokensEstimate floor used by other rewriters so the preview stays
+ * internally consistent.
+ */
+const DEDUP_TOKENS_PER_REREAD = 2000;
+
+/** Replay the rewriter registry over a transcript's tool calls. Pure.
+ *
+ * Also counts B5 dedup credit: when the same `Read(file_path)` appears twice
+ * or more in the same transcript, each subsequent re-read counts as a
+ * dedup-saved 2000 tokens. The heuristic without this was undercounting the
+ * proxy's biggest single feature (B5, shipped v1.6.6).
+ */
 export function estimateProxyOverToolCalls(
   calls: ReadonlyArray<{ readonly name: string; readonly input: unknown }>,
 ): ProxyEstimate {
   let toolCalls = 0;
   let rewrites = 0;
   let estSavedTokens = 0;
+  const seenReadFiles = new Set<string>();
   for (const c of calls) {
     toolCalls++;
+    // B5 dedup credit (pure detection: file_path seen before in this transcript).
+    if (c.name === "Read" && typeof c.input === "object" && c.input !== null) {
+      const fp = (c.input as { file_path?: unknown }).file_path;
+      if (typeof fp === "string" && fp.length > 0) {
+        if (seenReadFiles.has(fp)) {
+          rewrites++;
+          estSavedTokens += DEDUP_TOKENS_PER_REREAD;
+        } else {
+          seenReadFiles.add(fp);
+        }
+        continue;
+      }
+    }
     const fn = resolveRewriter(c.name);
     if (!fn) continue;
     if (typeof c.input !== "object" || c.input === null) continue;
