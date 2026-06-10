@@ -4,9 +4,11 @@
 
 **Sip your tokens — don't gulp them.** Keep Claude Code's context clean: fewer tokens spent, sharper answers, and the savings measured so you can trust them.
 
+### [**Visit the site →**](https://anuj7411.github.io/sipcode/) · [npm](https://www.npmjs.com/package/sipcode) · [benchmark methodology](benchmark/METHODOLOGY.md)
+
 [![npm version](https://img.shields.io/npm/v/sipcode.svg?color=5B4FCF&label=npm)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0A0A0A.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-996%20passing-5B4FCF)](#)
+[![Tests](https://img.shields.io/badge/tests-1104%20passing-5B4FCF)](#)
 [![Benchmark](https://img.shields.io/badge/corpus%20median-62.6%25-5B4FCF)](benchmark/METHODOLOGY.md)
 
 </div>
