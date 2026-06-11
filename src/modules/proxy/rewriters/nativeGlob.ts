@@ -17,5 +17,7 @@ export const rewriteNativeGlob: RewriterFn = (input) => {
     updatedInput: { ...input, head_limit: HEAD_LIMIT },
     savedTokensEstimate: 1500,
     rewriterName: "native-glob",
+    integrityScore: 0.75,
+    integrityNote: "capped to 100 matches; most globs return well under that",
   };
 };

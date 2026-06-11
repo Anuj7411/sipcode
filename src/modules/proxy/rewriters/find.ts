@@ -19,5 +19,7 @@ export const rewriteFind: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 2500,
     rewriterName: "find",
+    integrityScore: 0.5,
+    integrityNote: "kept first 100 entries via head pipe; tail entries dropped",
   };
 };

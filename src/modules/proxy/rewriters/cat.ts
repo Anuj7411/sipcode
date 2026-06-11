@@ -42,5 +42,7 @@ export const rewriteCat: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 2000,
     rewriterName: "cat",
+    integrityScore: 0.55,
+    integrityNote: "head/tail elide for >300-line files; small files unchanged",
   };
 };

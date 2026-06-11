@@ -124,6 +124,7 @@ export async function hookReadDedup(
           toolName: "Read",
           rewriterName: "dedup-read",
           savedTokensEstimate: decision.savedTokensEstimate,
+          integrityScore: 0.95,
         },
       };
     }

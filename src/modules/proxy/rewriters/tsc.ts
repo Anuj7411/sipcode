@@ -34,5 +34,7 @@ export const rewriteTsc: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 3000,
     rewriterName: "tsc",
+    integrityScore: 0.55,
+    integrityNote: "kept first 100 lines of compile output; later errors may be hidden",
   };
 };

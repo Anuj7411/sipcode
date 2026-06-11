@@ -29,6 +29,8 @@ export const rewriteGrep: RewriterFn = (input) => {
       updatedInput: { ...input, command: updated },
       savedTokensEstimate: 4000,
       rewriterName: "grep",
+      integrityScore: 0.8,
+      integrityNote: "-c counts matches per file; every file with a match is still listed",
     };
   }
 
@@ -38,6 +40,8 @@ export const rewriteGrep: RewriterFn = (input) => {
       updatedInput: { ...input, command: `${cmd} | head -${HEAD_LIMIT}` },
       savedTokensEstimate: 1500,
       rewriterName: "grep",
+      integrityScore: 0.6,
+      integrityNote: "kept first 50 matches via head pipe; tail matches dropped",
     };
   }
   return null;

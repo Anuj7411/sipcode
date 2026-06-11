@@ -112,5 +112,6 @@ export function toRewriterStub(d: Extract<DedupDecision, { kind: "dedup" }>): Re
     updatedInput: {},
     savedTokensEstimate: d.savedTokensEstimate,
     rewriterName: d.rewriterName,
+    integrityScore: 0.95, // dedup defers, never drops content
   };
 }

@@ -40,6 +40,7 @@ export function runRewriter(
         toolName: input.tool_name,
         rewriterName: result.rewriterName,
         savedTokensEstimate: result.savedTokensEstimate,
+        integrityScore: result.integrityScore,
       },
     };
   } catch {

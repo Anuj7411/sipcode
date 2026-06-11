@@ -66,3 +66,89 @@ describe("stats-store", () => {
     expect(report.perRewriter).toEqual({});
   });
 });
+
+describe("stats-store — B4 integrity aggregation", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "sipcode-b4-"));
+  });
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("computes per-rewriter avgIntegrityScore from invocations that include it", async () => {
+    await writeStats(dir, {
+      timestamp: "t",
+      toolName: "Bash",
+      rewriterName: "git-log",
+      savedTokensEstimate: 3000,
+      integrityScore: 0.3,
+    });
+    await writeStats(dir, {
+      timestamp: "t",
+      toolName: "Bash",
+      rewriterName: "git-log",
+      savedTokensEstimate: 3000,
+      integrityScore: 0.5,
+    });
+    const report = await readReport(dir);
+    expect(report.perRewriter["git-log"]?.avgIntegrityScore).toBeCloseTo(0.4, 5);
+  });
+
+  it("computes weightedAvgIntegrityScore across all rewriters by invocation count", async () => {
+    // 1 invocation of dedup-read at 0.95, 3 of git-log at 0.3
+    await writeStats(dir, {
+      timestamp: "t",
+      toolName: "Read",
+      rewriterName: "dedup-read",
+      savedTokensEstimate: 2000,
+      integrityScore: 0.95,
+    });
+    for (let i = 0; i < 3; i++) {
+      await writeStats(dir, {
+        timestamp: "t",
+        toolName: "Bash",
+        rewriterName: "git-log",
+        savedTokensEstimate: 3000,
+        integrityScore: 0.3,
+      });
+    }
+    const report = await readReport(dir);
+    // Weighted: (0.95 * 1 + 0.3 * 3) / 4 = 0.4625
+    expect(report.weightedAvgIntegrityScore).toBeCloseTo(0.4625, 4);
+  });
+
+  it("omits integrity fields entirely when no entry includes a score (v1.6.7-and-older backward compat)", async () => {
+    await writeStats(dir, {
+      timestamp: "t",
+      toolName: "Bash",
+      rewriterName: "git-log",
+      savedTokensEstimate: 3000,
+    });
+    const report = await readReport(dir);
+    expect(report.weightedAvgIntegrityScore).toBeUndefined();
+    expect(report.perRewriter["git-log"]?.avgIntegrityScore).toBeUndefined();
+  });
+
+  it("handles a mix of scored and un-scored entries for the same rewriter (avg over scored only)", async () => {
+    // 2 scored at 0.6, 1 un-scored — avg = 0.6
+    for (let i = 0; i < 2; i++) {
+      await writeStats(dir, {
+        timestamp: "t",
+        toolName: "Bash",
+        rewriterName: "ls",
+        savedTokensEstimate: 100,
+        integrityScore: 0.6,
+      });
+    }
+    await writeStats(dir, {
+      timestamp: "t",
+      toolName: "Bash",
+      rewriterName: "ls",
+      savedTokensEstimate: 100,
+    });
+    const report = await readReport(dir);
+    expect(report.perRewriter["ls"]?.invocations).toBe(3);
+    expect(report.perRewriter["ls"]?.avgIntegrityScore).toBeCloseTo(0.6, 5);
+  });
+});

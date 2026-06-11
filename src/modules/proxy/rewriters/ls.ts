@@ -21,5 +21,7 @@ export const rewriteLs: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 1500,
     rewriterName: "ls",
+    integrityScore: 0.6,
+    integrityNote: "kept first 50 entries via head pipe; tail entries dropped",
   };
 };

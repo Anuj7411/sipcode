@@ -25,6 +25,8 @@ export const rewriteNpmLs: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 5000,
     rewriterName: "npm-ls",
+    integrityScore: 0.5,
+    integrityNote: "--depth=0 drops transitive deps; direct deps preserved",
   };
 };
 
@@ -62,6 +64,8 @@ export const rewriteNpmInstall: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 3000,
     rewriterName: "npm-install",
+    integrityScore: 0.95,
+    integrityNote: "drops audit/fund/progress noise; install outcome unchanged",
   };
 };
 
@@ -81,5 +85,7 @@ export const rewriteNpmView: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 2500,
     rewriterName: "npm-view",
+    integrityScore: 0.55,
+    integrityNote: "head -80 drops contributors/keywords lists; core fields preserved",
   };
 };

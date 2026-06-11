@@ -18,5 +18,7 @@ export const rewriteNativeGrep: RewriterFn = (input) => {
     updatedInput: { ...input, head_limit: HEAD_LIMIT },
     savedTokensEstimate: 2000,
     rewriterName: "native-grep",
+    integrityScore: 0.65,
+    integrityNote: "capped to 50 matches; most queries return well under that",
   };
 };

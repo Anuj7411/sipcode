@@ -27,6 +27,8 @@ export const rewriteGitStatus: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 800,
     rewriterName: "git-status",
+    integrityScore: 0.8,
+    integrityNote: "--short keeps every file, just less verbose",
   };
 };
 
@@ -46,6 +48,8 @@ export const rewriteGitLog: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 3000,
     rewriterName: "git-log",
+    integrityScore: 0.3,
+    integrityNote: "capped to 20 most recent commits; older history dropped",
   };
 };
 
@@ -73,5 +77,7 @@ export const rewriteGitDiff: RewriterFn = (input) => {
     updatedInput: { ...input, command: `${cmd} | head -${DIFF_HEAD}` },
     savedTokensEstimate: 3500,
     rewriterName: "git-diff",
+    integrityScore: 0.5,
+    integrityNote: "kept first ~150 lines of diff; later hunks may be elided",
   };
 };

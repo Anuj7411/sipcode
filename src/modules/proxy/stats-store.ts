@@ -53,6 +53,7 @@ export async function readReport(dir: string): Promise<ProxyReport> {
 
   let total = 0;
   const perRewriter: ProxyReport["perRewriter"] = {};
+  const integritySums: Record<string, { sum: number; count: number }> = {};
   for (const e of entries) {
     total += e.savedTokensEstimate;
     const pr = (perRewriter[e.rewriterName] ??= {
@@ -61,13 +62,32 @@ export async function readReport(dir: string): Promise<ProxyReport> {
     });
     pr.invocations++;
     pr.estimatedSavedTokens += e.savedTokensEstimate;
+    if (typeof e.integrityScore === "number") {
+      const is = (integritySums[e.rewriterName] ??= { sum: 0, count: 0 });
+      is.sum += e.integrityScore;
+      is.count++;
+    }
   }
+
+  let globalIntegritySum = 0;
+  let globalIntegrityCount = 0;
+  for (const name of Object.keys(perRewriter)) {
+    const is = integritySums[name];
+    if (is && is.count > 0) {
+      perRewriter[name]!.avgIntegrityScore = is.sum / is.count;
+      globalIntegritySum += is.sum;
+      globalIntegrityCount += is.count;
+    }
+  }
+  const weightedAvgIntegrityScore =
+    globalIntegrityCount > 0 ? globalIntegritySum / globalIntegrityCount : undefined;
 
   return {
     schemaVersion: "sipcode-proxy/2",
     totalInvocations: entries.length,
     estimatedSavedTokens: total,
     perRewriter,
+    weightedAvgIntegrityScore,
     note: "Per-rewriter savings are heuristic estimates, not measured per-invocation. For verified savings, run `npx sipcode benchmark`.",
   };
 }

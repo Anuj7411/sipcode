@@ -18,5 +18,7 @@ export const rewriteCargoBuild: RewriterFn = (input) => {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 2500,
     rewriterName: "cargo",
+    integrityScore: 0.85,
+    integrityNote: "added --quiet; suppresses compile-progress noise, keeps errors",
   };
 };
