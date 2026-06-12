@@ -129,6 +129,19 @@ program
   });
 
 program
+  .command("trend")
+  .description("Track ONE metric over time (output ratio, cost/session, recoverable tokens) — answers 'is this getting better?'.")
+  .option("--metric <name>", "output-ratio | cost-per-session | recoverable-tokens-per-session", "output-ratio")
+  .option("--since <window>", "time window: NNd | NNw | NNm (e.g. 30d, 4w, 3m)", "30d")
+  .option("--json", "machine-readable output")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .action(async (opts) => {
+    const { runTrend } = await import("./commands/trend.js");
+    const r = await runTrend(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("score")
   .description("Audit how agent-friendly this codebase is (0-100, tiered badge).")
   .option("--json", "machine-readable output")
