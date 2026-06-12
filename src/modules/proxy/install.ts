@@ -35,6 +35,11 @@ export function hookReadDedupModuleUrl(): string {
   return new URL("./hookReadDedup.js", import.meta.url).href;
 }
 
+/** `file://` URL of the compiled `hookAstRead.js`. v1.7.0+. */
+export function hookAstReadModuleUrl(): string {
+  return new URL("./hookAstRead.js", import.meta.url).href;
+}
+
 /** Add (or replace) the proxy PreToolUse hook entry. Idempotent. */
 export function installProxyHook(settings: JsonObj, scriptPath: string): JsonObj {
   return upsertSipcodeHook(settings, {
