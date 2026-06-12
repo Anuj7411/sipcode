@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 /**
  * Extract top-level symbols from a TypeScript/JavaScript file via tree-sitter.
  *
@@ -58,10 +60,10 @@ let cached: ParserBundle | null | undefined; // undefined = not tried, null = tr
 function loadParser(): ParserBundle | null {
   if (cached !== undefined) return cached;
   try {
-    // require() inside this function so import-time failures don't crash
-    // the entire proxy hook script when tree-sitter isn't loadable.
-    const createRequire = require("node:module").createRequire;
-    const localRequire = createRequire(__filename ?? import.meta.url);
+    // createRequire from this module's URL so we resolve tree-sitter
+    // against the install where dist/modules/proxy/ast/ts-symbols.js lives
+    // (the user's node_modules), not the spawning process's cwd.
+    const localRequire = createRequire(import.meta.url);
     const Parser = localRequire("tree-sitter") as ParserBundle["Parser"];
     const TS = localRequire("tree-sitter-typescript") as {
       typescript: unknown;

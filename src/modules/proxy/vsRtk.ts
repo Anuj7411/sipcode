@@ -30,18 +30,38 @@ export interface VsRtkRow {
 
 /**
  * Per-re-read estimated tokens. Conservative: a typical source file in the
- * corpus is ~6-15 KB → ~1500-3750 tokens. We credit 2000 per dedup. Matches
- * the savedTokensEstimate floor used by other rewriters so the preview stays
- * internally consistent.
+ * corpus is ~6-15 KB → ~1500-3750 tokens. We credit 2000 per dedup.
  */
 const DEDUP_TOKENS_PER_REREAD = 2000;
 
+/**
+ * Per-AST-trim estimated tokens. A first read of a TS/JS/Python file that
+ * comes AFTER a Grep is the textbook B3 scenario: AST extracts the symbol
+ * matching the grep pattern, returns just that symbol's line range + buffer.
+ * Conservative: typical file is ~3-8 KB, symbol slice ~500-1500 tokens kept,
+ * so saving ~2500-3500 tokens. We credit 3000.
+ */
+const AST_TRIM_TOKENS_PER_HIT = 3000;
+
+/** File extensions where AST trim can fire. */
+const AST_ELIGIBLE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|pyi?)$/i;
+
 /** Replay the rewriter registry over a transcript's tool calls. Pure.
  *
- * Also counts B5 dedup credit: when the same `Read(file_path)` appears twice
- * or more in the same transcript, each subsequent re-read counts as a
- * dedup-saved 2000 tokens. The heuristic without this was undercounting the
- * proxy's biggest single feature (B5, shipped v1.6.6).
+ * Credits three classes of savings:
+ *   - Registry rewriters (git/npm/grep/cat/etc.) — actual savedTokensEstimate
+ *   - B5 dedup (re-read of same file_path) — DEDUP_TOKENS_PER_REREAD
+ *   - B3 AST trim (first read of an AST-eligible file after any prior Grep) —
+ *     AST_TRIM_TOKENS_PER_HIT
+ *
+ * The B3 credit is conservative: we only count a Read as AST-eligible if
+ * (a) it's the FIRST read of that file (so we don't double-count with dedup),
+ * (b) the file extension is TS/JS/Python, and (c) any Grep has fired earlier
+ * in the same transcript (the signal cache would have a pattern to match).
+ * We do NOT verify that the grep pattern actually matches a symbol in the
+ * file — that requires reading the file, which violates the pure-walker
+ * contract this function maintains. The result is a credible upper bound,
+ * not a measured number, which is the contract `--vs-rtk` advertises.
  */
 export function estimateProxyOverToolCalls(
   calls: ReadonlyArray<{ readonly name: string; readonly input: unknown }>,
@@ -50,9 +70,23 @@ export function estimateProxyOverToolCalls(
   let rewrites = 0;
   let estSavedTokens = 0;
   const seenReadFiles = new Set<string>();
+  let anyGrepSeen = false;
+
   for (const c of calls) {
     toolCalls++;
-    // B5 dedup credit (pure detection: file_path seen before in this transcript).
+
+    // Track grep activity for B3 credit eligibility.
+    if (c.name === "Grep" && typeof c.input === "object" && c.input !== null) {
+      const pat = (c.input as { pattern?: unknown }).pattern;
+      if (typeof pat === "string" && pat.length > 0) anyGrepSeen = true;
+    } else if (c.name === "Bash" && typeof c.input === "object" && c.input !== null) {
+      const cmd = (c.input as { command?: unknown }).command;
+      if (typeof cmd === "string" && /^\s*(?:grep|rg|ag)\b/.test(cmd)) {
+        anyGrepSeen = true;
+      }
+    }
+
+    // Read tool: track first-read for B3 credit, re-reads for B5 credit.
     if (c.name === "Read" && typeof c.input === "object" && c.input !== null) {
       const fp = (c.input as { file_path?: unknown }).file_path;
       if (typeof fp === "string" && fp.length > 0) {
@@ -61,6 +95,11 @@ export function estimateProxyOverToolCalls(
           estSavedTokens += DEDUP_TOKENS_PER_REREAD;
         } else {
           seenReadFiles.add(fp);
+          // B3 AST trim credit (first read of an AST-eligible file post-grep).
+          if (anyGrepSeen && AST_ELIGIBLE_RE.test(fp)) {
+            rewrites++;
+            estSavedTokens += AST_TRIM_TOKENS_PER_HIT;
+          }
         }
         continue;
       }

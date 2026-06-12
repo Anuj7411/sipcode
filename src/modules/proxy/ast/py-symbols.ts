@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 /**
  * Extract top-level Python symbols via tree-sitter-python.
  *
@@ -31,8 +33,7 @@ let cached: ParserBundle | null | undefined;
 function loadParser(): ParserBundle | null {
   if (cached !== undefined) return cached;
   try {
-    const createRequire = require("node:module").createRequire;
-    const localRequire = createRequire(__filename ?? import.meta.url);
+    const localRequire = createRequire(import.meta.url);
     const Parser = localRequire("tree-sitter") as ParserBundle["Parser"];
     const Py = localRequire("tree-sitter-python") as unknown;
     cached = { Parser, langPy: Py };
