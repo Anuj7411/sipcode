@@ -199,19 +199,20 @@ describe("release smoke — sipcode-mcp binary [THE gate for MCP bugs]", () => {
       const r = await mcpHandshake(sipcodeMcpJs);
       expect(r.startupLog).toContain("connected");
       expect(r.startupLog).toContain(`v${EXPECTED_VERSION}`);
-      expect(r.startupLog).toContain("13 tools");
+      expect(r.startupLog).toContain("15 tools");
     },
     20_000,
   );
 
   it(
-    "registers exactly the 13 documented MCP tools",
+    "registers exactly the 15 documented MCP tools",
     async () => {
       const r = await mcpHandshake(sipcodeMcpJs);
       expect(r.toolNames.sort()).toEqual(
         [
           "audit_latest_session",
           "estimate_task_cost",
+          "forecast_monthly_spend",
           "get_agent_score",
           "get_drift_report",
           "get_project_manifest",
@@ -219,6 +220,7 @@ describe("release smoke — sipcode-mcp binary [THE gate for MCP bugs]", () => {
           "get_proxy_status",
           "get_session_stats",
           "get_sipcode_info",
+          "get_today_summary",
           "install_proxy",
           "list_recent_sessions",
           "uninstall_proxy",

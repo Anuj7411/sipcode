@@ -138,7 +138,7 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.serverVersion?.startsWith("1.")).toBe(true);
     });
 
-    it("registers exactly the thirteen documented tools", () => {
+    it("registers exactly the fifteen documented tools", () => {
       expect(result.tools).toBeDefined();
       expect(result.tools).toContain("get_sipcode_info");
       expect(result.tools).toContain("list_recent_sessions");
@@ -153,7 +153,9 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.tools).toContain("uninstall_proxy");
       expect(result.tools).toContain("get_proxy_status");
       expect(result.tools).toContain("get_drift_report");
-      expect(result.tools).toHaveLength(13);
+      expect(result.tools).toContain("get_today_summary");
+      expect(result.tools).toContain("forecast_monthly_spend");
+      expect(result.tools).toHaveLength(15);
     });
   },
 );

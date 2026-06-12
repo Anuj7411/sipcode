@@ -349,6 +349,30 @@ async function toolGetDriftReport(): Promise<CallToolResult> {
   return ok(buf.join("\n"));
 }
 
+async function toolGetTodaySummary(): Promise<CallToolResult> {
+  const { runTodayCmd } = await import("../commands/today.js");
+  const buf: string[] = [];
+  const errs: string[] = [];
+  const r = await runTodayCmd(
+    { json: true },
+    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s) },
+  );
+  if (r.exitCode !== 0) return fail(errs.join("\n") || "today failed");
+  return ok(buf.join("\n"));
+}
+
+async function toolForecastMonthlySpend(): Promise<CallToolResult> {
+  const { runForecastCmd } = await import("../commands/forecast.js");
+  const buf: string[] = [];
+  const errs: string[] = [];
+  const r = await runForecastCmd(
+    { json: true },
+    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s) },
+  );
+  if (r.exitCode !== 0) return fail(errs.join("\n") || "forecast failed");
+  return ok(buf.join("\n"));
+}
+
 async function toolGetAgentScore(cwd: string): Promise<CallToolResult> {
   const { runScoreCmd } = await import("../commands/score.js");
   const buf: string[] = [];
@@ -571,6 +595,26 @@ const TOOL_DEFS = [
     schema: z.object({}),
   },
   {
+    name: "get_today_summary",
+    description:
+      "Daily dashboard — answers 'how am I doing today?' Returns spend so far today, sessions count, output ratio, and a comparison to the user's adaptive N-day median (cascades 30→14→7→3 based on available history). Includes a one-paragraph headline plus structured fields. Status field: ok | no-sessions-today | no-baseline | no-data. Use this when the user asks 'how am I doing today?', 'what have I spent today?', or 'how's my Claude usage looking?'.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    schema: z.object({}),
+  },
+  {
+    name: "forecast_monthly_spend",
+    description:
+      "Projects month-end Claude spend at the user's current trajectory (last 14 or 7 days, adaptive). Returns avg + median daily spend, projected month-end total with an honest confidence band (±1σ daily-spend stdev, capped at ±20% of projection), spend-so-far this month, and an optional comparison to last month's actual spend. Status field: ok | insufficient-data | near-month-end | no-recent-activity | no-data. Use this when the user asks 'how much will I spend this month?', 'am I on track?', or 'how does this month compare to last?'.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    schema: z.object({}),
+  },
+  {
     name: "get_drift_report",
     description:
       "Detect context/cost drift: whether the user's recent Claude Code sessions regressed (cost/turn up, cache-hit-rate down, re-read waste up) vs their own baseline. Returns JSON. Use when the user asks 'is my agent getting more expensive / sloppier?' or 'has anything regressed?'.",
@@ -706,6 +750,12 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
       case "get_drift_report": {
         return await withTimeout(name, 15_000, toolGetDriftReport());
+      }
+      case "get_today_summary": {
+        return await withTimeout(name, 10_000, toolGetTodaySummary());
+      }
+      case "forecast_monthly_spend": {
+        return await withTimeout(name, 10_000, toolForecastMonthlySpend());
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);

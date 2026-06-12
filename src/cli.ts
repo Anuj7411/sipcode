@@ -129,6 +129,28 @@ program
   });
 
 program
+  .command("today")
+  .description("Daily dashboard: spend so far + vs your N-day median (adaptive 30/14/7/3).")
+  .option("--json", "machine-readable output")
+  .option("--agent <id>", "claude-code | cursor | auto")
+  .action(async (opts) => {
+    const { runTodayCmd } = await import("./commands/today.js");
+    const r = await runTodayCmd(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
+  .command("forecast")
+  .description("Projected month-end spend with confidence band + last-month comparison.")
+  .option("--json", "machine-readable output")
+  .option("--agent <id>", "claude-code | cursor | auto")
+  .action(async (opts) => {
+    const { runForecastCmd } = await import("./commands/forecast.js");
+    const r = await runForecastCmd(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("trend")
   .description("Track ONE metric over time (output ratio, cost/session, recoverable tokens) — answers 'is this getting better?'.")
   .option("--metric <name>", "output-ratio | cost-per-session | recoverable-tokens-per-session", "output-ratio")
