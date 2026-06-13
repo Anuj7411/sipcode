@@ -1,6 +1,6 @@
 {
   "name": "sipcode",
-  "version": "1.6.12",
+  "version": "1.6.13",
   "description": "Sip your tokens, don't gulp them. Keep Claude Code's context clean: drift detection, re-read dedup, integrity scoring, AST-aware reads, and 15 MCP tools for Claude Desktop.",
   "keywords": [
     "claude-code",
