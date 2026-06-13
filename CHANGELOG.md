@@ -8,7 +8,40 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.10]._
+_Nothing landed since [1.6.13]._
+
+---
+
+## [1.6.13] — 2026-06-14
+
+Pre-launch security hardening pass. Zero behavior changes for the happy path; all changes are defensive. Tests 1247 → 1252.
+
+### Security
+- **H1 — path traversal via `session_id` (LOW).** `src/modules/proxy/read-cache.ts` + `signal-cache.ts`: new `sanitizeSessionId()` allowlist `[a-zA-Z0-9_-]{1,64}`; non-matching ids fall back to a literal `unsafe-session` so a malformed PreToolUse event cannot write outside the cache directory.
+- **H2 — ReDoS via prompt-injected Grep pattern (LOW).** `src/modules/proxy/ast/relevance.ts`: regex tier in `matchScore()` now short-circuits when `pattern.length > 200` or `symbol.length > 200`. Tests assert sub-50 ms wall time against catastrophic-backtracking patterns like `^(a+)+b`.
+- **F2 — non-atomic settings.json write (LOW).** `src/modules/benchmark/sipcodeIsolation.ts`: `realIsolationIO.write` and `writeSync` now use tmp + rename. Mid-write crash leaves the original `~/.claude/settings.json` untouched.
+- **H3 — no CSP on landing page (INFO).** `docs/site/src/pages/index.astro`: added `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy` meta tags.
+
+### Added
+- **F6 CI gate.** `.github/workflows/guard-version-bump.yml` fails on push to `main` if `package.json`'s minor or major segment grew without a `[minor-ok]` or `[major-ok]` marker in the commit subject. Catches the v1.7.0-slip class of mistakes.
+
+---
+
+## [1.6.12] — 2026-06-14
+
+Pre-launch npm metadata polish. No behavior changes.
+
+### Changed
+- `package.json` description rewritten: removed em-dash, leads with reliability per the locked positioning. Reads "Sip your tokens, don't gulp them. Keep Claude Code's context clean: drift detection, re-read dedup, integrity scoring, AST-aware reads, and 15 MCP tools for Claude Desktop."
+- Keywords expanded from 7 to 14: added `claude-desktop`, `context-engineering`, `drift-detection`, `context-rot`, `mcp`, `ast`, `reliability`.
+- README header now displays the Sipcode logo via absolute `raw.githubusercontent.com` URL so it renders on the npmjs.com page.
+
+---
+
+## [1.6.11] — 2026-06-13
+
+### Fixed
+- **`CHANGELOG.md` now bundled in the published tarball** (added to the `files` whitelist in `package.json`). Was committed to the repo but the tarball was skipping it, so the npmjs.com page couldn't link to release notes.
 
 ---
 
@@ -110,7 +143,10 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.10...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.13...HEAD
+[1.6.13]: https://github.com/Anuj7411/sipcode/compare/v1.6.12...v1.6.13
+[1.6.12]: https://github.com/Anuj7411/sipcode/compare/v1.6.11...v1.6.12
+[1.6.11]: https://github.com/Anuj7411/sipcode/compare/v1.6.10...v1.6.11
 [1.6.10]: https://github.com/Anuj7411/sipcode/compare/v1.6.8...v1.6.10
 [1.6.9]: https://github.com/Anuj7411/sipcode/compare/v1.6.8...v1.6.9
 [1.6.8]: https://github.com/Anuj7411/sipcode/compare/v1.6.7...v1.6.8
