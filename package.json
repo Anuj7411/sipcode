@@ -1,15 +1,22 @@
 {
   "name": "sipcode",
   "version": "1.6.11",
-  "description": "Sip your tokens. Don't gulp them. — Unified token optimization for AI coding agents.",
+  "description": "Sip your tokens, don't gulp them. Keep Claude Code's context clean: drift detection, re-read dedup, integrity scoring, AST-aware reads, and 15 MCP tools for Claude Desktop.",
   "keywords": [
     "claude-code",
+    "claude-desktop",
     "ai-coding",
     "token-optimization",
+    "context-engineering",
+    "drift-detection",
+    "context-rot",
+    "mcp",
+    "ast",
     "cursor",
     "cli",
     "context-window",
-    "cost-reduction"
+    "cost-reduction",
+    "reliability"
   ],
   "homepage": "https://github.com/Anuj7411/sipcode",
   "repository": {

@@ -1,15 +1,18 @@
 <div align="center">
 
+<a href="https://anuj7411.github.io/sipcode/"><img src="docs/brand/icon/icon-color.png" alt="Sipcode" width="120" /></a>
+
 # Sipcode
 
-**Sip your tokens — don't gulp them.** Keep Claude Code's context clean: fewer tokens spent, sharper answers, and the savings measured so you can trust them.
+**Sip your tokens, don't gulp them.** Keep Claude Code's context clean: fewer tokens spent, sharper answers, and the savings measured so you can trust them.
 
 ### [**Visit the site →**](https://anuj7411.github.io/sipcode/) · [npm](https://www.npmjs.com/package/sipcode) · [benchmark methodology](benchmark/METHODOLOGY.md) · [changelog](CHANGELOG.md)
 
 [![npm version](https://img.shields.io/npm/v/sipcode.svg?color=5B4FCF&label=npm)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0A0A0A.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1104%20passing-5B4FCF)](#)
+[![Tests](https://img.shields.io/badge/tests-1247%20passing-5B4FCF)](#)
 [![Benchmark](https://img.shields.io/badge/corpus%20median-62.6%25-5B4FCF)](benchmark/METHODOLOGY.md)
+[![MCP tools](https://img.shields.io/badge/MCP%20tools-15-5B4FCF)](docs/MCP.md)
 
 </div>
 
@@ -223,9 +226,9 @@ npx sipcode benchmark
 
 ---
 
-## MCP tools (13, for Claude Desktop & Claude Code)
+## MCP tools (15, for Claude Desktop & Claude Code)
 
-**Meter (read-only):** `get_sipcode_info`, `verify_sipcode_impact`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`, `get_agent_score`, `get_session_stats`, `get_proxy_stats`, `get_proxy_status`, `get_drift_report`
+**Meter (read-only):** `get_sipcode_info`, `verify_sipcode_impact`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`, `get_agent_score`, `get_session_stats`, `get_proxy_stats`, `get_proxy_status`, `get_drift_report`, `get_today_summary`, `forecast_monthly_spend`
 **Valve control (writes settings.json):** `install_proxy`, `uninstall_proxy`
 
 So a Desktop user never has to touch a terminal: ask Claude to *install the proxy*, *check savings*, *audit a project*, or *predict a cost* — all from chat. Full docs: [`docs/MCP.md`](docs/MCP.md).
@@ -259,10 +262,13 @@ Local-first by engineering, not by promise. A CI test fails the build if `node:h
 | `sipcode why` | Where your last session burned tokens |
 | `sipcode impact` | Before/after your own spend |
 | `sipcode stats` | Cross-session analytics |
+| `sipcode today` | Daily dashboard: spend so far + comparison to your adaptive 30/14/7/3 day median |
+| `sipcode forecast` | Projected month-end spend with confidence band + last-month comparison |
+| `sipcode trend <metric> --since <NNd>` | Single-metric time series: output-ratio, cost-per-session, or recoverable-tokens-per-session |
 | `sipcode estimate "<task>"` | Per-model cost prediction |
 | `sipcode score` | Agent-friendliness audit + badge |
 | `sipcode drift` | Flag context/cost regressions vs your baseline (silent unless it regressed) |
-| `sipcode benchmark` | Reproducible corpus (`--hardest`, `--vs-rtk`) |
+| `sipcode benchmark` | Reproducible corpus (`--hardest`, `--vs-rtk`, `--live`) |
 | `sipcode receipt` | Shareable PNG of a session's savings |
 | `sipcode hygiene` | Read-once rules + context-pressure hooks |
 | `sipcode rules` | Output-compression rules in `CLAUDE.md` |

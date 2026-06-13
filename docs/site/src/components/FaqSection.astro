@@ -6,7 +6,11 @@ import PlotBackground from "./PlotBackground.astro";
 const FAQS = [
   {
     q: "What is Sipcode?",
-    a: "An open-source toolkit that keeps Claude Code's context clean. It rewrites bulky tool calls before they run (the proxy), measures what got saved (the meter), and warns you when a session starts to drift from your baseline (the drift detector). MIT licensed.",
+    a: "An open-source toolkit that keeps Claude Code's context clean. It rewrites bulky tool calls before they run (the proxy), measures what got saved (the meter), and warns you when a session starts to drift from your baseline (the drift detector). Newer features layered on top: re-read dedup that refuses to reload files Claude already has, integrity scoring that tells you how much signal a rewrite kept, and AST-aware reads that return only the symbol Claude searched for. MIT licensed.",
+  },
+  {
+    q: "Can I ask Sipcode questions in Claude Desktop?",
+    aHtml: `Yes. Sipcode ships 15 MCP tools. Ask "how am I doing today?" and Claude routes to <code class="chip">get_today_summary</code> — spend so far plus comparison against your adaptive 30/14/7/3 day median. Ask "how much will I spend this month?" and it routes to <code class="chip">forecast_monthly_spend</code> — projected month-end with a confidence band. No SDK, no account, no telemetry; Sipcode reads the local <code class="chip">.jsonl</code> files Claude Code already writes.`,
   },
   {
     q: "How is it different from RTK?",
