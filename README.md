@@ -4,7 +4,7 @@
 
 **Sip your tokens — don't gulp them.** Keep Claude Code's context clean: fewer tokens spent, sharper answers, and the savings measured so you can trust them.
 
-### [**Visit the site →**](https://anuj7411.github.io/sipcode/) · [npm](https://www.npmjs.com/package/sipcode) · [benchmark methodology](benchmark/METHODOLOGY.md)
+### [**Visit the site →**](https://anuj7411.github.io/sipcode/) · [npm](https://www.npmjs.com/package/sipcode) · [benchmark methodology](benchmark/METHODOLOGY.md) · [changelog](CHANGELOG.md)
 
 [![npm version](https://img.shields.io/npm/v/sipcode.svg?color=5B4FCF&label=npm)](https://www.npmjs.com/package/sipcode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0A0A0A.svg)](LICENSE)
