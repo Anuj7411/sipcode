@@ -49,8 +49,18 @@ export const realStoreIO: StoreIO = {
   },
 };
 
+/** Mirrored from read-cache.ts to keep both caches consistent on the security front. */
+const SAFE_SESSION_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+
+function sanitize(sessionId: string): string {
+  if (typeof sessionId === "string" && SAFE_SESSION_RE.test(sessionId)) {
+    return sessionId;
+  }
+  return "unsafe-session";
+}
+
 export function sessionSignalsPath(home: string, sessionId: string): string {
-  return path.join(home, ".sipcode", "proxy-signals", `${sessionId}.jsonl`);
+  return path.join(home, ".sipcode", "proxy-signals", `${sanitize(sessionId)}.jsonl`);
 }
 
 /**

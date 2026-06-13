@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://anuj7411.github.io/sipcode/"><img src="docs/brand/icon/icon-color.png" alt="Sipcode" width="120" /></a>
+<a href="https://anuj7411.github.io/sipcode/"><img src="https://raw.githubusercontent.com/Anuj7411/sipcode/main/docs/brand/icon/icon-color.png" alt="Sipcode" width="120" /></a>
 
 # Sipcode
 

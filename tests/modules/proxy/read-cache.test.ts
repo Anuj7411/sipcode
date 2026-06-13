@@ -143,4 +143,38 @@ describe("sessionCachePath", () => {
     expect(p.endsWith(".jsonl")).toBe(true);
     expect(p).toContain("11111111-2222-3333-4444-555555555555");
   });
+
+  it("DEFENSE: rejects path-traversal attempts in session_id (H1)", () => {
+    for (const evil of [
+      "../../etc/passwd",
+      "../..\\windows\\system32",
+      "foo/../../../tmp/evil",
+      "..",
+      "",
+      "a".repeat(200), // too long
+      "bad/slash",
+      "bad\\backslash",
+      "bad space",
+      "bad;semicolon",
+      "bad$dollar",
+    ]) {
+      const p = sessionCachePath("/home/u", evil);
+      expect(p).not.toContain("..");
+      if (evil.length > 0) expect(p).not.toContain(evil);
+      expect(p).toContain("unsafe-session");
+    }
+  });
+
+  it("DEFENSE: accepts canonical UUIDv4 + alphanumeric/dash/underscore (H1)", () => {
+    for (const good of [
+      "11111111-2222-3333-4444-555555555555",
+      "abcdef0123456789",
+      "session_123",
+      "a-b-c-d",
+      "A1B2C3",
+    ]) {
+      const p = sessionCachePath("/home/u", good);
+      expect(p).toContain(good);
+    }
+  });
 });

@@ -19,7 +19,7 @@
  *     the user with a stripped settings file.
  *   - If the original file doesn't exist (no user settings), we no-op.
  */
-import { promises as fs, writeFileSync, existsSync } from "node:fs";
+import { promises as fs, writeFileSync, existsSync, renameSync } from "node:fs";
 import path from "node:path";
 import { removeSipcodeHooks } from "../hygiene/settingsJson.js";
 import { HOOK_PROXY_ID } from "../hygiene/types.js";
@@ -45,11 +45,19 @@ export const realIsolationIO: IsolationIO = {
     }
   },
   async write(p, content) {
+    // F2: atomic write via tmp + rename. POSIX guarantees rename is atomic;
+    // on Windows it's atomic within the same volume in practice. Eliminates
+    // the "mid-write crash leaves truncated settings.json" risk.
     await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, content, "utf-8");
+    const tmp = `${p}.sipcode-tmp-${process.pid}`;
+    await fs.writeFile(tmp, content, "utf-8");
+    await fs.rename(tmp, p);
   },
   writeSync(p, content) {
-    writeFileSync(p, content, "utf-8");
+    // Sync path used by the SIGINT handler. Same tmp+rename idiom.
+    const tmp = `${p}.sipcode-tmp-${process.pid}-sync`;
+    writeFileSync(tmp, content, "utf-8");
+    renameSync(tmp, p);
   },
 };
 

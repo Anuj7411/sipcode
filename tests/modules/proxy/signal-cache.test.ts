@@ -149,4 +149,12 @@ describe("sessionSignalsPath", () => {
     expect(p).toContain("proxy-signals");
     expect(p.endsWith("sess-xyz.jsonl")).toBe(true);
   });
+
+  it("DEFENSE: rejects path-traversal attempts in session_id (H1)", () => {
+    for (const evil of ["../../etc/passwd", "..\\windows", "bad/slash", "a".repeat(200), "bad;sh"]) {
+      const p = sessionSignalsPath("/h", evil);
+      expect(p).not.toContain("..");
+      expect(p).toContain("unsafe-session");
+    }
+  });
 });

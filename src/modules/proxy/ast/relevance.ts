@@ -77,9 +77,20 @@ export function pickRelevantSymbols(
     .sort((a, b) => b.confidence - a.confidence);
 }
 
+/** ReDoS defense (H2): patterns longer than this never get compiled as regex. */
+const MAX_PATTERN_LEN_FOR_REGEX = 200;
+/** ReDoS defense: symbols longer than this never get matched against regex. */
+const MAX_SYMBOL_LEN_FOR_REGEX = 200;
+
 /**
  * Compute a 0-1 score for how well symbol matches pattern.
  * Pure helper, exported for tests.
+ *
+ * Security note: the final tier uses `new RegExp(pattern)` because Grep
+ * patterns are real regex. To prevent catastrophic backtracking on
+ * adversarial patterns from prompt-injected Grep calls, we cap both the
+ * pattern length and the symbol length before evaluating regex. Exact /
+ * substring / word-boundary tiers above this are all linear-time string ops.
  */
 export function matchScore(symbol: string, pattern: string): number {
   if (!symbol || !pattern) return 0;
@@ -88,17 +99,16 @@ export function matchScore(symbol: string, pattern: string): number {
   const patLower = pattern.toLowerCase();
   if (symLower === patLower) return 0.95;
   if (symLower.includes(patLower) || patLower.includes(symLower)) {
-    // Length-aware: short pattern matching a long symbol is less reliable.
-    // E.g. pattern "id" inside symbol "validateUserId" — match but not perfect.
     const ratio = Math.min(patLower.length, symLower.length) / Math.max(patLower.length, symLower.length);
     return 0.7 + 0.1 * ratio;
   }
-  // Word-boundary on CamelCase / snake_case.
   const words = splitIdentifier(symbol);
   for (const w of words) {
     if (w.toLowerCase() === patLower) return 0.7;
   }
-  // Regex attempt — patterns from Grep can be valid regex.
+  // Regex tier — gated by length caps to prevent ReDoS.
+  if (pattern.length > MAX_PATTERN_LEN_FOR_REGEX) return 0;
+  if (symbol.length > MAX_SYMBOL_LEN_FOR_REGEX) return 0;
   try {
     const re = new RegExp(pattern);
     if (re.test(symbol)) return 0.7;

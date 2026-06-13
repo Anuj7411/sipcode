@@ -71,6 +71,29 @@ describe("matchScore", () => {
   it("invalid regex doesn't throw — returns 0 when no other match", () => {
     expect(matchScore("foo", "[bad(")).toBe(0);
   });
+
+  it("DEFENSE: long patterns skip the regex tier (H2 ReDoS guard)", () => {
+    // Catastrophic backtracking pattern that would normally run forever.
+    const evil = "^(a+)+b";
+    // Symbol that doesn't match earlier tiers and would trigger backtrack.
+    const symbol = "a".repeat(50);
+    // Force the pattern length over the regex-tier cap by padding.
+    const longPattern = evil + "x".repeat(250);
+    const t0 = Date.now();
+    const score = matchScore(symbol, longPattern);
+    const elapsed = Date.now() - t0;
+    expect(score).toBe(0);
+    expect(elapsed).toBeLessThan(50); // bounded, not exponential
+  });
+
+  it("DEFENSE: long symbols skip the regex tier (H2 ReDoS guard)", () => {
+    const symbol = "a".repeat(250);
+    const t0 = Date.now();
+    const score = matchScore(symbol, "^(a+)+b");
+    const elapsed = Date.now() - t0;
+    expect(score).toBe(0);
+    expect(elapsed).toBeLessThan(50);
+  });
 });
 
 describe("scoreSymbols", () => {

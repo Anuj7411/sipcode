@@ -95,8 +95,27 @@ export async function appendReadEntry(
 /**
  * Resolve the on-disk cache path for a given session.
  * Exposed so the hook script and tests both use the same convention.
+ *
+ * Security (defense-in-depth): sessionId is sanitized to allowlist
+ * [a-zA-Z0-9_-]{1,64} so a malicious or malformed PreToolUse event cannot
+ * cause path traversal (e.g. "../../tmp/evil"). The realistic threat is
+ * small (Claude Code generates UUIDv4 session ids) but the cost of the
+ * check is zero.
  */
+const SAFE_SESSION_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+
+export function sanitizeSessionId(sessionId: string): string {
+  if (typeof sessionId === "string" && SAFE_SESSION_RE.test(sessionId)) {
+    return sessionId;
+  }
+  return "unsafe-session";
+}
+
 export function sessionCachePath(home: string, sessionId: string): string {
-  // sessionId from Claude Code is a UUID; safe to use directly as a filename.
-  return path.join(home, ".sipcode", "proxy-reads", `${sessionId}.jsonl`);
+  return path.join(
+    home,
+    ".sipcode",
+    "proxy-reads",
+    `${sanitizeSessionId(sessionId)}.jsonl`,
+  );
 }

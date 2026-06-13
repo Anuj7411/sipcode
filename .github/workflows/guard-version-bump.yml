@@ -1,0 +1,62 @@
+name: Guard against accidental minor/major bumps
+
+# Sipcode follows patch-by-default (memory: feedback_versioning.md). A minor
+# or major bump should be deliberate and discussed; CI fails if a bump like
+# that lands on `main` without an explicit "[minor-ok]" or "[major-ok]"
+# marker in the commit subject line. This catches the v1.7.0 slip class of
+# mistakes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+  workflow_dispatch:
+
+jobs:
+  check-version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Compare current vs previous package.json version
+        id: diff
+        run: |
+          set -e
+          # If package.json didn't actually change in this push, exit clean.
+          if ! git diff --name-only HEAD~1 HEAD | grep -q '^package\.json$'; then
+            echo "no package.json change"
+            exit 0
+          fi
+          prev=$(git show HEAD~1:package.json | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])")
+          curr=$(python3 -c "import json;print(json.load(open('package.json'))['version'])")
+          echo "prev=$prev curr=$curr"
+          # If unchanged, fine.
+          if [ "$prev" = "$curr" ]; then exit 0; fi
+          prev_minor=$(echo "$prev" | cut -d. -f2)
+          prev_major=$(echo "$prev" | cut -d. -f1)
+          curr_minor=$(echo "$curr" | cut -d. -f2)
+          curr_major=$(echo "$curr" | cut -d. -f1)
+          commit_msg=$(git log -1 --format=%s)
+          echo "commit_msg=$commit_msg"
+          if [ "$curr_major" -gt "$prev_major" ]; then
+            if echo "$commit_msg" | grep -q '\[major-ok\]'; then
+              echo "major bump explicitly authorized"
+              exit 0
+            fi
+            echo "::error::Major version bump $prev -> $curr without [major-ok] marker in commit subject."
+            echo "::error::Sipcode policy: patch-by-default. If this bump is intentional, include [major-ok] in the release commit subject."
+            exit 1
+          fi
+          if [ "$curr_minor" -gt "$prev_minor" ]; then
+            if echo "$commit_msg" | grep -q '\[minor-ok\]'; then
+              echo "minor bump explicitly authorized"
+              exit 0
+            fi
+            echo "::error::Minor version bump $prev -> $curr without [minor-ok] marker in commit subject."
+            echo "::error::Sipcode policy: patch-by-default (see feedback_versioning.md). If this bump is intentional, include [minor-ok] in the release commit subject."
+            exit 1
+          fi
+          echo "patch bump $prev -> $curr, ok"
