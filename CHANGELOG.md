@@ -8,7 +8,13 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-The post-v1.6.9 work sitting on `main` since `v1.6.9` was bumped. Will ship together as the next patch.
+_Nothing landed since [1.6.10]._
+
+---
+
+## [1.6.10] — 2026-06-13
+
+This release rolls v1.6.9's B3 work (bumped but never published to npm) together with the post-bump additions.
 
 ### Added
 - `sipcode trend <metric> --since <NNd|NNw|NNm>`: single-metric time series across a window. Three metrics: `output-ratio` (robust to session-length variance), `cost-per-session`, `recoverable-tokens-per-session`. Sparkline plus plain-language verdict (`improving | stable | regressing | insufficient-data`) plus min/median/max. Pure linear-slope math. Closes POST-V1.2.2-BACKLOG item 2.
@@ -20,11 +26,14 @@ The post-v1.6.9 work sitting on `main` since `v1.6.9` was bumped. Will ship toge
 ### Changed
 - Release-smoke and MCP integration guards now assert exactly 15 documented tools (was 13).
 
+### Notes
+- The v1.6.9 git tag remains in the repo history (it points to the B3 commit) but no `sipcode@1.6.9` was published to npm. Users go directly from v1.6.8 to v1.6.10.
+
 ---
 
-## [1.6.9] — 2026-06-12
+## [1.6.9] — 2026-06-12 (tagged but not published)
 
-> Bumped locally; not yet published to npm at the time of this changelog. Will ship with the items in `[Unreleased]` above.
+> Bumped locally; rolled into [1.6.10] for ship. The B3 work below is in `sipcode@1.6.10`.
 
 ### Added
 - **B3 AST-aware symbol-level reads.** New PreToolUse routing for `Read` on `.ts/.tsx/.js/.jsx/.py` files larger than 200 lines: parse the file via tree-sitter, score top-level symbols against the per-session signal cache (recent Grep/Glob/Bash-grep patterns), and when a symbol matches with confidence ≥ 0.7 inject `offset+limit` to return only that symbol's line range plus a small context buffer. Safety floors: passes the full file through when in doubt (no signal, no parser, ≥80% coverage would defeat the trim, parser-load failure). Hook signature bumped `v3 → v4`. Languages supported: TypeScript/JavaScript and Python.
@@ -101,7 +110,8 @@ The post-v1.6.9 work sitting on `main` since `v1.6.9` was bumped. Will ship toge
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.9...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.10...HEAD
+[1.6.10]: https://github.com/Anuj7411/sipcode/compare/v1.6.8...v1.6.10
 [1.6.9]: https://github.com/Anuj7411/sipcode/compare/v1.6.8...v1.6.9
 [1.6.8]: https://github.com/Anuj7411/sipcode/compare/v1.6.7...v1.6.8
 [1.6.7]: https://github.com/Anuj7411/sipcode/compare/v1.6.6...v1.6.7
