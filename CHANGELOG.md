@@ -8,7 +8,28 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.13]._
+_Nothing landed since [1.6.14]._
+
+---
+
+## [1.6.14] — 2026-06-14
+
+Path-normalization fix. The dedup hook, the heuristic walker, and the top-expensive analyzer used the raw `file_path` string; drift's `duplicateReads` analyzer normalized via a private helper. Result: drift correctly counted ~49K wasted tokens in one of Anuj's real sessions while `sipcode proxy --stats` reported only ~1K, a ~50x undercount of the dedup hook's actual potential. Tests 1252 → 1266.
+
+### Fixed
+- **Single source of truth for "is this the same file?".** New `src/lib/path-normalize.ts` exports `normalizeFilePath()`: lowercases the Windows drive letter, converts backslashes to forward slashes, resolves through `path.resolve`, leaves trailing slashes alone. Wired into:
+  - `src/modules/proxy/hookReadDedup.ts` — cache lookup AND cache write (line 151 write path was the second half of the bug).
+  - `src/modules/proxy/vsRtk.ts` — `seenReadFiles` set in the heuristic walker.
+  - `src/modules/transcript/analyzers/topExpensive.ts` — `readCounts` map (powers `sipcode why` duplicate-read tags).
+  - `src/modules/transcript/analyzers/duplicateReads.ts` — was already correct via its own local helper; DRY-ed to import the shared lib.
+
+### Verified clean (no fix needed)
+- `hookAstRead.ts` uses `file_path` only as the argument to `readFile`; OS handles case-insensitivity.
+- `signal-cache.ts` keys on grep patterns, not file paths.
+- `sessionCachePath` was already sanitized via the v1.6.13 H1 fix.
+
+### Added
+- 14 new tests across `tests/unit/lib/path-normalize.test.ts` and `tests/integration/hookReadDedup.path-norm.test.ts` covering Windows ↔ POSIX drive-letter equivalence, mixed separators, trailing-slash preservation, and dedup cache-key collision in the happy path.
 
 ---
 
@@ -143,7 +164,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.13...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.14...HEAD
+[1.6.14]: https://github.com/Anuj7411/sipcode/compare/v1.6.13...v1.6.14
 [1.6.13]: https://github.com/Anuj7411/sipcode/compare/v1.6.12...v1.6.13
 [1.6.12]: https://github.com/Anuj7411/sipcode/compare/v1.6.11...v1.6.12
 [1.6.11]: https://github.com/Anuj7411/sipcode/compare/v1.6.10...v1.6.11
