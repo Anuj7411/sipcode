@@ -183,6 +183,107 @@ describe("hookReadDedup — dedup decision (re-read of unchanged file)", () => {
   });
 });
 
+describe("hookReadDedup — path normalization (v1.6.14 bug fix)", () => {
+  // Pre-fix: dedup orchestrator used the raw `file_path` as the cache key.
+  // Claude Code sometimes sent `C:\foo\bar.ts` and other turns `c:/foo/bar.ts`
+  // for the same file. Cache key never matched → no dedup → ~50x undercount
+  // vs the drift analyzer's count of "wasted tokens on dupes".
+  // Post-fix: both paths normalize to the same key and dedup fires correctly.
+
+  it("Reads with case-different drive letters collide on the cache (Windows)", async () => {
+    const cachePath = sessionCachePath(HOME, SESSION);
+    const io = makeIO({
+      // Note: keyed under the RAW path the orchestrator will request from
+      // hashFile (which doesn't normalize — on Windows the OS handles
+      // case-insensitivity for us at the filesystem layer).
+      fileShas: {
+        "C:\\proj\\auth.ts": { sha256: "ABC", mtimeMs: 100, sizeBytes: 4000 },
+      },
+      cacheInit: {
+        [cachePath]: cachedLine({
+          filePath: "c:/proj/auth.ts", // lower-case, recorded earlier
+          sha256: "ABC",
+          mtimeMs: 100,
+          estimatedTokens: 1000,
+          firstReadAtTurn: 5,
+        }),
+      },
+    });
+    // Now Claude sends the upper-case + backslash variant
+    const r = await hookReadDedup(
+      input({ tool_input: { file_path: "C:\\proj\\auth.ts" } }),
+      HOME,
+      io,
+    );
+    expect(r.hookOutput).not.toBeNull();
+    expect(r.hookOutput!.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  it("Reads with backslash vs forward-slash collide on the cache", async () => {
+    const cachePath = sessionCachePath(HOME, SESSION);
+    const io = makeIO({
+      fileShas: { "\\abs\\path\\auth.ts": { sha256: "ABC", mtimeMs: 100, sizeBytes: 4000 } },
+      cacheInit: {
+        [cachePath]: cachedLine({
+          filePath: "/abs/path/auth.ts",
+          sha256: "ABC",
+          mtimeMs: 100,
+          estimatedTokens: 1000,
+          firstReadAtTurn: 5,
+        }),
+      },
+    });
+    const r = await hookReadDedup(
+      input({ tool_input: { file_path: "\\abs\\path\\auth.ts" } }),
+      HOME,
+      io,
+    );
+    expect(r.hookOutput).not.toBeNull();
+    expect(r.hookOutput!.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  it("Reads with ./ prefix collide with the bare-name variant", async () => {
+    const cachePath = sessionCachePath(HOME, SESSION);
+    const io = makeIO({
+      fileShas: { "./src/auth.ts": { sha256: "ABC", mtimeMs: 100, sizeBytes: 4000 } },
+      cacheInit: {
+        [cachePath]: cachedLine({
+          filePath: "src/auth.ts",
+          sha256: "ABC",
+          mtimeMs: 100,
+          estimatedTokens: 1000,
+          firstReadAtTurn: 5,
+        }),
+      },
+    });
+    const r = await hookReadDedup(
+      input({ tool_input: { file_path: "./src/auth.ts" } }),
+      HOME,
+      io,
+    );
+    expect(r.hookOutput).not.toBeNull();
+    expect(r.hookOutput!.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  it("Cache writes use the normalized path so future lookups match", async () => {
+    const io = makeIO({
+      fileShas: {
+        "C:\\proj\\auth.ts": { sha256: "ABC", mtimeMs: 100, sizeBytes: 4000 },
+      },
+      turns: 3,
+    });
+    await hookReadDedup(
+      input({ tool_input: { file_path: "C:\\proj\\auth.ts" } }),
+      HOME,
+      io,
+    );
+    expect(io.writes.length).toBe(1);
+    const written = JSON.parse(io.writes[0]!.content.trim());
+    // Stored as normalized form.
+    expect(written.filePath).toBe("c:/proj/auth.ts");
+  });
+});
+
 describe("hookReadDedup — robustness", () => {
   it("survives a hash failure mid-flow without throwing", async () => {
     const io: DedupIO = {

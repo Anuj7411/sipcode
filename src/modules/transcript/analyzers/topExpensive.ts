@@ -6,6 +6,7 @@
  * we split the cost evenly across the same-turn calls.
  */
 import type { ParsedSession, ToolCall } from "../parse.js";
+import { normalizeFilePath } from "../../../lib/path-normalize.js";
 
 export interface ExpensiveCall {
   readonly toolName: string;
@@ -36,11 +37,16 @@ export function analyzeTopExpensive(
   session: ParsedSession,
 ): ReadonlyArray<ExpensiveCall> {
   // Count occurrences of each file path in Read calls — for "duplicate-read" tag.
+  // v1.6.14 bug fix: key by NORMALIZED path so C:\foo and c:/foo collide
+  // (same fix applied in hookReadDedup.ts and vsRtk.ts).
   const readCounts = new Map<string, number>();
   for (const c of session.toolCalls) {
     if (c.name !== "Read") continue;
     const p = inputFieldGuess(c);
-    if (p) readCounts.set(p, (readCounts.get(p) ?? 0) + 1);
+    if (p) {
+      const norm = normalizeFilePath(p);
+      readCounts.set(norm, (readCounts.get(norm) ?? 0) + 1);
+    }
   }
 
   // Group tool calls per assistant turn and split.

@@ -11,6 +11,7 @@
  */
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
+import { normalizeFilePath } from "../../lib/path-normalize.js";
 import { decideReadDedup } from "./rewriters/dedupRead.js";
 import {
   loadReadCache,
@@ -99,10 +100,15 @@ export async function hookReadDedup(
             .replace(/[^a-zA-Z0-9_-]/g, "_")
             .slice(-40)}`;
 
+    // v1.6.14: normalize the file path BEFORE looking up the cache, so
+    // `C:\foo\bar.ts` and `c:/foo/bar.ts` from the same on-disk file collide
+    // on the same cache key. Pre-fix this is the gap that made dedup miss
+    // ~50x of the dupes the drift analyzer was correctly counting.
+    const normalizedPath = normalizeFilePath(filePath);
     const current = await io.hashFile(filePath);
     const cachePath = sessionCachePath(homeDir, sessionKey);
     const cache = await loadReadCache(cachePath, io);
-    const cached = cache.get(filePath);
+    const cached = cache.get(normalizedPath);
 
     const decision = decideReadDedup({
       toolInput: input.tool_input,
@@ -142,7 +148,9 @@ export async function hookReadDedup(
     if (shouldRecord && current) {
       const turn = await io.countAssistantTurns(input.transcript_path);
       const entry: ReadEntry = {
-        filePath,
+        // Store the normalized path so future lookups match regardless of
+        // whether Claude sent C:\foo\bar or c:/foo/bar this time.
+        filePath: normalizedPath,
         sha256: current.sha256,
         mtimeMs: current.mtimeMs,
         sizeBytes: current.sizeBytes,

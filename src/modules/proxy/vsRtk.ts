@@ -12,6 +12,7 @@
  * user runs the full `sipcode benchmark`.
  */
 import { resolveRewriter } from "./registry.js";
+import { normalizeFilePath } from "../../lib/path-normalize.js";
 
 export interface ProxyEstimate {
   /** Tool calls seen. */
@@ -90,11 +91,15 @@ export function estimateProxyOverToolCalls(
     if (c.name === "Read" && typeof c.input === "object" && c.input !== null) {
       const fp = (c.input as { file_path?: unknown }).file_path;
       if (typeof fp === "string" && fp.length > 0) {
-        if (seenReadFiles.has(fp)) {
+        // v1.6.14 bug fix: normalize before keying. Pre-fix the heuristic
+        // walker would treat `C:\foo` and `c:/foo` as different files and
+        // undercount dupes — same bug as hookReadDedup had.
+        const fpNorm = normalizeFilePath(fp);
+        if (seenReadFiles.has(fpNorm)) {
           rewrites++;
           estSavedTokens += DEDUP_TOKENS_PER_REREAD;
         } else {
-          seenReadFiles.add(fp);
+          seenReadFiles.add(fpNorm);
           // B3 AST trim credit (first read of an AST-eligible file post-grep).
           if (anyGrepSeen && AST_ELIGIBLE_RE.test(fp)) {
             rewrites++;

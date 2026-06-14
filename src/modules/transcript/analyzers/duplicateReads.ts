@@ -1,9 +1,15 @@
 /**
  * Duplicate-read analyzer — M007, M008, R003.
  * Pure.
+ *
+ * v1.6.14: the path normalizer used to live here as a private function. It
+ * was extracted to `src/lib/path-normalize.ts` because hookReadDedup,
+ * vsRtk's heuristic walker, and topExpensive ALL had divergent path-keying
+ * code that undercounted dupes vs what this analyzer correctly counted.
+ * Single source of truth now.
  */
-import path from "node:path";
 import type { ParsedSession, ToolCall } from "../parse.js";
+import { normalizeFilePath } from "../../../lib/path-normalize.js";
 
 export interface DuplicateRead {
   readonly filePath: string;
@@ -23,21 +29,9 @@ export interface DuplicateReadsResult {
   readonly topOffenders: ReadonlyArray<DuplicateRead>;
 }
 
-/**
- * Normalize a file path so Windows and POSIX styles dedupe.
- * Lowercases drive letters, replaces backslashes, collapses ../ where safe.
- */
-function normalizeFilePath(p: string): string {
-  let s = p.replace(/\\/g, "/");
-  // Lowercase Windows drive letter.
-  s = s.replace(/^([A-Z]):/, (_m, d: string) => d.toLowerCase() + ":");
-  try {
-    s = path.posix.normalize(s);
-  } catch {
-    /* ignore */
-  }
-  return s;
-}
+// normalizeFilePath now lives in src/lib/path-normalize.ts (imported above).
+// Used to be a private function here; was duplicated and divergent across
+// hookReadDedup, vsRtk, topExpensive before v1.6.14 — see header comment.
 
 /**
  * Read-like tools and the field of their input that names the file.
