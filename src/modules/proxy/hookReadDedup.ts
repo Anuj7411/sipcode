@@ -11,11 +11,14 @@
  */
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import { normalizeFilePath } from "../../lib/path-normalize.js";
 import { decideReadDedup } from "./rewriters/dedupRead.js";
+import { prewarmFromTranscript } from "./prewarmCache.js";
 import {
   loadReadCache,
   appendReadEntry,
+  sanitizeSessionId,
   sessionCachePath,
   realStoreIO,
   type StoreIO,
@@ -39,6 +42,25 @@ export interface DedupIO extends StoreIO {
   hashFile(p: string): Promise<{ sha256: string; mtimeMs: number; sizeBytes: number } | null>;
   countAssistantTurns(transcriptPath: string): Promise<number>;
   now(): Date;
+  /**
+   * v1.6.15: read the whole Claude Code transcript JSONL as a UTF-8 string.
+   * Returns null if missing or unreadable. Used by warmfill at the top of
+   * the hook to back-fill the dedup cache from prior session activity.
+   */
+  readTranscript(transcriptPath: string): Promise<string | null>;
+  /**
+   * v1.6.15: read a file's raw bytes + stat in one pass. Returns null if the
+   * file is missing or unreadable. The `rawBytes` field lets warmfill canonicalize
+   * (LF, no BOM) for cross-source comparison with what the transcript shows.
+   * The `sha256` is over RAW bytes (no normalization) so it matches what the
+   * live dedup decision computes.
+   */
+  readAndStatFile(filePath: string): Promise<{
+    rawBytes: Buffer;
+    sha256: string;
+    mtimeMs: number;
+    sizeBytes: number;
+  } | null>;
 }
 
 export const realDedupIO: DedupIO = {
@@ -74,10 +96,47 @@ export const realDedupIO: DedupIO = {
       return 1;
     }
   },
+  async readTranscript(p) {
+    try {
+      return await fs.readFile(p, "utf-8");
+    } catch {
+      return null;
+    }
+  },
+  async readAndStatFile(p) {
+    try {
+      const data = await fs.readFile(p);
+      const stat = await fs.stat(p);
+      return {
+        rawBytes: data,
+        sha256: createHash("sha256").update(data).digest("hex"),
+        mtimeMs: stat.mtimeMs,
+        sizeBytes: stat.size,
+      };
+    } catch {
+      return null;
+    }
+  },
   now() {
     return new Date();
   },
 };
+
+/**
+ * Resolve the marker-file path that tracks whether warmfill has been
+ * attempted in a session. Coincident with the cache file's directory so
+ * cleanup is in one place. We use a sentinel file rather than a marker
+ * entry in the cache JSONL so existing consumers of the cache schema
+ * don't need to filter sentinels.
+ */
+function warmfillMarkerPath(home: string, sessionId: string): string {
+  return path.join(
+    home,
+    ".sipcode",
+    "proxy-reads",
+    `${sanitizeSessionId(sessionId)}.warmed`,
+  );
+}
 
 export async function hookReadDedup(
   input: PreToolUseInput,
@@ -108,6 +167,69 @@ export async function hookReadDedup(
     const current = await io.hashFile(filePath);
     const cachePath = sessionCachePath(homeDir, sessionKey);
     const cache = await loadReadCache(cachePath, io);
+
+    // v1.6.15: Verified Warm-Fill. On the first hook fire in this session,
+    // walk the transcript JSONL and back-fill the cache with every full-file
+    // Read whose historical bytes (per `toolUseResult.file.content`) still
+    // match current disk content after LF + BOM canonicalization. Only the
+    // verified-matching entries are written. This closes the mid-session
+    // install gap (cache empty → no dedup against pre-install reads).
+    //
+    // Architecture detail in docs/research/2026-06-15-mid-session-cache-warming.md.
+    // Zero false-dedup: warmfill only adds entries to the lookup table; the
+    // dedup DECISION rule still requires sha match against current disk at
+    // every Read. If disk drifted between warmfill and re-read, sha differs,
+    // we let the read through.
+    //
+    // Gated by a one-shot marker so a long session does not re-walk the
+    // transcript on every hook fire. Marker is written BEFORE running so a
+    // crash mid-warmfill cannot trigger an infinite retry loop.
+    if (input.transcript_path) {
+      const markerPath = warmfillMarkerPath(homeDir, sessionKey);
+      const alreadyAttempted = (await io.read(markerPath)) !== null;
+      if (!alreadyAttempted) {
+        try {
+          const result = await prewarmFromTranscript({
+            transcriptPath: input.transcript_path,
+            existingPaths: new Set(cache.keys()),
+            io: {
+              readTranscript: io.readTranscript,
+              readAndStatFile: io.readAndStatFile,
+              now: io.now,
+            },
+          });
+          // Only mark the session "warmed" after a real attempt (transcript
+          // was readable). If we bailed (transcript missing or too big), we
+          // want to retry on the next hook fire — maybe the transcript file
+          // appeared, or Claude Code rotated to a smaller one.
+          if (!result.stats.bailed) {
+            try {
+              await io.append(markerPath, "");
+            } catch {
+              // Marker write failure is silent; worst case we re-attempt next fire.
+            }
+            for (const entry of result.entries) {
+              try {
+                await appendReadEntry(cachePath, entry, io);
+              } catch {
+                // Cache write failures are silent — must never break Claude Code.
+              }
+              // Mirror the entry into the in-memory cache so the decision
+              // below sees freshly warm-filled entries on THIS hook fire.
+              cache.set(entry.filePath, entry);
+            }
+          }
+        } catch {
+          // Any prewarm crash → write marker to prevent infinite retry.
+          try {
+            await io.append(markerPath, "");
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
     const cached = cache.get(normalizedPath);
 
     const decision = decideReadDedup({

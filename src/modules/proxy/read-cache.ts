@@ -31,6 +31,13 @@ export interface ReadEntry {
   readonly firstReadAtTurn: number;
   /** ISO timestamp when first read. */
   readonly firstReadAt: string;
+  /**
+   * How this entry got into the cache. Optional for backwards compatibility:
+   * entries written by v1.6.14 and earlier have no `source` field and should
+   * be treated as `"live"`. v1.6.15+ tags warm-fill entries explicitly so
+   * `sipcode proxy --stats` (and tests) can distinguish them.
+   */
+  readonly source?: "live" | "warmfill";
 }
 
 export interface StoreIO {

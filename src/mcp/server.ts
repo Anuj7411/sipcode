@@ -426,6 +426,16 @@ async function toolGetProxyStatus(): Promise<CallToolResult> {
 
 // ---- Tool registry ----
 
+/**
+ * Number of MCP tools registered. Exported so v1.6.15+ `sipcode init` can
+ * verify the count without spawning a subprocess. Kept as a getter (not a
+ * cached const) so it always reflects TOOL_DEFS.length at the time of access,
+ * preventing drift if the array grows.
+ */
+export function getRegisteredMcpToolCount(): number {
+  return TOOL_DEFS.length;
+}
+
 const TOOL_DEFS = [
   {
     name: "get_sipcode_info",

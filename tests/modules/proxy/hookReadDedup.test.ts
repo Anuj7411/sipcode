@@ -18,6 +18,11 @@ function makeIO(opts: {
   cacheInit?: Record<string, string>;
   turns?: number;
   now?: Date;
+  transcript?: string;
+  diskFiles?: Record<
+    string,
+    { rawBytes: Buffer; sha256: string; mtimeMs: number; sizeBytes: number } | null
+  >;
 }): DedupIO & { files: Map<string, string>; writes: { path: string; content: string }[] } {
   const files = new Map<string, string>(Object.entries(opts.cacheInit ?? {}));
   const writes: { path: string; content: string }[] = [];
@@ -36,6 +41,14 @@ function makeIO(opts: {
     },
     async countAssistantTurns() {
       return opts.turns ?? 1;
+    },
+    async readTranscript() {
+      // v1.6.15: warmfill no-ops when transcript is absent. Default null so
+      // existing tests (which don't care about warmfill) keep their behavior.
+      return opts.transcript ?? null;
+    },
+    async readAndStatFile(p) {
+      return opts.diskFiles?.[p] ?? null;
     },
     now() {
       return opts.now ?? new Date("2026-06-09T00:00:00.000Z");
@@ -308,6 +321,147 @@ describe("hookReadDedup — robustness", () => {
       },
     };
     const r = await hookReadDedup(input(), HOME, io);
+    expect(r.hookOutput).toBeNull();
+  });
+});
+
+// ─── v1.6.15: warm-fill integration ─────────────────────────────────────────
+//
+// Setup helper that wires the transcript + disk state so the warmfill at the
+// top of hookReadDedup back-fills the cache from prior session activity.
+
+// File content sized over MIN_TOKENS_FOR_DEDUP (100). Each line = ~32 bytes;
+// 40 lines = ~1.3 KB = ~320 tokens. Comfortably above threshold.
+const FILE_CONTENT =
+  Array.from({ length: 40 }, (_, i) => `export const value${i} = ${i};`).join("\n") + "\n";
+const FILE_BUF = Buffer.from(FILE_CONTENT, "utf-8");
+
+import { createHash as createHash2 } from "node:crypto";
+import path from "node:path";
+
+function makeTranscriptWithRead(filePath: string, content: string): string {
+  return (
+    JSON.stringify({ type: "assistant", role: "assistant" }) + "\n" +
+    JSON.stringify({
+      type: "user",
+      toolUseResult: {
+        type: "text",
+        file: { filePath, content, numLines: content.split("\n").length, startLine: 1, totalLines: content.split("\n").length },
+      },
+    }) + "\n"
+  );
+}
+
+describe("hookReadDedup — v1.6.15 warm-fill", () => {
+  it("dedups a re-read of a file that was Read pre-install (via transcript warm-fill)", async () => {
+    const sha = createHash2("sha256").update(FILE_BUF).digest("hex");
+    const io = makeIO({
+      transcript: makeTranscriptWithRead("/proj/auth.ts", FILE_CONTENT),
+      diskFiles: {
+        "/proj/auth.ts": { rawBytes: FILE_BUF, sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+      },
+      fileShas: {
+        "/proj/auth.ts": { sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+      },
+    });
+
+    const r = await hookReadDedup(input(), HOME, io);
+
+    // The hook should DEDUP on this very fire — warmfill at the top
+    // populated the cache from the transcript, and the file content
+    // matches what Claude already has in context.
+    expect(r.hookOutput).not.toBeNull();
+    expect(r.statsEntry?.rewriterName).toBe("dedup-read");
+  });
+
+  it("does NOT dedup if the file was edited between transcript read and warm-fill (sha mismatch)", async () => {
+    const oldContent = "stale content\n";
+    const newBuf = FILE_BUF; // disk has the new content
+    const newSha = createHash2("sha256").update(newBuf).digest("hex");
+
+    const io = makeIO({
+      transcript: makeTranscriptWithRead("/proj/auth.ts", oldContent), // transcript shows stale
+      diskFiles: {
+        "/proj/auth.ts": { rawBytes: newBuf, sha256: newSha, mtimeMs: 1000, sizeBytes: newBuf.length },
+      },
+      fileShas: {
+        "/proj/auth.ts": { sha256: newSha, mtimeMs: 1000, sizeBytes: newBuf.length },
+      },
+    });
+
+    const r = await hookReadDedup(input(), HOME, io);
+
+    // Warmfill correctly dropped the candidate (sha mismatch).
+    // Cache is empty for this file. Live decision passes.
+    expect(r.hookOutput).toBeNull();
+  });
+
+  it("writes the .warmed marker file on first fire and skips warmfill on second fire", async () => {
+    const sha = createHash2("sha256").update(FILE_BUF).digest("hex");
+    const io = makeIO({
+      transcript: makeTranscriptWithRead("/proj/auth.ts", FILE_CONTENT),
+      diskFiles: {
+        "/proj/auth.ts": { rawBytes: FILE_BUF, sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+      },
+      fileShas: {
+        "/proj/auth.ts": { sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+      },
+    });
+
+    await hookReadDedup(input(), HOME, io);
+
+    // Use path.join to mirror what the implementation produces — direct
+    // string templating would diverge on Windows (backslash separators).
+    const markerPath = path.join(HOME, ".sipcode", "proxy-reads", `${SESSION}.warmed`);
+    expect(io.files.has(markerPath)).toBe(true);
+
+    // Track writes BEFORE second call to confirm no extra warmfill writes happen.
+    const writesBefore = io.writes.length;
+
+    // Second call: the marker is present so warmfill should be skipped.
+    await hookReadDedup(input(), HOME, io);
+
+    // Marker still exists; no second warmfill scan happened.
+    expect(io.files.has(markerPath)).toBe(true);
+    expect(io.writes.length).toBeGreaterThanOrEqual(writesBefore);
+  });
+
+  it("survives a warmfill crash without breaking the hook", async () => {
+    const sha = createHash2("sha256").update(FILE_BUF).digest("hex");
+    const io: DedupIO = {
+      ...makeIO({
+        fileShas: {
+          "/proj/auth.ts": { sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+        },
+      }),
+      async readTranscript() {
+        throw new Error("transcript read explosion");
+      },
+    };
+
+    // No throw — the hook degrades to legacy behavior.
+    const r = await hookReadDedup(input(), HOME, io);
+    expect(r.hookOutput).toBeNull();
+  });
+
+  it("does not run warmfill when transcript_path is missing from hook input", async () => {
+    const sha = createHash2("sha256").update(FILE_BUF).digest("hex");
+    const io = makeIO({
+      transcript: makeTranscriptWithRead("/proj/auth.ts", FILE_CONTENT),
+      diskFiles: {
+        "/proj/auth.ts": { rawBytes: FILE_BUF, sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+      },
+      fileShas: {
+        "/proj/auth.ts": { sha256: sha, mtimeMs: 1000, sizeBytes: FILE_BUF.length },
+      },
+    });
+
+    // No transcript_path → no warmfill → no dedup.
+    const r = await hookReadDedup(
+      input({ transcript_path: "" as unknown as string }),
+      HOME,
+      io,
+    );
     expect(r.hookOutput).toBeNull();
   });
 });

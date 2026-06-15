@@ -8,7 +8,37 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.14]._
+_Nothing landed since [1.6.15]._
+
+---
+
+## [1.6.15] — 2026-06-15
+
+Verified Warm-Fill + `sipcode init` system-setup. v1.6.14's path-normalization fix closed the dedup gap for re-reads that happened *after* Sipcode was installed mid-session. v1.6.15 closes the gap for re-reads that happened *before* Sipcode was installed — the dedup cache is now back-filled from the active Claude Code transcript with zero false-dedup risk by construction. Tests 1266 → 1317.
+
+### Fixed
+- **Mid-session install no longer leaves the dedup cache empty.** Anuj's dogfood (2026-06-15) showed `sipcode drift` reporting 624,940 tokens wasted on repeated reads while `sipcode proxy --stats` reported only ~7,553 saved by the dedup-read row, an 83x gap. Root cause: the hook only sees Reads that happen after install, so re-reads of files Claude already read pre-install never had a cache entry to collide against. v1.6.15 adds Verified Warm-Fill at the top of the hook's first fire in a session.
+
+### Added
+- **`src/modules/proxy/prewarmCache.ts` — Verified Warm-Fill pure module.** On first hook fire per session, walks the Claude Code transcript JSONL (provided in `transcript_path`), finds every full-file Read whose `toolUseResult.file.content` field records the bytes Claude saw, canonicalizes both transcript and current disk content (LF line endings + UTF-8 BOM stripped), and writes a cache entry ONLY when both hashes agree. Drift between transcript bytes and current disk bytes (file edited externally between historical read and install) drops the candidate silently. Cap at 200 most-recent files; parallel disk verification keeps first-fire latency under ~250ms on typical sessions.
+  - Architecture detail in [`docs/research/2026-06-15-mid-session-cache-warming.md`](docs/research/2026-06-15-mid-session-cache-warming.md).
+- **Zero false-dedup by construction.** Warmfill only adds entries to the lookup table. The dedup decision rule (`decideReadDedup`) is unchanged: every Read still re-hashes current disk and only dedups on sha + mtime match. If disk drifted between warmfill and re-read, sha differs, the read passes through. There is no path that produces a wrong dedup; this is a property of the design, not the test coverage.
+- **One-shot marker `~/.sipcode/proxy-reads/<sid>.warmed`** prevents the hook from re-walking the transcript on every fire. Marker is written only after a non-bailed warmfill attempt, so transient transcript-unavailable conditions still allow retry on the next fire.
+- **`ReadEntry.source?: "live" | "warmfill"`** — optional, backwards-compatible. v1.6.14 cache entries without the field read cleanly. Reserved for future per-source stats rows.
+- **`sipcode init` extended with system-setup.** Existing project-setup steps (manifest + CLAUDE.md sub-block + output-compression rules) all preserved. New steps run after them on Claude Code targets: detect installation, verify `~/.claude/settings.json` writable, install the proxy hook (idempotent — reports "already installed" when signature matches), set the `sipcode impact` baseline marker, verify the MCP server registers all 15 tools. Style-C output card replaces the legacy `done. sip your tokens.` line.
+- **New `sipcode init` flags:** `--no-proxy`, `--no-marker`, `--no-verify-mcp` to opt out of individual system-setup steps. All default to off (run the step).
+- **`docs/CLI-OUTPUT-STYLE.md`** locks the style-C terminal output pattern for all CLI surfaces. Reused as the template for the landing-page terminal cards.
+- **`getRegisteredMcpToolCount()`** exported from `src/mcp/server.ts` so `init` can verify the tool count without spawning a subprocess.
+
+### Verified
+- 1,317 tests passing (1,266 + 51 new). Includes 27 prewarm unit specs, 5 hookReadDedup warmfill integration specs, 19 init system-setup specs.
+- e2e MCP gate green (15 tools registered, each with a schema).
+- Privacy guard (S090): zero forbidden network imports in any new file.
+- Two consecutive full-suite runs both 1,317 / 1,317 with zero variance.
+
+### Upgrade
+
+Users on v1.6.14 can upgrade with `npm i -g sipcode@latest` once promoted from `next`. The dynamic-import design of the proxy hook means **no `sipcode proxy --install` re-run is required** — the on-disk hook script's signature is unchanged at v4, but the module it imports (`hookReadDedup.js`) now contains the warmfill code, picked up automatically.
 
 ---
 
@@ -164,7 +194,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.14...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.15...HEAD
+[1.6.15]: https://github.com/Anuj7411/sipcode/compare/v1.6.14...v1.6.15
 [1.6.14]: https://github.com/Anuj7411/sipcode/compare/v1.6.13...v1.6.14
 [1.6.13]: https://github.com/Anuj7411/sipcode/compare/v1.6.12...v1.6.13
 [1.6.12]: https://github.com/Anuj7411/sipcode/compare/v1.6.11...v1.6.12

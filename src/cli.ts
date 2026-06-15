@@ -48,9 +48,13 @@ program
     "output-compression rules mode: default | strict | verbose | skip",
   )
   .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
+  .option("--no-proxy", "skip the proxy hook install step (v1.6.15)")
+  .option("--no-marker", "skip the install marker for sipcode impact (v1.6.15)")
+  .option("--no-verify-mcp", "skip the MCP tool count verification (v1.6.15)")
   .action(async (opts) => {
     const { runInit } = await import("./commands/init.js");
-    const r = await runInit(opts);
+    const { homedir } = await import("node:os");
+    const r = await runInit(opts, { homeDir: homedir() });
     if (r?.exitCode) process.exit(r.exitCode);
   });
 
