@@ -1,0 +1,321 @@
+---
+import "../styles/global.css";
+import NavBar from "../components/NavBar.astro";
+import Footer from "../components/Footer.astro";
+import MobileNotice from "../components/MobileNotice.astro";
+
+const base = import.meta.env.BASE_URL;
+
+interface Row {
+  capability: string;
+  sipcode: string;
+  toolA: string;
+  toolB: string;
+  toolC: string;
+  toolD: string;
+}
+
+const rows: Row[] = [
+  {
+    capability: "Reproducible benchmark anyone can verify",
+    sipcode: "✓ 62.6% on locked 20-task corpus, range 37.4 to 80.6%",
+    toolA: "—",
+    toolB: "~40% (single anecdote, n=1)",
+    toolC: "99% theoretical ceiling, not a measured floor",
+    toolD: "—",
+  },
+  {
+    capability: "Mid-session install works without restart, no stale context",
+    sipcode: "✓ Verified Warm-Fill (v1.6.15)",
+    toolA: "—",
+    toolB: "—",
+    toolC: "—",
+    toolD: "—",
+  },
+  {
+    capability: "Zero false-dedup risk by construction (not just by tests)",
+    sipcode: "✓",
+    toolA: "mtime-only (known false-positive risk)",
+    toolB: "mtime-only",
+    toolC: "undocumented",
+    toolD: "undocumented",
+  },
+  {
+    capability: "Drift detection (context-rot signal per session)",
+    sipcode: "✓ drift v2 with persistent baselines",
+    toolA: "—",
+    toolB: "—",
+    toolC: "—",
+    toolD: "—",
+  },
+  {
+    capability: "Per-rewriter integrity scoring (kept %)",
+    sipcode: "✓ since v1.6.8",
+    toolA: "—",
+    toolB: "—",
+    toolC: "—",
+    toolD: "—",
+  },
+  {
+    capability: "Forecast / impact / today spend telemetry",
+    sipcode: "✓ since v1.6.10",
+    toolA: "—",
+    toolB: "—",
+    toolC: "—",
+    toolD: "—",
+  },
+  {
+    capability: "Network calls during normal use",
+    sipcode: "0",
+    toolA: "varies",
+    toolB: "varies",
+    toolC: "varies",
+    toolD: "varies",
+  },
+  {
+    capability: "Pricing",
+    sipcode: "Free, MIT",
+    toolA: "Free",
+    toolB: "Free",
+    toolC: "Free",
+    toolD: "Free",
+  },
+];
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How Sipcode compares — Sipcode</title>
+  <meta name="description" content="Honest, anonymized side-by-side comparison of Sipcode and the field. Audit methodology below." />
+  <link rel="canonical" href="https://anuj7411.github.io/sipcode/compare/" />
+  <link rel="icon" type="image/png" href={`${base}/favicon-32.png`} />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} />
+  <meta name="theme-color" content="#F8F8F6" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <MobileNotice />
+  <main id="top">
+    <NavBar />
+
+    <section class="compare-hero">
+      <div class="container">
+        <h1 class="compare-h1">How Sipcode compares to the field</h1>
+        <p class="compare-sub">Honest, anonymized side-by-side. Methodology below. Names available on request.</p>
+      </div>
+    </section>
+
+    <section class="compare-table-section">
+      <div class="container">
+        <div class="table-wrap">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th class="cap-col">Capability</th>
+                <th class="sip-col">Sipcode</th>
+                <th>Tool A</th>
+                <th>Tool B</th>
+                <th>Tool C</th>
+                <th>Tool D</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr>
+                  <td class="cap-col">{r.capability}</td>
+                  <td class="sip-col"><span class="cell sip">{r.sipcode}</span></td>
+                  <td><span class="cell">{r.toolA}</span></td>
+                  <td><span class="cell">{r.toolB}</span></td>
+                  <td><span class="cell">{r.toolC}</span></td>
+                  <td><span class="cell">{r.toolD}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="methodology">
+      <div class="container">
+        <h2 class="method-h2">Methodology</h2>
+        <ul class="method-list">
+          <li>Audited via public GitHub repositories and shipped documentation on 2026-06-15.</li>
+          <li>Sipcode is one of the tools audited; you can re-run the audit on Sipcode itself by reading the source.</li>
+          <li>Where a capability is binary (does it exist or not), the cell shows <span class="mono">✓</span> or <span class="mono">—</span>.</li>
+          <li>Where a capability has a measured value, the cell shows the value and a brief caveat.</li>
+          <li>Tools are anonymized as A, B, C, D. We are not in the business of attacking other open-source projects. Anyone curious enough to install all five and run them will arrive at this table independently.</li>
+        </ul>
+        <div class="method-cta">
+          <a href={`${base}/`} class="btn-ghost">← back to home</a>
+          <a href={`${base}/roadmap/`} class="btn-primary">see the roadmap →</a>
+        </div>
+      </div>
+    </section>
+
+    <Footer />
+  </main>
+</body>
+</html>
+
+<style>
+  .compare-hero {
+    padding: 56px 0 24px;
+    background: var(--paper, #F8F8F6);
+    border-bottom: 1px solid rgba(10,10,10,0.08);
+  }
+  .compare-hero .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .compare-h1 {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: clamp(32px, 4.5vw, 52px);
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+    color: #0A0A0A;
+    margin: 0 0 12px;
+  }
+  .compare-sub {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: clamp(15px, 1.4vw, 17px);
+    line-height: 1.5;
+    color: #2D3142;
+    max-width: 700px;
+    margin: 0;
+  }
+
+  .compare-table-section {
+    padding: 40px 0;
+    background: var(--paper, #F8F8F6);
+  }
+  .compare-table-section .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid rgba(10,10,10,0.13);
+    border-radius: 8px;
+    background: #fff;
+  }
+  table.compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .compare-table th, .compare-table td {
+    padding: 14px 14px;
+    text-align: left;
+    border-bottom: 1px solid rgba(10,10,10,0.08);
+    vertical-align: top;
+  }
+  .compare-table th {
+    background: rgba(10,10,10,0.03);
+    font-weight: 600;
+    color: #0A0A0A;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .cap-col {
+    min-width: 240px;
+    max-width: 320px;
+    color: #0A0A0A;
+    font-weight: 500;
+  }
+  .sip-col {
+    background: rgba(91,79,207,0.04);
+  }
+  .cell {
+    display: inline-block;
+    color: #2D3142;
+  }
+  .cell.sip {
+    color: #5B4FCF;
+    font-weight: 500;
+  }
+
+  .methodology {
+    padding: 56px 0 80px;
+    background: var(--paper, #F8F8F6);
+    border-top: 1px solid rgba(10,10,10,0.08);
+  }
+  .methodology .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .method-h2 {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: clamp(22px, 2.5vw, 28px);
+    letter-spacing: -0.025em;
+    color: #0A0A0A;
+    margin: 0 0 20px;
+  }
+  .method-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 36px;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #2D3142;
+  }
+  .method-list li {
+    padding-left: 22px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .method-list li::before {
+    content: "▸";
+    color: #5B4FCF;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 13px; color: #0A0A0A; }
+
+  .method-cta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .method-cta .btn-primary,
+  .method-cta .btn-ghost {
+    display: inline-block;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 120ms ease;
+  }
+  .method-cta .btn-primary {
+    background: #5B4FCF;
+    color: #fff;
+    border: 1px solid #5B4FCF;
+  }
+  .method-cta .btn-ghost {
+    background: transparent;
+    color: #0A0A0A;
+    border: 1px solid rgba(10,10,10,0.18);
+  }
+  .method-cta a:hover { transform: translateY(-1px); }
+</style>

@@ -1,12 +1,15 @@
 ---
 // NavBar — real anchor links (Tier-1 #5). No fake 52k (Tier-1 #1).
 import Logo from "./Logo.astro";
+const base = import.meta.env.BASE_URL;
+// Mix of in-page anchors (#why, #demo) and cross-page links. The cross-page
+// ones use the BASE_URL prefix so they resolve under /sipcode/ on GitHub Pages.
 const items = [
-  { href: "#why", label: "Why" },
-  { href: "#demo", label: "Demo" },
-  { href: "#drift", label: "Drift" },
-  { href: "#install", label: "Install" },
-  { href: "#faq", label: "FAQ" },
+  { href: `${base}/#why`, label: "Why" },
+  { href: `${base}/#demo`, label: "Demo" },
+  { href: `${base}/#drift`, label: "Drift" },
+  { href: `${base}/compare/`, label: "Compare" },
+  { href: `${base}/roadmap/`, label: "Roadmap" },
 ];
 ---
 <nav class="navbar" aria-label="Primary">
