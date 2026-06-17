@@ -1,290 +1,270 @@
-<div align="center">
+<p align="center">
+  <a href="https://anuj7411.github.io/sipcode/" aria-label="Sipcode">
+    <img src="https://raw.githubusercontent.com/Anuj7411/sipcode/main/docs/brand/icon/icon-color.png" alt="Sipcode" width="120" />
+  </a>
+</p>
 
-<a href="https://anuj7411.github.io/sipcode/"><img src="https://raw.githubusercontent.com/Anuj7411/sipcode/main/docs/brand/icon/icon-color.png" alt="Sipcode" width="120" /></a>
+<h1 align="center">Sipcode</h1>
 
-# Sipcode
+<p align="center">
+  <strong>Keep Claude Code's context clean for sharper answers and lower cost, automatically.</strong>
+</p>
 
-**Sip your tokens, don't gulp them.** Keep Claude Code's context clean: fewer tokens spent, sharper answers, and the savings measured so you can trust them.
+<p align="center">
+  <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/v/sipcode?color=5B4FCF&label=npm" alt="npm" /></a>
+  <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
+  <img src="https://img.shields.io/badge/tests-1%2C317%20passing-28C840" alt="1317 tests passing" />
+  <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
+</p>
 
-### [**Visit the site →**](https://anuj7411.github.io/sipcode/) · [npm](https://www.npmjs.com/package/sipcode) · [benchmark methodology](benchmark/METHODOLOGY.md) · [changelog](CHANGELOG.md)
-
-[![npm version](https://img.shields.io/npm/v/sipcode.svg?color=5B4FCF&label=npm)](https://www.npmjs.com/package/sipcode)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0A0A0A.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1247%20passing-5B4FCF)](#)
-[![Benchmark](https://img.shields.io/badge/corpus%20median-62.6%25-5B4FCF)](benchmark/METHODOLOGY.md)
-[![MCP tools](https://img.shields.io/badge/MCP%20tools-15-5B4FCF)](docs/MCP.md)
-
-</div>
-
----
-
-## Token savings (illustrative 30-min Claude Code session)
-
-| Operation | How often | Without Sipcode | With Sipcode | Savings |
-|---|---|---|---|---|
-| `git status` | 10× | 8,000 | 1,500 | **−81%** |
-| `git log` | 5× | 12,500 | 2,000 | **−84%** |
-| `git diff` / `git show` | 4× | 16,000 | 6,000 | **−62%** |
-| `grep -r` | 6× | 12,000 | 2,400 | **−80%** |
-| `ls` / `find` | 8× | 12,000 | 3,200 | **−73%** |
-| `cat` (large files) | 5× | 15,000 | 6,000 | **−60%** |
-| `npm ls` | 2× | 10,000 | 1,600 | **−84%** |
-| Grep tool | 4× | 10,000 | 2,000 | **−80%** |
-| Glob tool | 3× | 4,500 | 1,500 | **−67%** |
-| **Total** | | **~100,000** | **~26,200** | **~−74%** |
-
-> ⚠️ **These are illustrative estimates** for a tool-heavy session, not a promise about yours — savings depend entirely on how many commands your session runs. **Two numbers you can trust instead:** the reproducible benchmark below (`npx sipcode benchmark` → 62.6% median on a locked corpus), and your *own* real number after using it (`sipcode proxy --stats`).
+<p align="center">
+  <a href="https://anuj7411.github.io/sipcode/">Website</a> · <a href="https://anuj7411.github.io/sipcode/compare/">Compare</a> · <a href="https://github.com/Anuj7411/sipcode/releases">Releases</a>
+</p>
 
 ---
 
-## What Sipcode is — in one picture
-
-Sipcode is two things, and it matters which surface you're on:
-
-| | **Claude Code** (terminal / VS Code / JetBrains) | **Claude Desktop** (the chat app) |
-|---|---|---|
-| **The valve** — actually reduces tokens by rewriting commands | ✅ **Yes** — this is where it works | ❌ No (chat has no shell commands to optimize) |
-| **The meter** — audit, cost prediction, savings proof, score | ✅ via CLI **and** MCP tools | ✅ via MCP tools |
-
-**Plain-English version:** if you use Claude Code in your terminal, install the **valve** and it quietly saves you tokens. If you only use the Claude **Desktop chat app**, you get the **meter** (analytics + cost tools) inside chat, and you can use it to turn on the valve for whenever you do use Claude Code.
-
-### Why clean context matters — not just cost
-
-A bloated, redundant context doesn't only cost more tokens — it makes the model *worse*. As stale junk piles up, Claude starts hedging, forgetting fixes you already made, and mixing up files. People call it **context rot**. Keeping context lean is both a measured token win **and** — per Anthropic's own published research — a quality win (leaner context ≈ **29% better outcomes**; well-maintained context ≈ **40% fewer agent errors**).
-
-So "sip, don't gulp" cuts two ways: a *gulp* is a bloated context that's expensive *and* makes your agent sloppy; a *sip* is clean, measured context that's cheaper *and* sharper. Sipcode cleans context automatically (the **valve**), measures it (the **meter**), and warns you when it starts to rot (**drift**, below). The token savings are your proof the cleaning is real.
-
-> We **cite** the reliability numbers above from published research — we don't claim them as Sipcode's own measurement. The part Sipcode measures and proves is the token/context reduction.
-
----
-
-## Get started
-
-### A) Claude Code — turn on the valve (saves tokens)
-
-Copy-paste this **one block**. That's the whole setup:
+## Install in 30 seconds
 
 ```bash
-npm install -g sipcode      # 1. install the toolkit
-sipcode proxy --install     # 2. turn ON the optimizer (writes a Claude Code hook)
+npm i -g sipcode
+sipcode init
 ```
 
-Then **restart Claude Code** and work exactly as you normally do. Done.
-
-> 🔑 **Important:** step 1 alone does *nothing* to your tokens — it just puts the tool on your machine. The optimizer only turns on after step 2 (`sipcode proxy --install`). To turn it off at any time: `sipcode proxy --uninstall`.
-
-**Don't have Node.js?** Install it once from [nodejs.org](https://nodejs.org) (the LTS button). That's the only prerequisite.
-
-### B) Claude Desktop — add the meter (analytics in chat)
-
-1. Install the toolkit: `npm install -g sipcode`
-2. Open your Claude Desktop config file:
-
-   | Your OS | File to open |
-   |---|---|
-   | **Windows** | `%APPDATA%\Claude\claude_desktop_config.json` |
-   | **macOS** | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-   | **Linux** | `~/.config/Claude/claude_desktop_config.json` |
-
-3. Add the `sipcode` block inside `"mcpServers"` (if the file is empty, paste the whole thing):
-
-   **Windows:**
-   ```json
-   {
-     "mcpServers": {
-       "sipcode": { "command": "cmd", "args": ["/c", "sipcode-mcp"] }
-     }
-   }
-   ```
-   **macOS / Linux:**
-   ```json
-   {
-     "mcpServers": {
-       "sipcode": { "command": "sipcode-mcp" }
-     }
-   }
-   ```
-   > 💡 Windows needs the `cmd /c` part because of how Windows runs the program. Copy the Windows block exactly.
-
-4. **Fully quit and reopen Claude Desktop.** Then just ask Claude things like *"use sipcode to show my token stats"* or *"turn on the sipcode proxy"* — it will call the right tool.
-
----
-
-## How it works
-
-Claude Code asks to run a command. Before it runs, Sipcode's hook swaps it for a leaner equivalent that returns the same information in fewer tokens. Because that output sits in Claude's context for the rest of the conversation, the saving **compounds** on every later turn.
-
-```
-WITHOUT Sipcode                          WITH Sipcode (proxy installed)
-
-Claude ── "git status" ──▶ shell         Claude ── "git status" ──▶ [Sipcode hook]
-       ◀── ~800 tokens ────                                              │ rewrites to
-           (full output)                                                 ▼ "git status -s"
-                                                            shell ──▶ runs the short form
-                                                 Claude ◀── ~150 tokens (same info, compact)
-```
-
-Every rewrite is **safe and reversible** — Claude can always re-run the full command with explicit flags. Sipcode never touches commands that are already compact, already limited, or chained with `&&`, `||`, `;`, or `|`.
-
----
-
-## What it optimizes
-
-**Git**
-```
-git status        →  git status -s              # short format
-git log           →  git log --oneline -n 20    # 20 one-liners, not full history
-git diff / show   →  … | head -200              # caps huge diffs
-```
-**Files & search**
-```
-ls, find          →  … | head -50 / -100        # caps long listings
-grep -r           →  grep -c -r                 # per-file match counts
-cat <file>        →  size-aware: full file if small, head+tail only if >300 lines
-```
-**Package & build tools**
-```
-npm ls / list     →  --depth=0                  # top-level deps only
-cargo build/test  →  --quiet                    # drops "Compiling…" noise
-```
-**Claude Code's built-in tools** (an edge RTK doesn't have — these go through our hook too)
-```
-Grep tool         →  head_limit=50              # Claude Code's default is 250
-Glob tool         →  head_limit=100             # caps path floods
-```
-
-> There is intentionally **no** `Read`-tool rewrite: Claude Code's `Read` already caps at 2000 lines, so adding a limit would save nothing. We don't book savings we don't deliver.
-
----
-
-## Check that it's working
-
-### Claude Code (the valve)
+That is it. Your next Claude Code session will use Sipcode automatically. Verify a few minutes later:
 
 ```bash
-sipcode proxy --diff      # preview exactly what the install will change (writes nothing)
-sipcode proxy --stats     # after using Claude Code for a bit: shows what it rewrote + tokens saved
+sipcode drift
 ```
 
-Quick manual proof: with the proxy installed, run `git log` in any repo with more than 20 commits — you'll get exactly 20 one-line entries instead of the full history. That's the rewrite firing.
-
-### Claude Desktop (the meter)
-
-In a Claude Desktop chat, ask: **"What sipcode tools do you have?"** Claude will call `get_sipcode_info` and list them — if you see the version and tool list, the MCP server is wired up correctly. Then try **"use sipcode to check the proxy status."**
+If the output reads `no drift, context health stable`, Sipcode is doing its job.
 
 ---
 
-## Troubleshooting
+## What is Sipcode?
 
-| Symptom | Fix |
+Sipcode is a free command-line tool that sits between you and Claude Code. It does three things:
+
+1. It watches Claude Code's context window and warns you when it starts to bloat (we call this "context rot")
+2. It catches duplicate file reads and other waste before they reach Claude, so you pay less for the same answers
+3. It gives you receipts. Every saving is measurable in your terminal.
+
+It is open source under the MIT license. It makes zero network calls during normal use. Your data never leaves your laptop.
+
+---
+
+## Why you probably want it
+
+If you use Claude Code for real work, you have already felt this:
+
+- Long sessions get expensive fast. A two-hour session on Claude Max can burn through your daily plan
+- Quality drops as the context window fills. Claude starts re-reading files, repeating itself, losing the thread of what you asked
+- You cannot tell what is bloat and what is signal
+
+Sipcode measures the bloat, then removes the parts Claude does not need. The savings are not theoretical. Run `sipcode benchmark` on any machine and you will see the same 62.6% median reduction on the locked 20-task corpus.
+
+---
+
+## The two-minute tour
+
+After installing, here are the five commands that show you what Sipcode is doing.
+
+### 1. `sipcode drift`
+
+Tells you if your current Claude Code session is drifting from your normal usage pattern. Bloated context, repeated reads, stale signals are all flagged here.
+
+```
+✓ Sipcode drift: no drift, context health stable vs your recent baseline.
+```
+
+### 2. `sipcode proxy --stats`
+
+Shows what Sipcode caught in the current session, broken down by rewriter.
+
+```
+Sipcode proxy, rewrite stats
+  total rewrites:    144
+  est. tokens saved: ~288,685 (heuristic)
+  signal kept:       67% (med), weighted across all rewrites
+```
+
+### 3. `sipcode benchmark`
+
+Runs the locked 20-task corpus and produces a verifiable savings number. Anyone, anywhere can run this and get 62.6%.
+
+```
+62.6%  median savings on a locked 20-task corpus
+       range 37.4% to 80.6%   3,567,170 tokens   $67.43
+```
+
+### 4. `sipcode today`
+
+Daily spend summary. Tokens used, sessions, output ratio, comparison to your 30-day median.
+
+```
+spend so far    $1.20    across 4 sessions
+tokens so far   943.8K   output ratio 3.7%
+```
+
+### 5. `sipcode forecast`
+
+Month-end projection based on your last 14 days.
+
+```
+projected month-end   $17,674   (range $14,139 to $21,208)
+```
+
+---
+
+## How to install (more detail)
+
+Sipcode works on Mac, Linux, and Windows. You need Node.js 18 or newer.
+
+### Step 1. Install Node.js
+
+Skip this step if you already have Node.js. Otherwise:
+
+- **Mac:** `brew install node`
+- **Linux (Ubuntu / Debian):** `sudo apt install nodejs npm`
+- **Windows:** Download from [nodejs.org](https://nodejs.org/)
+
+Verify it worked:
+
+```bash
+node --version
+```
+
+You should see `v18.0.0` or higher.
+
+### Step 2. Install Sipcode globally
+
+```bash
+npm i -g sipcode
+```
+
+This downloads Sipcode from npm and makes the `sipcode` command available everywhere.
+
+If you see permission errors on Mac or Linux, try:
+
+```bash
+sudo npm i -g sipcode
+```
+
+Verify it installed:
+
+```bash
+sipcode --version
+```
+
+You should see `1.6.15` or higher.
+
+### Step 3. Run `sipcode init` to wire it into Claude Code
+
+```bash
+sipcode init
+```
+
+This command does four things:
+
+1. Creates a small `.sipcode/manifest.md` file in your current project so Claude knows what your project is about
+2. Adds a small block to your `CLAUDE.md` (or creates one) with rules that keep Claude's replies terse
+3. Installs the Sipcode hook into Claude Code, which is the thing that actually saves tokens
+4. Marks the date so `sipcode impact` can show you before-and-after savings later
+
+You will see a checklist as it runs. Each step shows a checkmark when it completes.
+
+### Step 4. Open a new Claude Code session
+
+Sipcode picks up automatically on the next tool call Claude makes. No restart needed in most cases. To be safe, you can close any existing Claude Code window and open a fresh one.
+
+Now Claude Code will be using Sipcode in the background.
+
+### Step 5. After about an hour of work, check it
+
+```bash
+sipcode drift
+sipcode proxy --stats
+```
+
+If drift says "no drift" and proxy --stats shows a few dozen rewrites with savings, everything is working.
+
+---
+
+## What you get
+
+| Feature | What it does for you |
 |---|---|
-| **Installed the proxy but tokens look the same** | Did you **restart Claude Code** after `sipcode proxy --install`? Hooks load at startup. Then run `sipcode proxy --stats` after some use to confirm rewrites are happening. |
-| **`sipcode: command not found`** | The global install didn't land on your PATH. Re-run `npm install -g sipcode`; if it persists, reopen your terminal. No Node.js? Install it from [nodejs.org](https://nodejs.org). |
-| **Claude Desktop says the sipcode server "is down" / won't start** | 99% of the time it's the config. On **Windows** you must use `"command": "cmd", "args": ["/c", "sipcode-mcp"]`. Confirm `npm install -g sipcode` succeeded, then **fully quit and reopen** Claude Desktop (not just close the window). |
-| **A command's output got cut off and I needed the rest** | That's by design — re-run it with an explicit flag (e.g. `git diff <file>`, `grep -rn …`). If a rewrite ever hides something it shouldn't, that's a bug — please [file it](https://github.com/Anuj7411/sipcode/issues). |
-| **Want to turn it all off** | `sipcode proxy --uninstall` (removes the hook, fully reversible). |
+| Context-rot detection | Warns when your Claude Code session is starting to behave worse than your norm |
+| Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
+| Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
+| Spend telemetry | Daily, monthly, projected. All from your own transcripts, no cloud upload |
+| MCP server | 15 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
+| Reproducible benchmark | A locked 20-task corpus that anyone can run and verify |
 
 ---
 
-## The meter — see and prove your savings
+## Frequently asked questions
 
-Works in your terminal (CLI) and inside Claude Desktop (MCP tool, in parentheses):
+### Is it really free?
+
+Yes. MIT license. No tracking. No telemetry sent to us. No paid tier. You can read every line of source code on GitHub.
+
+### Does it send my code anywhere?
+
+No. Sipcode makes zero network calls during normal use. Everything runs locally on your machine. We have a privacy test that fails if any network code is imported into the source.
+
+### How is it different from other context tools?
+
+See the [comparison page](https://anuj7411.github.io/sipcode/compare/). The short version: Sipcode is the only one with a published reproducible benchmark, zero false-dedup by architecture, and mid-session install support.
+
+### What is "context rot"?
+
+When Claude's context window fills up with stale, repeated, or off-topic information, the quality of its answers drops. Sipcode measures this with `sipcode drift` and removes most of the waste with the proxy hook.
+
+### Does it work with Cursor or other AI tools?
+
+Today, only with Claude Code (since Claude Code is the only tool that exposes the hooks Sipcode needs). Support for other CLIs is something we are exploring.
+
+### How do I uninstall?
 
 ```bash
-sipcode why          # where your last session burned tokens   (audit_latest_session)
-sipcode impact       # your spend before vs after Sipcode       (verify_sipcode_impact)
-sipcode stats        # cross-session totals + top spenders      (get_session_stats)
-sipcode estimate "…" # predict a task's cost per model          (estimate_task_cost)
-sipcode score        # 24-check agent-friendliness audit        (get_agent_score)
-sipcode proxy --stats# what the valve has rewritten             (get_proxy_stats)
+sipcode proxy --uninstall
+npm uninstall -g sipcode
 ```
 
-The meter reads only the transcripts Claude Code already writes to `~/.claude/projects/`. **Zero network calls** — your code never leaves your machine ([Privacy](#privacy)).
-
 ---
 
-## Catch context drift
-
-`sipcode drift` watches whether your recent Claude Code sessions are quietly getting more expensive or context-bloated — and **stays silent unless something actually regressed.** A smoke alarm, not a dashboard you have to babysit.
-
-```bash
-sipcode drift          # e.g. ⚠ cost/turn up ~34%; cache hit rate 71% → 48%
-sipcode drift --json   # machine-readable   (also the get_drift_report MCP tool)
-```
-
-It compares your latest session against the median of your recent ones — conservative thresholds, so no false alarms — and names what moved: **cost/turn up**, **cache-hit-rate down**, or **re-read waste up**. These cost tokens *and* degrade answer quality (context rot), so catching them early keeps your agent both cheap and sharp.
-
----
-
-## The benchmark — the one number you can reproduce
-
-```bash
-npx sipcode benchmark
-```
-
-**62.6% median token reduction** across a locked 20-task corpus (range **37.4%–80.6%**). This is the optimization *methodology* measured on captured transcripts — **anyone can reproduce it** in under 90 seconds, no signup. It is **not** a promise about your sessions (use `sipcode impact` for that) and **not** a measurement of the live proxy. Full method: [`benchmark/METHODOLOGY.md`](benchmark/METHODOLOGY.md).
-
----
-
-## MCP tools (15, for Claude Desktop & Claude Code)
-
-**Meter (read-only):** `get_sipcode_info`, `verify_sipcode_impact`, `list_recent_sessions`, `audit_latest_session`, `get_project_manifest`, `estimate_task_cost`, `get_agent_score`, `get_session_stats`, `get_proxy_stats`, `get_proxy_status`, `get_drift_report`, `get_today_summary`, `forecast_monthly_spend`
-**Valve control (writes settings.json):** `install_proxy`, `uninstall_proxy`
-
-So a Desktop user never has to touch a terminal: ask Claude to *install the proxy*, *check savings*, *audit a project*, or *predict a cost* — all from chat. Full docs: [`docs/MCP.md`](docs/MCP.md).
-
----
-
-## What Sipcode does NOT do
-
-Stating this plainly because trust is the product:
-
-- **It does not optimize the Claude Desktop chat itself** — the valve only rewrites Claude Code tool calls. Desktop gets the meter.
-- **Installing the npm package alone changes nothing** — you must run `sipcode proxy --install` to turn on the valve.
-- **The meter never reduces tokens** — auditing is observation; only the valve reduces.
-- **No network calls** from any core path — enforced by a CI test. Your code never leaves your machine.
-- **No guaranteed savings multiplier** — it's workload-dependent; measure your own.
-- **It never silently loses data** — every rewrite is recoverable by re-running with explicit flags.
-
----
-
-## Privacy
-
-Local-first by engineering, not by promise. A CI test fails the build if `node:http`/`https`/`net`/`dns` is ever imported into a core path, and the proxy's rewriter functions are guarded to import no filesystem or network modules at all. Nothing is uploaded or phoned home.
-
----
-
-## Command reference
+## Commands
 
 | Command | What it does |
 |---|---|
-| `sipcode proxy --install / --uninstall / --diff / --stats` | The valve — runtime command optimizer |
-| `sipcode why` | Where your last session burned tokens |
-| `sipcode impact` | Before/after your own spend |
-| `sipcode stats` | Cross-session analytics |
-| `sipcode today` | Daily dashboard: spend so far + comparison to your adaptive 30/14/7/3 day median |
-| `sipcode forecast` | Projected month-end spend with confidence band + last-month comparison |
-| `sipcode trend <metric> --since <NNd>` | Single-metric time series: output-ratio, cost-per-session, or recoverable-tokens-per-session |
-| `sipcode estimate "<task>"` | Per-model cost prediction |
-| `sipcode score` | Agent-friendliness audit + badge |
-| `sipcode drift` | Flag context/cost regressions vs your baseline (silent unless it regressed) |
-| `sipcode benchmark` | Reproducible corpus (`--hardest`, `--vs-rtk`, `--live`) |
-| `sipcode receipt` | Shareable PNG of a session's savings |
-| `sipcode hygiene` | Read-once rules + context-pressure hooks |
-| `sipcode rules` | Output-compression rules in `CLAUDE.md` |
-| `sipcode manifest` / `init` | Project manifest; multi-agent (`--agent cursor`) |
+| `sipcode init` | Set up Sipcode in a project (manifest + CLAUDE.md + proxy hook) |
+| `sipcode drift` | Check if the current session is drifting from your norm |
+| `sipcode proxy --stats` | See what the proxy caught this session |
+| `sipcode benchmark` | Run the locked 20-task corpus |
+| `sipcode today` | Today's spend summary |
+| `sipcode forecast` | Month-end spend projection |
+| `sipcode impact` | Before vs after Sipcode comparison |
+| `sipcode why` | Per-session forensics |
+| `sipcode score` | Audit your repo for AI-friendliness |
+| `sipcode receipt` | Generate a shareable PDF receipt of a session |
+
+Run any of them with `--help` for full options.
 
 ---
 
-## Updating
+## Requirements
 
-```bash
-npm install -g sipcode@latest
-```
+- Node.js 18 or newer
+- Claude Code installed (for the proxy hook). Sipcode also works as standalone CLI tools (benchmark, score, etc.) without Claude Code installed.
 
-No auto-updater. Monthly is plenty unless a security note is pinned here or on [Releases](https://github.com/Anuj7411/sipcode/releases). The proxy hook points at your global install, so it picks up updates automatically — no need to re-run `proxy --install`.
+---
 
-## Contributing & author
+## License
 
-Bugs, edge cases, or a rewrite that hides something it shouldn't → [open an issue](https://github.com/Anuj7411/sipcode/issues).
-Built by **[Anuj Ojha](https://github.com/Anuj7411)** — solo dev, also author of [Answerable](https://github.com/Anuj7411/answerable). MIT licensed.
+MIT. See [LICENSE](LICENSE).
+
+---
+
+## Acknowledgments
+
+Built with care for the indie developers who burn through their Claude Max plan in two hours. The 62.6% benchmark methodology is documented in [benchmark/METHODOLOGY.md](benchmark/METHODOLOGY.md). Anthropic's published research on context-window quality informs the integrity-scoring approach.
