@@ -124,3 +124,9 @@ jobs:
           gh issue comment ${{ steps.dashboard.outputs.issue }} \
             --repo ${{ github.repository }} \
             --body "$BODY"
+
+      - name: Heartbeat to Healthchecks (success)
+        # Only fires if all previous steps succeeded. If any failed,
+        # this step is skipped, Healthchecks notices the missed ping,
+        # and sends an email alert within the 6h grace window.
+        run: curl -fsS -m 10 --retry 3 https://hc-ping.com/846d7741-389c-4d8b-b3b5-7351a10f13ea

@@ -109,3 +109,9 @@ jobs:
             --title "🔔 Competitor shipped a release ($TODAY)" \
             --label "competitor-alert" \
             --body "$BODY"
+
+      - name: Heartbeat to Healthchecks (success)
+        # Pings even when no competitors shipped (that is still a successful
+        # run, we want Healthchecks to know we are alive). Only fires if all
+        # previous steps succeeded.
+        run: curl -fsS -m 10 --retry 3 https://hc-ping.com/5143cf69-d235-453a-885a-b2617d0a0c33

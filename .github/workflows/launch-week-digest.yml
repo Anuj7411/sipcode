@@ -153,3 +153,8 @@ jobs:
           gh issue comment ${{ steps.digest_issue.outputs.issue }} \
             --repo ${{ github.repository }} \
             --body "$BODY"
+
+      - name: Heartbeat to Healthchecks (success)
+        # Pings even when outside the launch window (a no-op run is still
+        # successful). Only fires if all previous steps succeeded.
+        run: curl -fsS -m 10 --retry 3 https://hc-ping.com/ce76cc07-977e-469a-b564-f9716e496254
