@@ -93,7 +93,8 @@ const rows: Row[] = [
   <link rel="icon" type="image/png" href={`${base}/favicon-32.png`} />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} />
   <meta name="theme-color" content="#F8F8F6" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://gateway.umami.is https://api-gateway.umami.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+  <script defer src={`${base}/umami.js`} data-website-id="43a9182d-f3fe-46eb-b172-e347b520b9ae" data-host-url="https://gateway.umami.is"></script>
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
