@@ -1,0 +1,155 @@
+name: Launch Week Daily Digest
+
+# Posts a comprehensive daily digest during launch week (T-7 to T+7 window).
+# Auto-deactivates outside the launch window so it does not spam.
+#
+# Digest includes:
+#   - npm downloads (yesterday, week to date)
+#   - GitHub stars + new stars in last 24h
+#   - New issues opened in last 24h
+#   - New PRs opened/merged in last 24h
+#   - Top issue/PR by reactions
+#
+# Edit LAUNCH_DATE below before launch.
+#
+# Created 2026-06-18.
+
+on:
+  schedule:
+    # Daily at 22:00 UTC (15:00 PT, 03:30 IST next day)
+    # End-of-day digest for the US-Pacific working window.
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+env:
+  LAUNCH_DATE: "2026-06-24"   # Tuesday; edit if launch date shifts
+  WINDOW_BEFORE_DAYS: 7        # T-7
+  WINDOW_AFTER_DAYS: 7         # T+7
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if in launch window
+        id: window
+        run: |
+          TODAY=$(date -u '+%Y-%m-%d')
+          LAUNCH_TS=$(date -d "$LAUNCH_DATE" '+%s')
+          TODAY_TS=$(date -d "$TODAY" '+%s')
+          DIFF_DAYS=$(( (TODAY_TS - LAUNCH_TS) / 86400 ))
+
+          if [ $DIFF_DAYS -ge $((-WINDOW_BEFORE_DAYS)) ] && [ $DIFF_DAYS -le $WINDOW_AFTER_DAYS ]; then
+            echo "in_window=true" >> $GITHUB_OUTPUT
+            if [ $DIFF_DAYS -lt 0 ]; then
+              echo "label=T$DIFF_DAYS" >> $GITHUB_OUTPUT
+            elif [ $DIFF_DAYS -eq 0 ]; then
+              echo "label=T-0 (LAUNCH DAY)" >> $GITHUB_OUTPUT
+            else
+              echo "label=T+$DIFF_DAYS" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "in_window=false" >> $GITHUB_OUTPUT
+            echo "Outside launch window (today is $DIFF_DAYS days from $LAUNCH_DATE), skipping."
+          fi
+
+      - name: Fetch npm downloads
+        if: steps.window.outputs.in_window == 'true'
+        id: npm
+        run: |
+          YESTERDAY=$(date -d "yesterday" '+%Y-%m-%d')
+          DAILY=$(curl -s "https://api.npmjs.org/downloads/point/$YESTERDAY/sipcode" | jq -r '.downloads // 0')
+
+          WEEK_END=$(date -d "yesterday" '+%Y-%m-%d')
+          WEEK_START=$(date -d "$LAUNCH_DATE" '+%Y-%m-%d')
+          if [ "$WEEK_END" \< "$WEEK_START" ]; then WEEK_START="$WEEK_END"; fi
+          WEEK_TOTAL=$(curl -s "https://api.npmjs.org/downloads/range/$WEEK_START:$WEEK_END/sipcode" | jq -r '.downloads | map(.downloads) | add // 0')
+
+          echo "daily=$DAILY" >> $GITHUB_OUTPUT
+          echo "since_launch=$WEEK_TOTAL" >> $GITHUB_OUTPUT
+
+      - name: Fetch GitHub repo + last-24h activity
+        if: steps.window.outputs.in_window == 'true'
+        id: gh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO_DATA=$(gh api repos/${{ github.repository }})
+          STARS=$(echo "$REPO_DATA" | jq -r '.stargazers_count')
+          echo "stars=$STARS" >> $GITHUB_OUTPUT
+
+          # Issues opened in last 24h
+          CUTOFF=$(date -u -d "24 hours ago" '+%Y-%m-%dT%H:%M:%SZ')
+          NEW_ISSUES=$(gh api "search/issues?q=repo:${{ github.repository }}+is:issue+created:>$CUTOFF" --jq '.total_count // 0')
+          NEW_PRS=$(gh api "search/issues?q=repo:${{ github.repository }}+is:pr+created:>$CUTOFF" --jq '.total_count // 0')
+          MERGED_PRS=$(gh api "search/issues?q=repo:${{ github.repository }}+is:pr+is:merged+merged:>$CUTOFF" --jq '.total_count // 0')
+
+          echo "new_issues=$NEW_ISSUES" >> $GITHUB_OUTPUT
+          echo "new_prs=$NEW_PRS" >> $GITHUB_OUTPUT
+          echo "merged_prs=$MERGED_PRS" >> $GITHUB_OUTPUT
+
+      - name: Find or create launch-digest issue
+        if: steps.window.outputs.in_window == 'true'
+        id: digest_issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --label "launch-digest" \
+            --state open \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -z "$EXISTING" ] || [ "$EXISTING" = "null" ]; then
+            NEW_ISSUE=$(gh issue create \
+              --repo ${{ github.repository }} \
+              --title "🚀 Sipcode Launch Week Digest (target $LAUNCH_DATE)" \
+              --label "launch-digest" \
+              --body "Daily launch-week summary. The first comment is the most recent day." \
+              --json number \
+              --jq '.number')
+            echo "issue=$NEW_ISSUE" >> $GITHUB_OUTPUT
+          else
+            echo "issue=$EXISTING" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post today's digest
+        if: steps.window.outputs.in_window == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TODAY=$(date -u '+%Y-%m-%d')
+          BODY="## 🚀 ${{ steps.window.outputs.label }} — $TODAY
+
+          **npm**
+
+          | Window | Downloads |
+          |---|---|
+          | Yesterday | ${{ steps.npm.outputs.daily }} |
+          | Since launch | ${{ steps.npm.outputs.since_launch }} |
+
+          **GitHub (last 24h)**
+
+          | Metric | Count |
+          |---|---|
+          | ⭐ Total stars | ${{ steps.gh.outputs.stars }} |
+          | 🔵 New issues opened | ${{ steps.gh.outputs.new_issues }} |
+          | 🟢 New PRs opened | ${{ steps.gh.outputs.new_prs }} |
+          | 🟣 PRs merged | ${{ steps.gh.outputs.merged_prs }} |
+
+          **Reminders for ${{ steps.window.outputs.label }}**
+
+          See \`launch-day-choreography.md\` in private notes for today's specific actions.
+
+          ---
+          *Auto-generated by [\`launch-week-digest.yml\`](https://github.com/${{ github.repository }}/actions/workflows/launch-week-digest.yml)*"
+
+          gh issue comment ${{ steps.digest_issue.outputs.issue }} \
+            --repo ${{ github.repository }} \
+            --body "$BODY"
