@@ -98,22 +98,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Ensure label exists (idempotent)
+          gh label create "launch-digest" \
+            --repo ${{ github.repository }} \
+            --color "28C840" \
+            --description "Auto-managed: Sipcode launch week digest" 2>/dev/null || true
+
           EXISTING=$(gh issue list \
             --repo ${{ github.repository }} \
             --label "launch-digest" \
             --state open \
             --limit 1 \
             --json number \
-            --jq '.[0].number')
+            --jq '.[0].number // ""')
 
-          if [ -z "$EXISTING" ] || [ "$EXISTING" = "null" ]; then
-            NEW_ISSUE=$(gh issue create \
+          if [ -z "$EXISTING" ]; then
+            URL=$(gh issue create \
               --repo ${{ github.repository }} \
               --title "🚀 Sipcode Launch Week Digest (target $LAUNCH_DATE)" \
               --label "launch-digest" \
-              --body "Daily launch-week summary. The first comment is the most recent day." \
-              --json number \
-              --jq '.number')
+              --body "Daily launch-week summary. The first comment is the most recent day.")
+            NEW_ISSUE=$(echo "$URL" | grep -oE '[0-9]+$')
             echo "issue=$NEW_ISSUE" >> $GITHUB_OUTPUT
           else
             echo "issue=$EXISTING" >> $GITHUB_OUTPUT

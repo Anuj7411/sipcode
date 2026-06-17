@@ -70,24 +70,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Look for an existing issue with the label "metrics-dashboard"
+          # Ensure label exists (idempotent — won't fail if already created)
+          gh label create "metrics-dashboard" \
+            --repo ${{ github.repository }} \
+            --color "5B4FCF" \
+            --description "Auto-managed: Sipcode daily metrics dashboard" 2>/dev/null || true
+
+          # Look for an existing issue with the label
           EXISTING=$(gh issue list \
             --repo ${{ github.repository }} \
             --label "metrics-dashboard" \
             --state open \
             --limit 1 \
             --json number \
-            --jq '.[0].number')
+            --jq '.[0].number // ""')
 
-          if [ -z "$EXISTING" ] || [ "$EXISTING" = "null" ]; then
-            # Create the persistent dashboard issue
-            NEW_ISSUE=$(gh issue create \
+          if [ -z "$EXISTING" ]; then
+            # Create the persistent dashboard issue. `gh issue create` returns
+            # the issue URL on stdout; we parse the trailing number.
+            URL=$(gh issue create \
               --repo ${{ github.repository }} \
               --title "📊 Sipcode Metrics Dashboard" \
               --label "metrics-dashboard" \
-              --body "Daily npm + GitHub stats. The first comment is the most recent day." \
-              --json number \
-              --jq '.number')
+              --body "Daily npm + GitHub stats. The first comment is the most recent day.")
+            NEW_ISSUE=$(echo "$URL" | grep -oE '[0-9]+$')
             echo "issue=$NEW_ISSUE" >> $GITHUB_OUTPUT
           else
             echo "issue=$EXISTING" >> $GITHUB_OUTPUT
