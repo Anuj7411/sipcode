@@ -52,6 +52,26 @@ It is open source under the MIT license. It makes zero network calls during norm
 
 ---
 
+## How Sipcode compares
+
+| | Sipcode | claude-mem | RTK (Reduce Toolkit) | codebase-memory-mcp |
+|---|---|---|---|---|
+| **Approach** | Live PreToolUse hook | Cross-session memory store | Static methodology | RAG retrieval server |
+| **Caps verbose tool output** | ✓ | ✗ | docs only | ✗ |
+| **Dedups same-session re-reads** | ✓ | ✗ | docs only | ✗ |
+| **Mid-session install support** | ✓ Verified Warm-Fill | n/a | n/a | n/a |
+| **Zero false-dedup by construction** | ✓ | n/a | n/a | n/a |
+| **Reproducible benchmark on locked corpus** | ✓ 62.6% median (20 tasks) | ✗ | ✗ | ✗ |
+| **Self-introspection MCP tools** | ✓ 15 tools | ✗ | ✗ | partial |
+| **Zero network calls in normal use** | ✓ | ✓ | n/a | ✗ |
+| **MIT licensed** | ✓ | ✓ | ✓ | ✓ |
+
+Sipcode is **complementary to memory tools** like claude-mem (which persists context *across* sessions). Sipcode keeps each individual session clean. Run both for maximum effect.
+
+Full feature-by-feature comparison: [anuj7411.github.io/sipcode/compare](https://anuj7411.github.io/sipcode/compare/)
+
+---
+
 ## Why you probably want it
 
 If you use Claude Code for real work, you have already felt this:
