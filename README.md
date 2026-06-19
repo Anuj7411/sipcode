@@ -54,7 +54,7 @@ It is open source under the MIT license. It makes zero network calls during norm
 
 ## How Sipcode compares
 
-| | Sipcode | claude-mem | RTK (Reduce Toolkit) | codebase-memory-mcp |
+| | Sipcode | Tool A | Tool B | Tool C |
 |---|---|---|---|---|
 | **Approach** | Live PreToolUse hook | Cross-session memory store | Static methodology | RAG retrieval server |
 | **Caps verbose tool output** | ✓ | ✗ | docs only | ✗ |
@@ -66,9 +66,9 @@ It is open source under the MIT license. It makes zero network calls during norm
 | **Zero network calls in normal use** | ✓ | ✓ | n/a | ✗ |
 | **MIT licensed** | ✓ | ✓ | ✓ | ✓ |
 
-Sipcode is **complementary to memory tools** like claude-mem (which persists context *across* sessions). Sipcode keeps each individual session clean. Run both for maximum effect.
+Sipcode is **complementary to memory tools** that persist context across sessions (Tool A in the table). Sipcode keeps each individual session clean. They solve different problems. Run both for maximum effect.
 
-Full feature-by-feature comparison: [anuj7411.github.io/sipcode/compare](https://anuj7411.github.io/sipcode/compare/)
+Full feature-by-feature comparison with tool names revealed: [anuj7411.github.io/sipcode/compare](https://anuj7411.github.io/sipcode/compare/)
 
 ---
 
