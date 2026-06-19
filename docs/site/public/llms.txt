@@ -1,0 +1,68 @@
+# Sipcode
+
+> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 15 MCP tools so Claude can read its own context-hygiene stats.
+
+Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/claude-code), Anthropic's terminal coding agent. It installs as a PreToolUse hook and intercepts noisy tool output (git log, npm install, grep, ls, cat, find, tsc) before those bytes reach the model. Same-session re-reads of unchanged files are deduplicated. A Verified Warm-Fill step back-fills the dedup cache from the active Claude Code transcript on the first hook fire, so files Claude read before Sipcode was installed still get caught on their next read. The cache is only back-filled when transcript bytes match current disk after LF and BOM canonicalization, which gives zero false-dedup risk by construction.
+
+On a locked, public 20-task benchmark corpus, Sipcode delivers 62.6% median tool-output savings (range 37.4% to 80.6%), totalling 3,567,170 tokens saved and $67.43 at current Claude Sonnet pricing. Anyone can reproduce these numbers with `sipcode benchmark`. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
+
+Sipcode is solo-maintained, MIT licensed, has 1,317 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+
+## How Sipcode differs from neighboring tools
+
+- claude-mem stores memory across Claude Code sessions. Sipcode is context hygiene within a single session. They are complementary.
+- RTK (Reduce Toolkit) is a static methodology paper. Sipcode runs live as a PreToolUse hook with measured, reproducible numbers.
+- codebase-memory-mcp is a RAG retrieval layer. Sipcode operates on what is already in the context window.
+- Read-once tools rely on convention. Sipcode is automatic enforcement at the hook layer.
+
+## Install
+
+```bash
+npm i -g sipcode
+sipcode init
+```
+
+## Key commands
+
+- `sipcode init`: install the PreToolUse hook, write `.sipcode/manifest.md`, append rules to `CLAUDE.md`, mark the impact baseline
+- `sipcode drift`: report whether the current Claude Code session is drifting from the user's normal token-spend baseline
+- `sipcode proxy --stats`: per-session rewriter breakdown, tokens saved, compression-integrity score
+- `sipcode why`: forensic view of which rewriter compressed which tool call, and by how much
+- `sipcode benchmark`: run the locked 20-task corpus and emit a reproducible savings number
+- `sipcode today`: today's spend, tokens, sessions, output ratio vs 30-day median
+- `sipcode forecast`: month-end spend projection with a confidence range
+- `sipcode impact`: before vs after Sipcode comparison, anchored to the install date
+- `sipcode score`: audit a repo for AI-agent friendliness
+
+## MCP tools
+
+Sipcode ships an MCP server exposing 15 tools so Claude Code can introspect its own context hygiene without leaving the chat. Notable tools:
+
+- `get_proxy_stats`: per-session rewriter stats, tokens saved, integrity score
+- `get_drift_report`: bloat and rot detection for the live session
+- `get_session_stats`, `get_today_summary`, `forecast_monthly_spend`: spend telemetry
+- `audit_latest_session`, `get_agent_score`: post-session forensics
+- `verify_sipcode_impact`: before vs after comparison sourced from transcripts
+
+## Documentation
+
+- [Website](https://anuj7411.github.io/sipcode): install guide and the two-minute tour
+- [Compare](https://anuj7411.github.io/sipcode/compare/): how Sipcode lines up against claude-mem, RTK, codebase-memory-mcp, read-once conventions
+- [Releases](https://github.com/Anuj7411/sipcode/releases): changelog with locked test counts per release
+- [Benchmark methodology](https://github.com/Anuj7411/sipcode/blob/main/benchmark/METHODOLOGY.md): how the 62.6% number is produced and audited
+
+## Source code
+
+- [GitHub repository](https://github.com/Anuj7411/sipcode): MIT licensed source, 1,317 tests
+- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.6.15
+- [Privacy test](https://github.com/Anuj7411/sipcode/blob/main/src): build-blocking check that no network modules are imported in `src/`
+
+## License
+
+MIT.
+
+## Optional
+
+- [Sipcode on npm](https://www.npmjs.com/package/sipcode)
+- [Issue tracker](https://github.com/Anuj7411/sipcode/issues)
+- [Author profile](https://github.com/Anuj7411)
