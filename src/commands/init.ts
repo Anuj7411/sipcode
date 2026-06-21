@@ -40,6 +40,16 @@ import {
 import { generateProxyHookScript } from "../modules/proxy/proxyHookScript.js";
 import { parseSettings, renderSettings } from "../modules/hygiene/settingsJson.js";
 import { getRegisteredMcpToolCount } from "../mcp/server.js";
+// v1.6.16 F-CACHE-DEFER imports
+import {
+  detectActiveClaudeSessions,
+  type ActiveSessionsResult,
+} from "../modules/init/sessionDetection.js";
+import {
+  writePendingMarker,
+  type PendingInstallIO,
+} from "../modules/init/pendingInstall.js";
+import { promises as nodeFsPromises } from "node:fs";
 
 export interface InitOptions {
   /** Tighten on first run (skip the prompt). */
@@ -61,6 +71,13 @@ export interface InitOptions {
   noMarker?: boolean;
   /** v1.6.15: skip the MCP tool count verification. Default: false (verify). */
   noVerifyMcp?: boolean;
+  /**
+   * v1.6.16 F-CACHE-DEFER: install even when an active Claude Code session
+   * is detected. Without this flag, the settings.json write is deferred to
+   * protect Anthropic's prompt cache; a marker is written so the next quiet
+   * sipcode invocation applies the install.
+   */
+  force?: boolean;
 }
 
 export interface InitDeps {
@@ -319,6 +336,7 @@ export async function runInit(
           noProxy: opts.noProxy ?? false,
           noMarker: opts.noMarker ?? false,
           noVerifyMcp: opts.noVerifyMcp ?? false,
+          force: opts.force ?? false,
         },
         {
           homeDir: deps.homeDir,
@@ -371,6 +389,7 @@ export async function runInit(
 export type StepStatus =
   | { kind: "ok"; detail?: string }
   | { kind: "skipped"; reason: string }
+  | { kind: "deferred"; reason: string }
   | { kind: "failed"; reason: string };
 
 export interface SystemSetupResult {
@@ -385,6 +404,8 @@ export interface SystemSetupOptions {
   noProxy: boolean;
   noMarker: boolean;
   noVerifyMcp: boolean;
+  /** v1.6.16 F-CACHE-DEFER. Bypass active-session detection. Default: false. */
+  force?: boolean;
 }
 
 export interface SystemSetupDeps {
@@ -398,6 +419,22 @@ export interface SystemSetupDeps {
   ) => Promise<{ installed: boolean; version: string | null }>;
   verifyMcpToolCount: () => Promise<number>;
   now: () => Date;
+  /**
+   * v1.6.16 F-CACHE-DEFER. Detect active Claude Code sessions to decide
+   * whether to defer the settings.json write. Optional; default uses
+   * node:fs to scan ~/.claude/projects.
+   */
+  detectActiveSessions?: (homeDir: string) => Promise<ActiveSessionsResult>;
+  /**
+   * v1.6.16 F-CACHE-DEFER. Write the pending-install marker when the
+   * settings.json write is deferred. Optional; default reuses readFile +
+   * writeFile + now to build a PendingInstallIO and call writePendingMarker.
+   */
+  writeDeferredMarker?: (input: {
+    homeDir: string;
+    scriptPath: string;
+    settingsPath: string;
+  }) => Promise<void>;
 }
 
 /**
@@ -440,35 +477,91 @@ export async function runSystemSetup(
   // the proxy install step below surfaces any write failures.
   result.settingsWritable = { kind: "ok", detail: "writable" };
 
-  // Step 3: proxy hook install.
+  // Step 3: proxy hook install (with v1.6.16 F-CACHE-DEFER gate).
   if (opts.noProxy) {
     result.proxyHook = { kind: "skipped", reason: "--no-proxy flag" };
   } else {
-    try {
-      const scriptPath = proxyHookScriptPath(deps.homeDir);
-      const existingScript = await deps.readFile(scriptPath);
-      const newScript = generateProxyHookScript(
-        runRewriterModuleUrl(),
-        hookReadDedupModuleUrl(),
-        hookAstReadModuleUrl(),
-      );
-      const parsed = parseSettings(existingSettings ?? "");
-      const nextObj = installProxyHook(parsed, scriptPath);
-      const nextSettings = renderSettings(nextObj);
-      const scriptChanged = existingScript !== newScript;
-      const settingsChanged = (existingSettings ?? "") !== nextSettings;
-      if (!scriptChanged && !settingsChanged) {
-        result.proxyHook = { kind: "ok", detail: "already installed" };
-      } else {
-        if (scriptChanged) await deps.writeFile(scriptPath, newScript);
-        if (settingsChanged) await deps.writeFile(settingsPath, nextSettings);
-        result.proxyHook = { kind: "ok", detail: "installed (signature v4)" };
+    // F-CACHE-DEFER: when an active Claude Code session exists, the
+    // settings.json write would invalidate Anthropic's prompt cache for
+    // that session. We defer the write and leave a marker that any later
+    // sipcode invocation outside an active session will pick up and apply.
+    // --force bypasses this check.
+    let activeSessions: ActiveSessionsResult | null = null;
+    if (!opts.force) {
+      try {
+        const detect =
+          deps.detectActiveSessions ?? defaultDetectActiveSessions;
+        activeSessions = await detect(deps.homeDir);
+      } catch {
+        // Defensive: detection failure must not block install.
+        activeSessions = null;
       }
-    } catch (err) {
-      result.proxyHook = {
-        kind: "failed",
-        reason: err instanceof Error ? err.message : "unknown error",
-      };
+    }
+
+    const scriptPath = proxyHookScriptPath(deps.homeDir);
+    const newScript = generateProxyHookScript(
+      runRewriterModuleUrl(),
+      hookReadDedupModuleUrl(),
+      hookAstReadModuleUrl(),
+    );
+
+    if (activeSessions?.active) {
+      // Defer the settings.json write. The script file itself does NOT
+      // invalidate the prompt cache (Claude Code only reads settings.json
+      // to learn about hooks, not the script content), so we always write
+      // the script. The marker tells future sipcode invocations to apply
+      // the settings.json change later.
+      try {
+        const existingScript = await deps.readFile(scriptPath);
+        if (existingScript !== newScript) {
+          await deps.writeFile(scriptPath, newScript);
+        }
+        const writeMarker =
+          deps.writeDeferredMarker ?? defaultWriteDeferredMarker(deps);
+        await writeMarker({
+          homeDir: deps.homeDir,
+          scriptPath,
+          settingsPath,
+        });
+        const count = activeSessions.count;
+        const word = count === 1 ? "session" : "sessions";
+        result.proxyHook = {
+          kind: "deferred",
+          reason: `${count} active claude code ${word} detected; settings.json write deferred to protect prompt cache. Auto-applies on next quiet sipcode command, or pass --force.`,
+        };
+      } catch (err) {
+        result.proxyHook = {
+          kind: "failed",
+          reason: err instanceof Error ? err.message : "unknown error",
+        };
+      }
+    } else {
+      // Normal install path (no active sessions, or --force, or detection
+      // unavailable). Existing v1.6.15 logic.
+      try {
+        const existingScript = await deps.readFile(scriptPath);
+        const parsed = parseSettings(existingSettings ?? "");
+        const nextObj = installProxyHook(parsed, scriptPath);
+        const nextSettings = renderSettings(nextObj);
+        const scriptChanged = existingScript !== newScript;
+        const settingsChanged = (existingSettings ?? "") !== nextSettings;
+        if (!scriptChanged && !settingsChanged) {
+          result.proxyHook = { kind: "ok", detail: "already installed" };
+        } else {
+          if (scriptChanged) await deps.writeFile(scriptPath, newScript);
+          if (settingsChanged)
+            await deps.writeFile(settingsPath, nextSettings);
+          result.proxyHook = {
+            kind: "ok",
+            detail: "installed (signature v4)",
+          };
+        }
+      } catch (err) {
+        result.proxyHook = {
+          kind: "failed",
+          reason: err instanceof Error ? err.message : "unknown error",
+        };
+      }
     }
   }
 
@@ -481,6 +574,14 @@ export async function runSystemSetup(
     result.installMarker = {
       kind: "skipped",
       reason: "rules mode is 'skip' — no marker to set",
+    };
+  } else if (result.proxyHook.kind === "deferred") {
+    // F-CACHE-DEFER: don't set the impact baseline until the proxy actually
+    // installs. Otherwise `sipcode impact` would attribute the deferral
+    // window to "with sipcode active" and skew the before/after delta.
+    result.installMarker = {
+      kind: "deferred",
+      reason: "proxy install deferred; baseline starts when proxy applies",
     };
   } else {
     try {
@@ -554,6 +655,65 @@ async function defaultDetectClaudeCode(
   }
 }
 
+/**
+ * v1.6.16 F-CACHE-DEFER: real-filesystem implementation of active-session
+ * detection. Production CLI uses this; tests inject a mock via
+ * `SystemSetupDeps.detectActiveSessions`.
+ */
+async function defaultDetectActiveSessions(
+  homeDir: string,
+): Promise<ActiveSessionsResult> {
+  return detectActiveClaudeSessions({
+    homeDir,
+    io: {
+      async listDir(p) {
+        return nodeFsPromises.readdir(p);
+      },
+      async stat(p) {
+        try {
+          const s = await nodeFsPromises.stat(p);
+          return { mtimeMs: s.mtimeMs, isDirectory: s.isDirectory() };
+        } catch {
+          return null;
+        }
+      },
+      now() {
+        return new Date();
+      },
+    },
+  });
+}
+
+/**
+ * v1.6.16 F-CACHE-DEFER: build a default `writeDeferredMarker` that reuses
+ * the SystemSetupDeps' readFile/writeFile/now. Tests can override the whole
+ * function via `SystemSetupDeps.writeDeferredMarker`.
+ */
+function defaultWriteDeferredMarker(deps: SystemSetupDeps) {
+  return async (input: {
+    homeDir: string;
+    scriptPath: string;
+    settingsPath: string;
+  }): Promise<void> => {
+    const io: PendingInstallIO = {
+      async readFile(p) {
+        const v = await deps.readFile(p);
+        return v ?? null;
+      },
+      writeFile: deps.writeFile,
+      async deleteFile(p) {
+        try {
+          await nodeFsPromises.unlink(p);
+        } catch {
+          // ignore — missing is fine
+        }
+      },
+      now: deps.now,
+    };
+    await writePendingMarker(input, io);
+  };
+}
+
 // ─── v1.6.15: style-C card formatter ────────────────────────────────────
 
 const SETUP_CARD_RULE = "  " + "━".repeat(71);
@@ -606,11 +766,17 @@ export function formatSetupCard(input: SetupCardInput): string {
   const partial =
     s.claudeCodeDetected.kind !== "ok" ||
     s.proxyHook.kind === "failed" ||
-    s.proxyHook.kind === "skipped";
+    s.proxyHook.kind === "skipped" ||
+    s.proxyHook.kind === "deferred";
   if (s.claudeCodeDetected.kind !== "ok") {
     lines.push("  partial setup. install Claude Code separately to also enable the proxy + MCP.");
     lines.push("");
     lines.push("  ▸ reload your agent to pick up the new project rules");
+  } else if (s.proxyHook.kind === "deferred") {
+    lines.push("  proxy install deferred to protect your active Claude Code session's prompt cache.");
+    lines.push("");
+    lines.push("  ▸ auto-applies on your next sipcode command outside an active session");
+    lines.push("  ▸ or run `sipcode init --force` to install now (will invalidate prompt cache)");
   } else if (!partial) {
     lines.push("  ready. your next Claude Code session will use Sipcode automatically.");
     lines.push("");
@@ -628,6 +794,7 @@ export function formatSetupCard(input: SetupCardInput): string {
 function stepRow(label: string, status: StepStatus): string {
   if (status.kind === "ok") return row("✓", label, status.detail ?? "");
   if (status.kind === "skipped") return row("⏵", label, status.reason);
+  if (status.kind === "deferred") return row("⏸", label, status.reason);
   return row("✗", label, status.reason);
 }
 

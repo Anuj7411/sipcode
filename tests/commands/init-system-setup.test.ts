@@ -390,3 +390,232 @@ describe("formatSetupCard — output structure", () => {
     expect(card).toContain("✗");
   });
 });
+
+// ──────────── v1.6.16 F-CACHE-DEFER tests ─────────────────────────────────
+
+import type { ActiveSessionsResult } from "../../src/modules/init/sessionDetection.js";
+
+describe("runSystemSetup — F-CACHE-DEFER (v1.6.16)", () => {
+  function withDefer(
+    state: MockState,
+    overrides: {
+      active?: ActiveSessionsResult;
+      detectionThrows?: boolean;
+      markerWriteThrows?: boolean;
+      markerCalls?: { path: string; content: string }[];
+    } = {},
+  ): SystemSetupDeps {
+    const base = makeDeps(state, "default");
+    return {
+      ...base,
+      async detectActiveSessions() {
+        if (overrides.detectionThrows) throw new Error("EACCES projects");
+        return (
+          overrides.active ?? {
+            active: false,
+            count: 0,
+            projectsDirExists: false,
+          }
+        );
+      },
+      async writeDeferredMarker(input) {
+        if (overrides.markerWriteThrows) throw new Error("disk full marker");
+        // Simulate the production writeDeferredMarker side-effect: write a
+        // pending marker into state.files at the conventional path so tests
+        // can assert it.
+        const markerPath = path
+          .join(input.homeDir, ".sipcode", "install-pending.json")
+          .replace(/\\/g, "/")
+          .replace(/^\//, "/");
+        const content = JSON.stringify({
+          schemaVersion: "sipcode-install-pending/1",
+          createdAt: NOW.toISOString(),
+          scriptPath: input.scriptPath,
+          settingsPath: input.settingsPath,
+        });
+        state.files.set(
+          path.join(input.homeDir, ".sipcode", "install-pending.json"),
+          content,
+        );
+        overrides.markerCalls?.push({
+          path: input.scriptPath,
+          content,
+        });
+      },
+    };
+  }
+
+  it("defers the proxy install when an active session is detected", async () => {
+    const state: MockState = { files: new Map() };
+    const result = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state, {
+        active: { active: true, count: 1, projectsDirExists: true },
+      }),
+    );
+
+    expect(result.proxyHook.kind).toBe("deferred");
+    expect(
+      (result.proxyHook as { kind: "deferred"; reason: string }).reason,
+    ).toContain("active claude code session");
+
+    // settings.json must NOT have been written.
+    const settingsKey = [...state.files.keys()].find((k) =>
+      k.endsWith("settings.json"),
+    );
+    expect(settingsKey).toBeUndefined();
+
+    // The hook script file SHOULD have been written (safe operation).
+    const scriptKey = [...state.files.keys()].find((k) =>
+      k.endsWith("sipcode-proxy.mjs"),
+    );
+    expect(scriptKey).toBeDefined();
+
+    // The pending-install marker SHOULD have been written.
+    const markerKey = [...state.files.keys()].find((k) =>
+      k.endsWith("install-pending.json"),
+    );
+    expect(markerKey).toBeDefined();
+    const marker = JSON.parse(state.files.get(markerKey!)!);
+    expect(marker.schemaVersion).toBe("sipcode-install-pending/1");
+  });
+
+  it("installs normally when no active session is detected", async () => {
+    const state: MockState = { files: new Map() };
+    const result = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state, {
+        active: { active: false, count: 0, projectsDirExists: true },
+      }),
+    );
+
+    expect(result.proxyHook.kind).toBe("ok");
+    const settingsKey = [...state.files.keys()].find((k) =>
+      k.endsWith("settings.json"),
+    );
+    expect(settingsKey).toBeDefined();
+    const markerKey = [...state.files.keys()].find((k) =>
+      k.endsWith("install-pending.json"),
+    );
+    expect(markerKey).toBeUndefined();
+  });
+
+  it("--force overrides defer even with an active session", async () => {
+    const state: MockState = { files: new Map() };
+    const result = await runSystemSetup(
+      { ...OPTS_DEFAULT, force: true },
+      withDefer(state, {
+        active: { active: true, count: 3, projectsDirExists: true },
+      }),
+    );
+
+    expect(result.proxyHook.kind).toBe("ok");
+    const settingsKey = [...state.files.keys()].find((k) =>
+      k.endsWith("settings.json"),
+    );
+    expect(settingsKey).toBeDefined();
+    const markerKey = [...state.files.keys()].find((k) =>
+      k.endsWith("install-pending.json"),
+    );
+    expect(markerKey).toBeUndefined();
+  });
+
+  it("defers the install marker too when proxy is deferred", async () => {
+    const state: MockState = { files: new Map() };
+    const result = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state, {
+        active: { active: true, count: 1, projectsDirExists: true },
+      }),
+    );
+
+    expect(result.installMarker.kind).toBe("deferred");
+    expect(
+      (result.installMarker as { kind: "deferred"; reason: string }).reason,
+    ).toContain("proxy install deferred");
+  });
+
+  it("falls back to install when detection throws (defensive)", async () => {
+    const state: MockState = { files: new Map() };
+    const result = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state, { detectionThrows: true }),
+    );
+
+    // Detection broke; default = proceed with install rather than blocking.
+    expect(result.proxyHook.kind).toBe("ok");
+    const settingsKey = [...state.files.keys()].find((k) =>
+      k.endsWith("settings.json"),
+    );
+    expect(settingsKey).toBeDefined();
+  });
+
+  it("reports 'failed' when marker write throws", async () => {
+    const state: MockState = { files: new Map() };
+    const result = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state, {
+        active: { active: true, count: 1, projectsDirExists: true },
+        markerWriteThrows: true,
+      }),
+    );
+
+    expect(result.proxyHook.kind).toBe("failed");
+    expect(
+      (result.proxyHook as { kind: "failed"; reason: string }).reason,
+    ).toContain("disk full");
+  });
+
+  it("singular vs plural in the deferred reason", async () => {
+    const state1: MockState = { files: new Map() };
+    const r1 = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state1, {
+        active: { active: true, count: 1, projectsDirExists: true },
+      }),
+    );
+    expect(
+      (r1.proxyHook as { kind: "deferred"; reason: string }).reason,
+    ).toContain("1 active claude code session");
+
+    const state2: MockState = { files: new Map() };
+    const r2 = await runSystemSetup(
+      OPTS_DEFAULT,
+      withDefer(state2, {
+        active: { active: true, count: 2, projectsDirExists: true },
+      }),
+    );
+    expect(
+      (r2.proxyHook as { kind: "deferred"; reason: string }).reason,
+    ).toContain("2 active claude code sessions");
+  });
+});
+
+describe("formatSetupCard — F-CACHE-DEFER deferred state (v1.6.16)", () => {
+  const okStep = (detail: string) => ({ kind: "ok" as const, detail });
+  const deferStep = (reason: string) => ({
+    kind: "deferred" as const,
+    reason,
+  });
+
+  it("renders ⏸ glyph for deferred steps", () => {
+    const card = formatSetupCard({
+      manifestRelativePath: ".sipcode/manifest.md",
+      rulesInstalled: true,
+      rulesMode: "default",
+      claudeMdRelativePath: "CLAUDE.md",
+      systemSetup: {
+        claudeCodeDetected: okStep("v2.1.170"),
+        settingsWritable: okStep("writable"),
+        proxyHook: deferStep("1 active claude code session detected"),
+        installMarker: deferStep("proxy install deferred"),
+        mcpVerify: okStep("15 tools registered"),
+      },
+    });
+    expect(card).toContain("⏸");
+    expect(card).toContain("deferred to protect");
+    expect(card).toContain("auto-applies on your next sipcode command");
+    expect(card).toContain("--force");
+  });
+});
+
