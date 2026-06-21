@@ -349,3 +349,177 @@ describe("applyPendingInstall — full flow", () => {
     expect(settings.hooks.PreToolUse.length).toBe(1);
   });
 });
+
+// ──────────── maybeApplyPendingInstall — CLI auto-apply wrapper ───────────
+
+import { maybeApplyPendingInstall } from "../../../src/modules/init/pendingInstall.js";
+
+describe("maybeApplyPendingInstall — auto-apply at CLI startup", () => {
+  it("no-op when there is no marker", async () => {
+    const state: MockState = { files: new Map() };
+    const io = makeIO(state);
+
+    const r = await maybeApplyPendingInstall({
+      homeDir: HOME,
+      detectActiveSessions: async () => ({
+        active: false,
+        count: 0,
+        projectsDirExists: true,
+      }),
+      pendingIO: io,
+      generateScript: () => DUMMY_SCRIPT,
+    });
+    expect(r.kind).toBe("no-marker");
+  });
+
+  it("skips when an active session is detected (cache safe)", async () => {
+    const state: MockState = { files: new Map() };
+    const io = makeIO(state);
+    await writePendingMarker(
+      { homeDir: HOME, scriptPath: SCRIPT_PATH, settingsPath: SETTINGS_PATH },
+      io,
+    );
+
+    const r = await maybeApplyPendingInstall({
+      homeDir: HOME,
+      detectActiveSessions: async () => ({
+        active: true,
+        count: 2,
+        projectsDirExists: true,
+      }),
+      pendingIO: io,
+      generateScript: () => DUMMY_SCRIPT,
+    });
+    expect(r.kind).toBe("skipped-active-session");
+    if (r.kind !== "skipped-active-session") return;
+    expect(r.count).toBe(2);
+
+    // Marker still there for the next attempt.
+    expect(state.files.has(MARKER_PATH)).toBe(true);
+    // settings.json NOT written.
+    expect(state.files.has(SETTINGS_PATH)).toBe(false);
+  });
+
+  it("applies when marker exists AND no active session", async () => {
+    const state: MockState = { files: new Map() };
+    const io = makeIO(state);
+    await writePendingMarker(
+      { homeDir: HOME, scriptPath: SCRIPT_PATH, settingsPath: SETTINGS_PATH },
+      io,
+    );
+
+    const logCalls: string[] = [];
+    const r = await maybeApplyPendingInstall({
+      homeDir: HOME,
+      detectActiveSessions: async () => ({
+        active: false,
+        count: 0,
+        projectsDirExists: true,
+      }),
+      pendingIO: io,
+      generateScript: () => DUMMY_SCRIPT,
+      log: (m) => logCalls.push(m),
+    });
+
+    expect(r.kind).toBe("applied");
+    if (r.kind !== "applied") return;
+    expect(r.scriptWritten).toBe(true);
+    expect(r.settingsWritten).toBe(true);
+
+    // settings.json was written, marker cleared.
+    expect(state.files.has(SETTINGS_PATH)).toBe(true);
+    expect(state.files.has(MARKER_PATH)).toBe(false);
+
+    // User got a notification log.
+    expect(logCalls.length).toBeGreaterThan(0);
+    expect(logCalls[0]).toMatch(/sipcode.*applied.*pending.*install/i);
+  });
+
+  it("defensive: detection failure does not block the apply", async () => {
+    const state: MockState = { files: new Map() };
+    const io = makeIO(state);
+    await writePendingMarker(
+      { homeDir: HOME, scriptPath: SCRIPT_PATH, settingsPath: SETTINGS_PATH },
+      io,
+    );
+
+    const r = await maybeApplyPendingInstall({
+      homeDir: HOME,
+      detectActiveSessions: async () => {
+        throw new Error("EACCES projects");
+      },
+      pendingIO: io,
+      generateScript: () => DUMMY_SCRIPT,
+    });
+
+    // Detection failed → conservative behavior is to SKIP apply (we don't
+    // know if it's safe). Don't break the user's session by guessing.
+    expect(r.kind).toBe("skipped-detection-error");
+  });
+
+  it("does not log when there was no marker to apply (no startup noise)", async () => {
+    const state: MockState = { files: new Map() };
+    const io = makeIO(state);
+    const logCalls: string[] = [];
+
+    await maybeApplyPendingInstall({
+      homeDir: HOME,
+      detectActiveSessions: async () => ({
+        active: false,
+        count: 0,
+        projectsDirExists: true,
+      }),
+      pendingIO: io,
+      generateScript: () => DUMMY_SCRIPT,
+      log: (m) => logCalls.push(m),
+    });
+    expect(logCalls.length).toBe(0);
+  });
+
+  it("clears stale marker silently (no log) when state is already up to date", async () => {
+    // Scenario: init ran with active session => marker written; user closed
+    // Claude Code; user re-ran `sipcode init --force` => settings + script
+    // installed directly; the next sipcode command finds the marker and
+    // applies it, but nothing actually changes. Clean state, no user noise.
+    const state: MockState = { files: new Map() };
+    const io = makeIO(state);
+
+    // Apply once to establish a fully-installed state.
+    await writePendingMarker(
+      { homeDir: HOME, scriptPath: SCRIPT_PATH, settingsPath: SETTINGS_PATH },
+      io,
+    );
+    await applyPendingInstall(
+      { homeDir: HOME, generateScript: () => DUMMY_SCRIPT },
+      io,
+    );
+
+    // Write a stale marker as if a second defer happened with same intent.
+    await writePendingMarker(
+      { homeDir: HOME, scriptPath: SCRIPT_PATH, settingsPath: SETTINGS_PATH },
+      io,
+    );
+
+    const logCalls: string[] = [];
+    const r = await maybeApplyPendingInstall({
+      homeDir: HOME,
+      detectActiveSessions: async () => ({
+        active: false,
+        count: 0,
+        projectsDirExists: true,
+      }),
+      pendingIO: io,
+      generateScript: () => DUMMY_SCRIPT,
+      log: (m) => logCalls.push(m),
+    });
+
+    // Apply happened (and cleared the marker), but nothing changed and no
+    // log was emitted.
+    expect(r.kind).toBe("applied");
+    if (r.kind !== "applied") return;
+    expect(r.scriptWritten).toBe(false);
+    expect(r.settingsWritten).toBe(false);
+    expect(logCalls.length).toBe(0);
+    expect(state.files.has(MARKER_PATH)).toBe(false);
+  });
+});

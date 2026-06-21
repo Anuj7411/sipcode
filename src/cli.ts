@@ -254,6 +254,100 @@ program
     if (r?.exitCode) process.exit(r.exitCode);
   });
 
+// v1.6.16 F-CACHE-DEFER: before any command (except `init`, which manages
+// its own pending state), check for a deferred install and auto-apply it
+// when there is no active Claude Code session. Silent unless the apply
+// actually changes something on disk.
+program.hook("preAction", async (_thisCommand, actionCommand) => {
+  if (actionCommand.name() === "init") return; // init has its own gate
+
+  try {
+    const { homedir } = await import("node:os");
+    const { promises: fsp } = await import("node:fs");
+    const { detectActiveClaudeSessions } = await import(
+      "./modules/init/sessionDetection.js"
+    );
+    const { maybeApplyPendingInstall } = await import(
+      "./modules/init/pendingInstall.js"
+    );
+    const { generateProxyHookScript } = await import(
+      "./modules/proxy/proxyHookScript.js"
+    );
+    const {
+      runRewriterModuleUrl,
+      hookReadDedupModuleUrl,
+      hookAstReadModuleUrl,
+    } = await import("./modules/proxy/install.js");
+
+    const home = homedir();
+
+    await maybeApplyPendingInstall({
+      homeDir: home,
+      async detectActiveSessions(homeDir) {
+        return detectActiveClaudeSessions({
+          homeDir,
+          io: {
+            async listDir(p) {
+              return fsp.readdir(p);
+            },
+            async stat(p) {
+              try {
+                const s = await fsp.stat(p);
+                return { mtimeMs: s.mtimeMs, isDirectory: s.isDirectory() };
+              } catch {
+                return null;
+              }
+            },
+            now() {
+              return new Date();
+            },
+          },
+        });
+      },
+      pendingIO: {
+        async readFile(p) {
+          try {
+            return await fsp.readFile(p, "utf-8");
+          } catch {
+            return null;
+          }
+        },
+        async writeFile(p, content) {
+          await fsp.mkdir(
+            (await import("node:path")).dirname(p),
+            { recursive: true },
+          );
+          await fsp.writeFile(p, content, "utf-8");
+        },
+        async deleteFile(p) {
+          try {
+            await fsp.unlink(p);
+          } catch {
+            // missing is fine
+          }
+        },
+        now() {
+          return new Date();
+        },
+      },
+      generateScript() {
+        return generateProxyHookScript(
+          runRewriterModuleUrl(),
+          hookReadDedupModuleUrl(),
+          hookAstReadModuleUrl(),
+        );
+      },
+      log(message) {
+        process.stderr.write(message + "\n");
+      },
+    });
+  } catch {
+    // The preAction hook is a pure ergonomic nicety. Any failure here must
+    // NEVER stop the user's actual command. Swallow and let the real action
+    // proceed.
+  }
+});
+
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);
   process.exit(1);

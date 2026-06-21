@@ -24,6 +24,7 @@ import {
   renderSettings,
 } from "../hygiene/settingsJson.js";
 import { installProxyHook } from "../proxy/install.js";
+import type { ActiveSessionsResult } from "./sessionDetection.js";
 
 export const PENDING_INSTALL_SCHEMA_V1 = "sipcode-install-pending/1" as const;
 type SchemaV1 = typeof PENDING_INSTALL_SCHEMA_V1;
@@ -193,4 +194,94 @@ export async function applyPendingInstall(
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// ──────────── maybeApplyPendingInstall — CLI auto-apply wrapper ───────────
+
+export interface MaybeApplyDeps {
+  readonly homeDir: string;
+  /** Same shape as SystemSetupDeps.detectActiveSessions. Injected so the
+   * CLI can use the real-fs implementation while tests use mocks. */
+  readonly detectActiveSessions: (
+    homeDir: string,
+  ) => Promise<ActiveSessionsResult>;
+  readonly pendingIO: PendingInstallIO;
+  readonly generateScript: () => string;
+  /** Optional logger. CLI passes a quiet writer; tests pass a buffer. */
+  readonly log?: (message: string) => void;
+}
+
+export type MaybeApplyResult =
+  | { readonly kind: "no-marker" }
+  | { readonly kind: "skipped-active-session"; readonly count: number }
+  | { readonly kind: "skipped-detection-error"; readonly error: string }
+  | {
+      readonly kind: "applied";
+      readonly scriptWritten: boolean;
+      readonly settingsWritten: boolean;
+    };
+
+/**
+ * The CLI startup hook for F-CACHE-DEFER. Called from `cli.ts` preAction:
+ *
+ *  - If no marker exists: instant no-op (sub-millisecond stat).
+ *  - If marker exists AND an active Claude Code session is running: skip,
+ *    leave marker for the next attempt. Don't trash the user's prompt
+ *    cache mid-session.
+ *  - If marker exists AND no active session: apply the install, clear
+ *    the marker, log a single line so the user knows what happened.
+ *  - If detection itself throws: conservatively SKIP. We don't know if
+ *    it's safe; better to ask the user to re-run later than to guess
+ *    wrong and clobber their session.
+ *
+ * Never throws — every path returns a result the caller can ignore safely.
+ */
+export async function maybeApplyPendingInstall(
+  deps: MaybeApplyDeps,
+): Promise<MaybeApplyResult> {
+  // Fast path: probe for the marker first to avoid the detection overhead
+  // when there's nothing pending.
+  const marker = await readPendingMarker(deps.homeDir, deps.pendingIO);
+  if (marker === null) return { kind: "no-marker" };
+
+  // Marker exists. Check active sessions before applying.
+  let active: ActiveSessionsResult;
+  try {
+    active = await deps.detectActiveSessions(deps.homeDir);
+  } catch (err) {
+    return {
+      kind: "skipped-detection-error",
+      error: err instanceof Error ? err.message : "unknown detection error",
+    };
+  }
+
+  if (active.active) {
+    return { kind: "skipped-active-session", count: active.count };
+  }
+
+  // Safe to apply.
+  const applyResult = await applyPendingInstall(
+    { homeDir: deps.homeDir, generateScript: deps.generateScript },
+    deps.pendingIO,
+  );
+
+  // Only log if the apply actually changed something. When init already
+  // installed via the normal path (no active session at the time), the
+  // marker may be stale; applyPendingInstall is then a no-op-but-clears.
+  // Silent in that case so the user does not see a confusing message
+  // about an apply that did nothing.
+  if (
+    applyResult.kind === "applied" &&
+    (applyResult.scriptWritten || applyResult.settingsWritten) &&
+    deps.log
+  ) {
+    deps.log(
+      "sipcode applied a pending install (settings.json updated, prompt cache impact deferred until now).",
+    );
+  }
+
+  // Forward the apply result. "no-marker" should be unreachable here
+  // (we just checked) but the union widening means we return it as-is.
+  if (applyResult.kind === "no-marker") return { kind: "no-marker" };
+  return applyResult;
 }
