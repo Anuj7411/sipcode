@@ -8,7 +8,28 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.15]._
+_Nothing landed since [1.6.16]._
+
+---
+
+## [1.6.16] — 2026-06-22
+
+F-CACHE-DEFER + F-NATIVE-GREP — the two P0 fixes from the 2026-06-17 dogfood backlog. Tests 1,317 → 1,363.
+
+### Fixed
+- **F-CACHE-DEFER: `sipcode init` no longer invalidates the prompt cache of an active Claude Code session.** v1.6.15's Verified Warm-Fill fixed Sipcode's own dedup cache, but a separate problem remained: writing `~/.claude/settings.json` mid-session forces Anthropic's prompt cache to reset, which can cost more in extra input tokens than Sipcode saves on tool output. Anuj's 2026-06-17 session: `sipcode drift` flagged "Cache reuse down 83 points" and the regression dwarfed the proxy savings on that day. v1.6.16 detects active Claude Code sessions before writing settings.json and defers the write to a pending marker if one exists; the next quiet `sipcode` command auto-applies. The hook script file itself is still written immediately (safe — does not invalidate the cache). Pass `--force` to install anyway when you want to bypass the check.
+- **F-NATIVE-GREP: raised the `native-grep` cap from 50 to 100 matches.** The same dogfood session showed `native-grep` was 30% of all proxy work but had the lowest signal-kept ratio (65%). Symbol lookups in larger codebases routinely returned 50–100 matches Claude needed for follow-up reads; the 50-cap was too aggressive. Doubling the cap restores most of that signal while still bounding pathological greps. Integrity declaration moves from 0.65 to 0.78.
+
+### Added
+- **`src/modules/init/sessionDetection.ts`** — pure module that scans `~/.claude/projects/<proj>/sessions/<sid>.jsonl` for files modified within the threshold (default 5 min = Anthropic's prompt-cache TTL). 13 tests cover empty layouts, single recent/stale detection, multi-project counts, permission failures, race-condition stat-returns-null, non-jsonl filtering, and custom thresholds.
+- **`src/modules/init/pendingInstall.ts`** — marker module at `~/.sipcode/install-pending.json` (schema `sipcode-install-pending/1`). Strict version validation rejects unknown future schemas rather than mis-applying. `applyPendingInstall` regenerates the proxy hook script at apply time (so users always get the latest) and applies `installProxyHook` against the CURRENT settings.json (preserving any user-managed hook entries). Idempotent: a second apply finds no marker and no-ops.
+- **`maybeApplyPendingInstall`** — CLI startup wrapper. Wired into `cli.ts` via a Commander `preAction` hook for every command except `init`. Fast no-op when no marker; skips when an active session is detected (cache safety); applies when safe and logs a single line. Hook failures never block the user's actual command.
+- **`--force` flag on `sipcode init`.** Bypasses F-CACHE-DEFER active-session detection and installs settings.json directly, invalidating the active session's prompt cache. Use when you want the install now and accept the cost (e.g. on a fresh machine where the "active session" is the one you just opened to install Sipcode).
+- **New `StepStatus` variant `{ kind: "deferred"; reason: string }`** for the v1.6.15 SETUP card. Renders with the ⏸ glyph and a specific footer ("auto-applies on your next sipcode command outside an active session, or pass --force") so users understand what happened and what to do next.
+
+### Engineering
+- Test count: 1,317 → 1,363 (46 new tests). Branch `v1.6.16-fixes` ships as one PR for review surface; full suite green every commit.
+- Branch and commit trail: each step (detection module / pending-install module / runSystemSetup integration / CLI auto-apply / nativeGrep tune) ships as a separate commit with the related tests included, so any single step can be reverted in isolation.
 
 ---
 
