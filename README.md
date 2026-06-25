@@ -38,6 +38,8 @@ sipcode drift
 
 If the output reads `no drift, context health stable`, Sipcode is doing its job.
 
+> **Already installed? Keep it fresh.** Sipcode makes zero network calls, so it can't pop an "update available" notice. Build a weekly habit: run `sipcode update` (or `npm i -g sipcode@latest`) to pull the latest fixes. Full details in [Updating Sipcode](#updating-sipcode).
+
 ---
 
 ## What is Sipcode?
@@ -175,7 +177,7 @@ Verify it installed:
 sipcode --version
 ```
 
-You should see `1.6.15` or higher.
+You should see `1.6.18` or higher.
 
 ### Step 3. Run `sipcode init` to wire it into Claude Code
 
@@ -228,7 +230,7 @@ sipcode update --run    # runs the update in place for you
 
 After updating, confirm with `sipcode --version` and see what changed in the [CHANGELOG](CHANGELOG.md). The MCP config never needs re-pasting; Claude asks the server for its tools on every reconnect, so new tools appear automatically.
 
-**Release cadence:** patch releases ship whenever a fix or improvement is ready, often within a day or two of a reported issue. Watch or star the [repo](https://github.com/Anuj7411/sipcode) to be notified of new releases.
+**Release cadence:** patch releases ship whenever a fix or improvement is ready, often within a day or two of a reported issue. Since Sipcode can't notify you (zero network calls), a good habit is to run `sipcode update` about once a week. It's a one-second check, and `--run` upgrades you on the spot if something's new. Watch or star the [repo](https://github.com/Anuj7411/sipcode) to catch releases too.
 
 ---
 
@@ -240,6 +242,8 @@ After updating, confirm with `sipcode --version` and see what changed in the [CH
 | Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
 | Spend telemetry | Daily, monthly, projected. All from your own transcripts, no cloud upload |
+| Task cost estimation | Predicts what a coding task will cost across Opus, Sonnet, and Haiku before you run it |
+| Codebase health score | Rates your repo 0-100 on how easy it is for an AI agent to work in |
 | MCP server | 15 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
 | Reproducible benchmark | A locked 20-task corpus that anyone can run and verify |
 
@@ -290,14 +294,20 @@ npm uninstall -g sipcode
 |---|---|
 | `sipcode init` | Set up Sipcode in a project (manifest + CLAUDE.md + proxy hook) |
 | `sipcode update` | Show how to update to the latest version (or `--run` to update now) |
+| `sipcode hygiene` | Install Session Hygiene: read-once rules + context-pressure hooks |
+| `sipcode rules` | Install, switch, or inspect the output-compression rules in CLAUDE.md |
+| `sipcode manifest` | Generate or refresh the project manifest |
 | `sipcode drift` | Check if the current session is drifting from your norm |
-| `sipcode proxy --stats` | See what the proxy caught this session |
-| `sipcode benchmark` | Run the locked 20-task corpus |
-| `sipcode today` | Today's spend summary |
-| `sipcode forecast` | Month-end spend projection |
-| `sipcode impact` | Before vs after Sipcode comparison |
-| `sipcode why` | Per-session forensics |
-| `sipcode score` | Audit your repo for AI-friendliness |
+| `sipcode proxy --stats` | See what the proxy caught this session (also `--install` / `--uninstall`) |
+| `sipcode benchmark` | Run the locked 20-task corpus for a verifiable savings number |
+| `sipcode estimate` | Predict what a task will cost across models before you run it |
+| `sipcode today` | Today's spend summary vs your 30-day median |
+| `sipcode stats` | Cumulative token savings across all sessions |
+| `sipcode forecast` | Month-end spend projection from your last 14 days |
+| `sipcode trend` | Track one metric over time, to see if it's getting better |
+| `sipcode why` | Per-session forensics: where your tokens died |
+| `sipcode impact` | A/B compare your spend before vs after Sipcode |
+| `sipcode score` | Audit your repo for AI-friendliness (0-100, tiered badge) |
 | `sipcode receipt` | Generate a shareable PDF receipt of a session |
 
 Run any of them with `--help` for full options.
