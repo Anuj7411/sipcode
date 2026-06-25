@@ -42,6 +42,22 @@ function costForTurn(
   );
 }
 
+/**
+ * True if a session has no real token activity — either usage data was entirely
+ * absent (missingAllUsage) or every billable token field is zero. Used to filter
+ * synthetic / observer / empty sessions out of counts and "latest session" picks.
+ */
+export function isEmptySession(totals: TokenTotals): boolean {
+  if (totals.missingAllUsage) return true;
+  return (
+    totals.inputTokens +
+      totals.outputTokens +
+      totals.cacheReadTokens +
+      totals.cacheCreationTokens ===
+    0
+  );
+}
+
 export function analyzeTokens(
   session: ParsedSession,
   pricing: PricingFile,

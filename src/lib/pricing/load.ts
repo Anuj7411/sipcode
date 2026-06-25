@@ -67,6 +67,7 @@ export function pricingAgeDays(pricing: PricingFile, now: Date): number {
 
 const MODEL_ALIASES: Record<string, string> = {
   // Internal/dotted Claude Code model names → canonical pricing keys.
+  "claude-opus-4-8": "claude-opus-4",
   "claude-opus-4-7": "claude-opus-4",
   "claude-opus-4-6": "claude-opus-4",
   "claude-opus-4-5": "claude-opus-4",

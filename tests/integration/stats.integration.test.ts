@@ -218,6 +218,27 @@ describe("runStats integration", () => {
     expect(err.join("\n")).toContain("[E003]");
   });
 
+  it("empty projects dir (brand-new user) is a friendly exit 0, not a false 'transcripts exist'", async () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const fs = new InMemoryFs();
+    fs.mkdir("/home/u/.claude/projects"); // dir exists, but holds no transcripts
+    const result = await runStats(
+      { since: "30d" },
+      {
+        fs,
+        env: makeEnv(),
+        clock: new FakeClock(NOW),
+        stdout: (s) => out.push(s),
+        stderr: (s) => err.push(s),
+      },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(out.join("\n")).toContain("no Claude Code sessions found yet");
+    // Must NOT claim transcripts exist when none do.
+    expect(out.join("\n")).not.toContain("transcripts exist");
+  });
+
   it("--html writes .sipcode/stats.html via injected writeFile", async () => {
     const wrote: { path: string; content: string } = { path: "", content: "" };
     const out: string[] = [];

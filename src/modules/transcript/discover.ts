@@ -35,8 +35,24 @@ export async function projectsDirExists(
 }
 
 /**
+ * Project dirs created by observer/telemetry plugins (e.g. claude-mem) that
+ * hold synthetic, zero-work sessions. They pollute session counts and the
+ * "latest session" pick, so they are excluded from discovery entirely.
+ */
+const OBSERVER_DIR_PATTERNS: readonly RegExp[] = [
+  /-observer-sessions$/i,
+  /claude-mem-observer/i,
+];
+
+/** True if a project-hash dir name belongs to an observer/telemetry plugin. */
+export function isObserverProjectDir(name: string): boolean {
+  return OBSERVER_DIR_PATTERNS.some((re) => re.test(name));
+}
+
+/**
  * List all sessions across all project directories.
  * Sorted by mtime descending (most recent first).
+ * Observer/telemetry project dirs (see {@link isObserverProjectDir}) are skipped.
  */
 export async function listAllSessions(
   fs: FileSystem,
@@ -47,6 +63,7 @@ export async function listAllSessions(
   const projectDirs = await fs.readDir(projectsDir);
   for (const proj of projectDirs) {
     if (!proj.isDirectory) continue;
+    if (isObserverProjectDir(proj.name)) continue;
     const projPath = path.join(projectsDir, proj.name);
     let entries;
     try {

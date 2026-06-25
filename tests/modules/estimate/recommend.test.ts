@@ -83,7 +83,7 @@ describe("recommend", () => {
         classifyTask("refactor the auth module"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-opus-4-7");
+      expect(r.model).toBe("claude-opus-4-8");
     });
 
     it("high debug → sonnet (iterates a lot)", () => {

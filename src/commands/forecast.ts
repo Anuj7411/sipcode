@@ -10,7 +10,7 @@ import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { getAgentById } from "../modules/agents/registry.js";
 import type { AgentId } from "../modules/agents/types.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { runForecast, type ForecastSession } from "../modules/forecast/runForecast.js";
 import { formatForecastTerminal } from "../modules/forecast/format-terminal.js";
 import { formatForecastJson } from "../modules/forecast/format-json.js";
@@ -66,6 +66,7 @@ export async function runForecastCmd(
     const parsed = parseResult.value;
     const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
     const tokens = analyzeTokens(parsed, pricing);
+    if (isEmptySession(tokens)) continue;
     sessions.push({ startedAt, estCostUSD: tokens.estCostUSD });
   }
 

@@ -181,6 +181,16 @@ program
   });
 
 program
+  .command("update")
+  .description("Show how to update Sipcode to the latest version (or --run to update now).")
+  .option("--run", "run `npm i -g sipcode@latest` now instead of just printing it")
+  .action(async (opts) => {
+    const { runUpdate } = await import("./commands/update.js");
+    const r = await runUpdate(opts, { version: pkg.version });
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("hygiene")
   .description("Install Sipcode Session Hygiene: read-once rules + context-pressure hooks.")
   .option("--install", "install the hygiene block + register PreToolUse/PostToolUse hooks (idempotent)")

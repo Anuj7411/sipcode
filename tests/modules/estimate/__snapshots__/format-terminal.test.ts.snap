@@ -9,7 +9,7 @@ historical anchors: 4 matched (median 187,000 tokens) — confidence: high
 
 estimated cost (0.7×-1.4× confidence band):
 
-  opus 4.7     $1.83  ($1.28 - $2.56)    195,000 tokens (137,000 - 274,000)
+  opus 4.8     $1.83  ($1.28 - $2.56)    195,000 tokens (137,000 - 274,000)
   sonnet 4.6   $0.37  ($0.26 - $0.51)    195,000 tokens (137,000 - 274,000)
   haiku 4.5    $0.10  ($0.07 - $0.14)    195,000 tokens (137,000 - 274,000)
 
