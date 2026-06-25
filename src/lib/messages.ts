@@ -272,6 +272,15 @@ export const MESSAGES = {
       `next: npx sipcode stats --group-by project`,
     ].join("\n"),
 
+  statsNoSessionsYet: () =>
+    [
+      `no Claude Code sessions found yet.`,
+      ``,
+      `why: sipcode reads the transcripts Claude Code writes per session, and none exist yet.`,
+      ``,
+      `fix: open Claude Code, run any prompt, then come back and run this again.`,
+    ].join("\n"),
+
   statsNoSessionsInWindow: (raw: string) =>
     [
       `no sessions found in the last ${raw}.`,

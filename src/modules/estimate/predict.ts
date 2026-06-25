@@ -31,7 +31,7 @@ import type {
 
 /** The three canonical models we always predict against. */
 export const PREDICTION_MODELS: ReadonlyArray<string> = [
-  "claude-opus-4-7",
+  "claude-opus-4-8",
   "claude-sonnet-4-6",
   "claude-haiku-4-5",
 ];

@@ -16,7 +16,7 @@ import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { getAgentById } from "../modules/agents/registry.js";
 import type { AgentId } from "../modules/agents/types.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import {
   computeTrend,
@@ -116,6 +116,7 @@ export async function runTrend(
     if (startedDay < sinceIso || startedDay > untilIso) continue;
 
     const totals = analyzeTokens(parsed, pricing);
+    if (isEmptySession(totals)) continue;
     const dups = analyzeDuplicateReads(parsed);
     const totalTokens =
       totals.inputTokens +

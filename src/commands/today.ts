@@ -12,7 +12,7 @@ import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { getAgentById } from "../modules/agents/registry.js";
 import type { AgentId } from "../modules/agents/types.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { runToday, type TodaySession } from "../modules/today/runToday.js";
 import { formatTodayTerminal } from "../modules/today/format-terminal.js";
@@ -70,6 +70,7 @@ export async function runTodayCmd(
     const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
 
     const tokens = analyzeTokens(parsed, pricing);
+    if (isEmptySession(tokens)) continue;
     const dups = analyzeDuplicateReads(parsed);
     const totalTokens =
       tokens.inputTokens +

@@ -26,7 +26,7 @@ export function recommend(
   complexity: ComplexityScore,
   anchors: HistoricalAnchors,
 ): Recommendation {
-  const opus = predictions.find((p) => p.model === "claude-opus-4-7");
+  const opus = predictions.find((p) => p.model === "claude-opus-4-8");
   const sonnet = predictions.find((p) => p.model === "claude-sonnet-4-6");
   const haiku = predictions.find((p) => p.model === "claude-haiku-4-5");
 

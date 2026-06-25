@@ -8,7 +8,22 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.16]._
+_Nothing landed since [1.6.17]._
+
+## [1.6.17] — 2026-06-25
+
+Quality-of-life release: a real update path, cleaner numbers, and the current model name.
+
+### Added
+- **`sipcode update`** — a one-stop command that shows your installed version and the exact command to upgrade. Run it plain to print `npm i -g sipcode@latest` (plus a link to this changelog), or `sipcode update --run` to upgrade in place. Sipcode still never checks for updates on its own — zero network calls — so updating stays a deliberate, manual step. README gained a matching "Updating Sipcode" section and FAQ entry.
+
+### Fixed
+- **Stats no longer counts sessions that aren't yours.** Observer/telemetry plugins (e.g. claude-mem) create synthetic, zero-work session folders under `~/.claude/projects`. Those were inflating `stats`, `today`, and `why` — one machine showed 1,446 sessions when only ~21 were real, and `today` reported "0 tokens" across dozens of empty sessions. Sipcode now skips observer project folders and empty (zero-token) sessions everywhere, so counts, daily spend, and the "latest session" pick reflect real work. The same fix flows through the MCP tools, which read the identical discovery path.
+- **`estimate` now names the current model.** It showed "opus 4.7"; it now shows "opus 4.8" (alongside sonnet 4.6 / haiku 4.5).
+- **Friendlier first run.** On a machine with no Claude Code sessions yet, `sipcode stats` used to claim "transcripts exist, but none in the window" — false for a brand-new user. It now says "no Claude Code sessions found yet" and points you at getting started.
+
+### Internal
+- Test count: 1,363 → 1,373. Full suite green. The new `sipcode update` command stays inside the zero-network privacy guard (no `node:http` / `node:https` / `node:net` / `node:dns`) and the no-shell-args guard (npm is resolved as `npm.cmd` on Windows, no `shell: true`).
 
 ---
 
@@ -215,7 +230,9 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.15...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.17...HEAD
+[1.6.17]: https://github.com/Anuj7411/sipcode/compare/v1.6.16...v1.6.17
+[1.6.16]: https://github.com/Anuj7411/sipcode/compare/v1.6.15...v1.6.16
 [1.6.15]: https://github.com/Anuj7411/sipcode/compare/v1.6.14...v1.6.15
 [1.6.14]: https://github.com/Anuj7411/sipcode/compare/v1.6.13...v1.6.14
 [1.6.13]: https://github.com/Anuj7411/sipcode/compare/v1.6.12...v1.6.13

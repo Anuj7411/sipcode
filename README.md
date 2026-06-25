@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/v/sipcode?color=5B4FCF&label=npm" alt="npm" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-1%2C363%20passing-28C840" alt="1363 tests passing" />
+  <img src="https://img.shields.io/badge/tests-1%2C373%20passing-28C840" alt="1373 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -209,6 +209,29 @@ If drift says "no drift" and proxy --stats shows a few dozen rewrites with savin
 
 ---
 
+## Updating Sipcode
+
+Sipcode never checks for updates on its own. That would require a network call, and zero network calls in normal use is a guaranteed property of the codebase (a test fails the build otherwise). Updating is always a manual, explicit step.
+
+To update to the latest version:
+
+```bash
+npm i -g sipcode@latest
+```
+
+Or use the built-in helper:
+
+```bash
+sipcode update          # prints your current version + the update command
+sipcode update --run    # runs the update in place for you
+```
+
+After updating, confirm with `sipcode --version` and see what changed in the [CHANGELOG](CHANGELOG.md). The MCP config never needs re-pasting; Claude asks the server for its tools on every reconnect, so new tools appear automatically.
+
+**Release cadence:** patch releases ship whenever a fix or improvement is ready, often within a day or two of a reported issue. Watch or star the [repo](https://github.com/Anuj7411/sipcode) to be notified of new releases.
+
+---
+
 ## What you get
 
 | Feature | What it does for you |
@@ -244,6 +267,14 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 Today, only with Claude Code (since Claude Code is the only tool that exposes the hooks Sipcode needs). Support for other CLIs is something we are exploring.
 
+### How do I update?
+
+```bash
+npm i -g sipcode@latest
+```
+
+Or run `sipcode update` to see your version and the command, or `sipcode update --run` to update in place. Sipcode never auto-checks for updates (zero network calls), so updating is always explicit. See the [CHANGELOG](CHANGELOG.md) for what changed.
+
 ### How do I uninstall?
 
 ```bash
@@ -258,6 +289,7 @@ npm uninstall -g sipcode
 | Command | What it does |
 |---|---|
 | `sipcode init` | Set up Sipcode in a project (manifest + CLAUDE.md + proxy hook) |
+| `sipcode update` | Show how to update to the latest version (or `--run` to update now) |
 | `sipcode drift` | Check if the current session is drifting from your norm |
 | `sipcode proxy --stats` | See what the proxy caught this session |
 | `sipcode benchmark` | Run the locked 20-task corpus |

@@ -15,7 +15,7 @@ import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import {
@@ -145,6 +145,9 @@ export async function runStats(
     return { exitCode: 1 };
   }
   let metas = discovery.value;
+  // Raw count before any --here scoping — lets us tell a brand-new user
+  // (zero transcripts anywhere) from "none in this window/cwd".
+  const totalDiscovered = discovery.value.length;
 
   // --here filter: scope to the cwd's projectHash.
   if (opts.here) {
@@ -189,6 +192,7 @@ export async function runStats(
     if (!isInWindow(window, startedAt)) continue;
 
     const totals = analyzeTokens(parsed, pricing);
+    if (isEmptySession(totals)) continue;
     const dups = analyzeDuplicateReads(parsed);
     const idle = analyzeIdleContext(parsed);
 
@@ -222,6 +226,11 @@ export async function runStats(
         warnings,
       });
       stdout(formatJson(empty));
+      return { exitCode: 0 };
+    }
+    if (totalDiscovered === 0) {
+      // Brand-new user: no transcripts exist anywhere. Don't claim they do.
+      stdout(MESSAGES.statsNoSessionsYet());
       return { exitCode: 0 };
     }
     stderr(MESSAGES.statsNoSessionsInWindow(window.raw));
