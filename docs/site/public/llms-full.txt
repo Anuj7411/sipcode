@@ -140,7 +140,7 @@ Verify: `node --version` should show v18.0.0 or higher.
 npm i -g sipcode
 ```
 
-Verify: `sipcode --version` should show 1.6.17 or higher.
+Verify: `sipcode --version` should show 1.6.18 or higher.
 
 ### Step 3. Run `sipcode init`
 

@@ -8,7 +8,14 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.17]._
+_Nothing landed since [1.6.18]._
+
+## [1.6.18] — 2026-06-25
+
+Registry-casing patch. No functional change to the CLI or MCP server.
+
+### Fixed
+- **Corrected `mcpName` casing for the Official MCP Registry.** v1.6.17 shipped `mcpName: io.github.anuj7411/sipcode` (lowercase, per the registry docs' examples), but GitHub-based registry auth preserves the exact GitHub username, granting the `io.github.Anuj7411/*` namespace. The registry's package-ownership check is case-sensitive, so registration required the published `package.json` to carry `io.github.Anuj7411/sipcode`. Bumped so the npm artifact matches. `server.json` updated to the same casing + version.
 
 ## [1.6.17] — 2026-06-25
 
@@ -230,7 +237,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.17...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.18...HEAD
+[1.6.18]: https://github.com/Anuj7411/sipcode/compare/v1.6.17...v1.6.18
 [1.6.17]: https://github.com/Anuj7411/sipcode/compare/v1.6.16...v1.6.17
 [1.6.16]: https://github.com/Anuj7411/sipcode/compare/v1.6.15...v1.6.16
 [1.6.15]: https://github.com/Anuj7411/sipcode/compare/v1.6.14...v1.6.15

@@ -54,7 +54,7 @@ Sipcode ships an MCP server exposing 15 tools so Claude Code can introspect its 
 ## Source code
 
 - [GitHub repository](https://github.com/Anuj7411/sipcode): MIT licensed source, 1,373 tests
-- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.6.17
+- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.6.18
 - [Privacy test](https://github.com/Anuj7411/sipcode/blob/main/src): build-blocking check that no network modules are imported in `src/`
 
 ## License

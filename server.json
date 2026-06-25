@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.anuj7411/sipcode",
+  "name": "io.github.Anuj7411/sipcode",
   "title": "Sipcode",
-  "description": "Keep Claude Code's context clean: drift detection, re-read dedup, integrity scoring, and token analytics. Makes zero network calls in normal use.",
+  "description": "Context hygiene for Claude Code: drift detection, re-read dedup, and token analytics.",
   "repository": {
     "url": "https://github.com/Anuj7411/sipcode",
     "source": "github"
   },
-  "version": "1.6.17",
+  "version": "1.6.18",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "sipcode",
-      "version": "1.6.17",
+      "version": "1.6.18",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
