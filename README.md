@@ -329,7 +329,7 @@ npm uninstall -g sipcode
 
 Run any of them with `--help` for full options.
 
-**Tip: which session do these report on?** `sipcode why`, `today`, and `stats` look at your most recent session across **all** projects by default, not the folder you happen to be standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope a command to the project you are currently in, add `--here` (for example, `sipcode why --here`). Use `sipcode why --list` to see every session and pick one with `--session <id>`.
+**Tip: which session do these report on?** `sipcode why` and `sipcode stats` look at your most recent session across **all** projects by default, not the folder you happen to be standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope either to the project you are currently in, add `--here` (for example, `sipcode why --here`). Use `sipcode why --list` to see every session and pick one with `--session <id>`. (`sipcode today` always summarizes all of today's sessions and has no `--here`.)
 
 ---
 
