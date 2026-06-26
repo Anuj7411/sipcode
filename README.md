@@ -194,6 +194,21 @@ This command does four things:
 
 You will see a checklist as it runs. Each step shows a checkmark when it completes.
 
+**The two questions it asks** (and what to pick):
+
+**1. Manifest budget.** How lean to keep the project summary Sipcode injects.
+- **tighten** (recommended): auto-trims low-signal sections so the summary stays lean, and never blocks you.
+- **strict**: hard-caps the manifest at 2k tokens and refuses if it would go over.
+- **off**: no cap, the manifest can grow to any size.
+
+**2. Output compression rules.** How terse Claude's replies are in this project.
+- **default** (recommended): diff-style edits, no "here's what I did" preamble.
+- **strict**: telegraphic, clipped replies, for power users who want maximum brevity.
+- **verbose**: extra context and explanation, good while you are still learning the tool.
+- **skip**: don't install reply rules at all.
+
+Not sure? Take the recommended option in each. You can change either choice later: run `sipcode rules --mode <default|strict|verbose>` for the reply style, or re-run `sipcode manifest` to regenerate the summary.
+
 ### Step 4. Open a new Claude Code session
 
 Sipcode picks up automatically on the next tool call Claude makes. No restart needed in most cases. To be safe, you can close any existing Claude Code window and open a fresh one.
@@ -311,6 +326,8 @@ npm uninstall -g sipcode
 | `sipcode receipt` | Generate a shareable PDF receipt of a session |
 
 Run any of them with `--help` for full options.
+
+**Tip: which session do these report on?** `sipcode why`, `today`, and `stats` look at your most recent session across **all** projects by default, not the folder you happen to be standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope a command to the project you are currently in, add `--here` (for example, `sipcode why --here`). Use `sipcode why --list` to see every session and pick one with `--session <id>`.
 
 ---
 
