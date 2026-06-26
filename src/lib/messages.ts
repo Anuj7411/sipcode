@@ -272,6 +272,12 @@ export const MESSAGES = {
       `next: npx sipcode stats --group-by project`,
     ].join("\n"),
 
+  starNudge: () =>
+    [
+      `  ★ enjoying Sipcode? a GitHub star helps other devs find it:`,
+      `     https://github.com/Anuj7411/sipcode`,
+    ].join("\n"),
+
   statsNoSessionsYet: () =>
     [
       `no Claude Code sessions found yet.`,
