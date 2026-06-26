@@ -108,10 +108,19 @@ export async function listSessionsHere(
   // Match by cwd path → claude-code style hash.
   // Windows: C:\Projects\Sipcode -> "C--Projects-Sipcode"
   // POSIX:   /home/u/proj         -> "-home-u-proj"
-  const cwdHash = cwd
-    .replace(/:/g, "-")
-    .replace(/[\\/]/g, "-");
+  const cwdHash = cwdToProjectHash(cwd);
   return all.filter((s) => s.projectHash === cwdHash || cwdHash.endsWith(s.projectHash));
+}
+
+/**
+ * Encode a working-directory path the way Claude Code names its project dirs:
+ * the drive colon, slashes, AND whitespace all collapse to "-". Claude Code
+ * turns "C:\Projects\just research" into "C--Projects-just-research", so we
+ * must match the space-to-dash step or `--here` silently finds nothing for any
+ * project whose path contains a space.
+ */
+export function cwdToProjectHash(cwd: string): string {
+  return cwd.replace(/:/g, "-").replace(/[\\/\s]/g, "-");
 }
 
 export async function findSessionById(
