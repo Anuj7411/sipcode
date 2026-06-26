@@ -29,7 +29,7 @@ const base = import.meta.env.BASE_URL;
   <!-- H3 defense-in-depth: CSP. The site is fully static; the only inline
        scripts are the mascot interactivity and scroll-reveal IO observer.
        'unsafe-inline' is required for those; everything else is locked down. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://gateway.umami.is https://api-gateway.umami.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://api.producthunt.com; connect-src 'self' https://gateway.umami.is https://api-gateway.umami.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
   <!-- Umami analytics: self-hosted script (no CDN compromise risk),
        beacon POSTs to gateway.umami.is. Privacy-respecting, zero cookies, no PII. -->
   <script defer src={`${base}/umami.js`} data-website-id="43a9182d-f3fe-46eb-b172-e347b520b9ae" data-host-url="https://gateway.umami.is"></script>
