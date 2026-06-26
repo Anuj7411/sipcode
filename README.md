@@ -12,6 +12,8 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/v/sipcode?color=5B4FCF&label=npm" alt="npm" /></a>
+  <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
+  <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
   <img src="https://img.shields.io/badge/tests-1%2C373%20passing-28C840" alt="1373 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
