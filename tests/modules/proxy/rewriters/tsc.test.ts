@@ -8,7 +8,7 @@ describe("rewriteTsc", () => {
     // through head instead of head masking it as success.
     expect(r!.updatedInput.command).toContain("set -o pipefail;");
     expect(r).not.toBeNull();
-    expect(r!.updatedInput.command).toContain("| head -100");
+    expect(r!.updatedInput.command).toContain("awk 'NR<=100'");
     expect(r!.updatedInput.command).toContain("2>&1");
     expect(r!.rewriterName).toBe("tsc");
   });
@@ -17,7 +17,7 @@ describe("rewriteTsc", () => {
     const r = rewriteTsc({ command: "tsc --noEmit" });
     expect(r).not.toBeNull();
     expect(r!.updatedInput.command).toContain("tsc --noEmit");
-    expect(r!.updatedInput.command).toContain("| head -100");
+    expect(r!.updatedInput.command).toContain("awk 'NR<=100'");
   });
 
   it("works on npx tsc", () => {

@@ -3,7 +3,7 @@
  * find typically returns more entries than ls so the cap is higher.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasOutputLimit } from "./base.js";
+import { commandStartsWith, hasOutputLimit, capLines } from "./base.js";
 
 const HEAD_LIMIT = 100;
 
@@ -14,7 +14,7 @@ export const rewriteFind: RewriterFn = (input) => {
   if (cmd.includes("&&") || cmd.includes("||") || cmd.includes(";") || cmd.includes("|")) {
     return null;
   }
-  const updated = `${cmd} | head -${HEAD_LIMIT}`;
+  const updated = capLines(cmd, HEAD_LIMIT);
   return {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 2500,

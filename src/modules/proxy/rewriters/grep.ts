@@ -7,7 +7,13 @@
  * For non-recursive grep without an output limit, pipe to `| head -50`.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag, hasOutputLimit, hasShortFlag } from "./base.js";
+import {
+  commandStartsWith,
+  hasFlag,
+  hasOutputLimit,
+  hasShortFlag,
+  capLines,
+} from "./base.js";
 
 const HEAD_LIMIT = 50;
 
@@ -36,7 +42,7 @@ export const rewriteGrep: RewriterFn = (input) => {
     if (wantsLines) {
       if (!hasOutputLimit(cmd) && !cmd.includes("|")) {
         return {
-          updatedInput: { ...input, command: `${cmd} | head -${HEAD_LIMIT}` },
+          updatedInput: { ...input, command: capLines(cmd, HEAD_LIMIT) },
           savedTokensEstimate: 1500,
           rewriterName: "grep",
           integrityScore: 0.6,
@@ -60,7 +66,7 @@ export const rewriteGrep: RewriterFn = (input) => {
   // Non-recursive grep without an output cap → pipe to head.
   if (!recursive && !hasOutputLimit(cmd) && !cmd.includes("|")) {
     return {
-      updatedInput: { ...input, command: `${cmd} | head -${HEAD_LIMIT}` },
+      updatedInput: { ...input, command: capLines(cmd, HEAD_LIMIT) },
       savedTokensEstimate: 1500,
       rewriterName: "grep",
       integrityScore: 0.6,

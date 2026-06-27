@@ -50,7 +50,7 @@ describe("rewriteNpmView", () => {
   it("appends head -80 to `npm view <pkg>` with no field arg", () => {
     const r = rewriteNpmView({ command: "npm view react" });
     expect(r).not.toBeNull();
-    expect(r!.updatedInput.command).toContain("| head -80");
+    expect(r!.updatedInput.command).toContain("awk 'NR<=80'");
     expect(r!.rewriterName).toBe("npm-view");
   });
 
