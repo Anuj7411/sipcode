@@ -7,6 +7,11 @@ describe("rewriteGrep", () => {
     expect(r?.updatedInput.command).toBe("grep -c -r foo .");
     expect(r?.rewriterName).toBe("grep");
   });
+  it("recursive grep with -n keeps the lines (head cap, not -c)", () => {
+    const r = rewriteGrep({ command: "grep -rn foo src/" });
+    // must NOT collapse to -c — that would drop the line numbers Claude asked for
+    expect(r?.updatedInput.command).toBe("grep -rn foo src/ | head -50");
+  });
   it("does NOT add -c when already in count mode", () => {
     expect(rewriteGrep({ command: "grep -rc foo ." })).toBeNull();
   });

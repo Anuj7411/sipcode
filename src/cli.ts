@@ -54,7 +54,17 @@ program
   .action(async (opts) => {
     const { runInit } = await import("./commands/init.js");
     const { homedir } = await import("node:os");
-    const r = await runInit(opts, { homeDir: homedir() });
+    // Commander stores --no-X as opts.x=false; the runner reads opts.noX.
+    const r = await runInit(
+      {
+        ...opts,
+        noClaudeMd: opts.claudeMd === false,
+        noProxy: opts.proxy === false,
+        noMarker: opts.marker === false,
+        noVerifyMcp: opts.verifyMcp === false,
+      },
+      { homeDir: homedir() },
+    );
     if (r?.exitCode) process.exit(r.exitCode);
   });
 
@@ -83,7 +93,12 @@ program
   .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
   .action(async (sessionId, opts) => {
     const { runReceipt } = await import("./commands/receipt.js");
-    const result = await runReceipt({ ...opts, session: sessionId });
+    // Commander stores --no-share as opts.share=false; runner reads opts.noShare.
+    const result = await runReceipt({
+      ...opts,
+      session: sessionId,
+      noShare: opts.share === false,
+    });
     if (result?.exitCode) process.exit(result.exitCode);
   });
 

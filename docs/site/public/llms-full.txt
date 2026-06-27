@@ -221,7 +221,7 @@ npm uninstall -g sipcode
 | `sipcode impact` | Before vs after Sipcode comparison |
 | `sipcode why` | Per-session forensics |
 | `sipcode score` | Audit a repo for AI-friendliness |
-| `sipcode receipt` | Generate a shareable PDF receipt of a session |
+| `sipcode receipt` | Generate a shareable PNG receipt of a session |
 
 ## Requirements
 

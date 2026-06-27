@@ -23,7 +23,30 @@ export const rewriteGrep: RewriterFn = (input) => {
   const summaryMode = countMode || listMode;
 
   if (recursive && !summaryMode) {
-    // Switch recursive grep to count mode (1 line per file).
+    // If the caller explicitly asked for matching lines, line numbers, or
+    // context, collapsing to -c (per-file counts) would throw away exactly that
+    // content. Cap volume with head instead so the requested lines survive.
+    const wantsLines =
+      hasShortFlag(cmd, "n") ||
+      hasShortFlag(cmd, "o") ||
+      hasShortFlag(cmd, "A") ||
+      hasShortFlag(cmd, "B") ||
+      hasShortFlag(cmd, "C") ||
+      hasFlag(cmd, "--line-number", "--only-matching", "--context");
+    if (wantsLines) {
+      if (!hasOutputLimit(cmd) && !cmd.includes("|")) {
+        return {
+          updatedInput: { ...input, command: `${cmd} | head -${HEAD_LIMIT}` },
+          savedTokensEstimate: 1500,
+          rewriterName: "grep",
+          integrityScore: 0.6,
+          integrityNote:
+            "kept first 50 matching lines via head; later matches dropped",
+        };
+      }
+      return null;
+    }
+    // Plain recursive grep (no line/context flags): collapse to per-file counts.
     const updated = cmd.replace(/^(\s*(?:grep|rg))/, "$1 -c");
     return {
       updatedInput: { ...input, command: updated },

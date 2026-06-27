@@ -13,8 +13,8 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { getAgentById } from "../modules/agents/registry.js";
-import type { AgentId } from "../modules/agents/types.js";
+import { resolveAgentFromOpts } from "../modules/agents/cli.js";
+import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
@@ -83,7 +83,21 @@ export async function runTrend(
   const sinceIso = since.toISOString().slice(0, 10);
   const untilIso = until.toISOString().slice(0, 10);
 
-  const agent = getAgentById((opts.agent ?? "claude-code") as AgentId);
+  const agentResolve = await resolveAgentFromOpts({
+    agent: opts.agent,
+    fs,
+    env,
+    cwd: opts.cwd ?? process.cwd(),
+    stdout,
+    stderr,
+    quiet: true,
+  });
+  if (!agentResolve.ok) return { exitCode: 1 };
+  const agent = agentResolve.agent;
+  if (!agent.transcriptParsingSupported) {
+    stderr(MESSAGES.cursorTranscriptNotSupported());
+    return { exitCode: 1 };
+  }
 
   // Pricing — keyed off the window upper bound.
   const pricing = loadPricingForDate(until);

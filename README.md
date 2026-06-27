@@ -325,7 +325,7 @@ npm uninstall -g sipcode
 | `sipcode why` | Per-session forensics: where your tokens died |
 | `sipcode impact` | A/B compare your spend before vs after Sipcode |
 | `sipcode score` | Audit your repo for AI-friendliness (0-100, tiered badge) |
-| `sipcode receipt` | Generate a shareable PDF receipt of a session |
+| `sipcode receipt` | Generate a shareable PNG receipt of a session |
 
 Run any of them with `--help` for full options.
 

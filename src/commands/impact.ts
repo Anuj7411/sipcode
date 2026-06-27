@@ -17,7 +17,10 @@ import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import {
+  analyzeTokens,
+  isEmptySession,
+} from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
@@ -118,6 +121,7 @@ export async function runImpactCommand(
       if (!parseResult.ok) continue;
       const parsed = parseResult.value;
       const totals = analyzeTokens(parsed, pricing);
+      if (isEmptySession(totals)) continue;
       const dups = analyzeDuplicateReads(parsed);
       const idle = analyzeIdleContext(parsed);
       aggregated.push(
