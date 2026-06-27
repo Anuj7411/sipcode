@@ -22,4 +22,11 @@ describe("cwdToProjectHash", () => {
   it("collapses tabs and runs of whitespace to dashes", () => {
     expect(cwdToProjectHash("C:\\a b\tc")).toBe("C--a-b-c");
   });
+
+  it("replaces dots and other non-alphanumerics (Claude Code does too)", () => {
+    // ~/.claude/projects shows ".claude-mem" stored as "--claude-mem"
+    expect(cwdToProjectHash("C:\\Projects\\my.app")).toBe("C--Projects-my-app");
+    expect(cwdToProjectHash("/home/u/.claude-mem")).toBe("-home-u--claude-mem");
+    expect(cwdToProjectHash("C:\\Projects\\app (2)")).toBe("C--Projects-app--2-");
+  });
 });

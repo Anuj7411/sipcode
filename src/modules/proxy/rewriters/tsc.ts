@@ -28,8 +28,10 @@ export const rewriteTsc: RewriterFn = (input) => {
     return null;
   }
   // Append a head cap. Stderr-to-stdout merge ensures we cap diagnostic output,
-  // not just successful builds.
-  const updated = `${cmd.trim()} 2>&1 | head -${HEAD_LIMIT}`;
+  // not just successful builds. `set -o pipefail` is critical: without it the
+  // pipeline's exit code is head's (always 0), so a FAILING tsc would report
+  // success to Claude. pipefail propagates tsc's non-zero status through head.
+  const updated = `set -o pipefail; ${cmd.trim()} 2>&1 | head -${HEAD_LIMIT}`;
   return {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 3000,

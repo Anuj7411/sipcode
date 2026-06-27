@@ -114,13 +114,15 @@ export async function listSessionsHere(
 
 /**
  * Encode a working-directory path the way Claude Code names its project dirs:
- * the drive colon, slashes, AND whitespace all collapse to "-". Claude Code
- * turns "C:\Projects\just research" into "C--Projects-just-research", so we
- * must match the space-to-dash step or `--here` silently finds nothing for any
- * project whose path contains a space.
+ * EVERY character that is not a letter or digit collapses to "-". Verified
+ * empirically against ~/.claude/projects — Claude Code turns
+ * "C:\Projects\just research" into "C--Projects-just-research" and ".claude-mem"
+ * into "--claude-mem" (the dot is replaced too). Matching only ":/\ + whitespace"
+ * is not enough: any path with a dot, parenthesis, underscore, etc. would
+ * mismatch and `--here` would silently find nothing.
  */
 export function cwdToProjectHash(cwd: string): string {
-  return cwd.replace(/:/g, "-").replace(/[\\/\s]/g, "-");
+  return cwd.replace(/[^A-Za-z0-9]/g, "-");
 }
 
 export async function findSessionById(

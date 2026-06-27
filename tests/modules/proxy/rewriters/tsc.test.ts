@@ -4,6 +4,9 @@ import { rewriteTsc } from "../../../../src/modules/proxy/rewriters/tsc.js";
 describe("rewriteTsc", () => {
   it("appends 2>&1 | head -100 to a bare tsc call", () => {
     const r = rewriteTsc({ command: "tsc" });
+    // pipefail must be present so a failing tsc propagates its exit code
+    // through head instead of head masking it as success.
+    expect(r!.updatedInput.command).toContain("set -o pipefail;");
     expect(r).not.toBeNull();
     expect(r!.updatedInput.command).toContain("| head -100");
     expect(r!.updatedInput.command).toContain("2>&1");
