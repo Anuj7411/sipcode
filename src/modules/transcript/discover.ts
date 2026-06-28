@@ -108,10 +108,21 @@ export async function listSessionsHere(
   // Match by cwd path → claude-code style hash.
   // Windows: C:\Projects\Sipcode -> "C--Projects-Sipcode"
   // POSIX:   /home/u/proj         -> "-home-u-proj"
-  const cwdHash = cwd
-    .replace(/:/g, "-")
-    .replace(/[\\/]/g, "-");
+  const cwdHash = cwdToProjectHash(cwd);
   return all.filter((s) => s.projectHash === cwdHash || cwdHash.endsWith(s.projectHash));
+}
+
+/**
+ * Encode a working-directory path the way Claude Code names its project dirs:
+ * EVERY character that is not a letter or digit collapses to "-". Verified
+ * empirically against ~/.claude/projects — Claude Code turns
+ * "C:\Projects\just research" into "C--Projects-just-research" and ".claude-mem"
+ * into "--claude-mem" (the dot is replaced too). Matching only ":/\ + whitespace"
+ * is not enough: any path with a dot, parenthesis, underscore, etc. would
+ * mismatch and `--here` would silently find nothing.
+ */
+export function cwdToProjectHash(cwd: string): string {
+  return cwd.replace(/[^A-Za-z0-9]/g, "-");
 }
 
 export async function findSessionById(

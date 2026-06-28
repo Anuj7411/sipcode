@@ -8,7 +8,27 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.18]._
+_Nothing landed since [1.6.19]._
+
+## [1.6.19] — 2026-06-28
+
+A growth feature plus a thorough hardening pass. A full component audit found and fixed a batch of edge-case bugs (mostly in the analytics/reporting layer and the proxy's output caps) before more users hit them.
+
+### Added
+- **One-time GitHub-star nudge.** After `sipcode proxy --stats` shows real savings, a single line points to the repo, shown once per machine ever (gated on a `~/.sipcode/.star-nudge` marker). Never in `--json`, never when there are no rewrites, never blocks, zero network calls.
+- README gained live GitHub-stars and npm-downloads social-proof badges.
+
+### Fixed
+- **Proxy output caps no longer hide a command's failure.** Every cap (`tsc`, `git`, `find`, `ls`, `grep`, `npm`) used `cmd | head`, which returns exit 0 even when the command failed — so a failing `tsc --noEmit` could look like a clean build to Claude. All caps now use `set -o pipefail; cmd | awk 'NR<=N'`, which caps the output while preserving the command's real exit code (awk reads the whole stream, so there is no early-close SIGPIPE false-failure either).
+- **`--here` now works for any project path.** It previously matched only paths without special characters; a folder like `C:\Projects\just research` (or any path with a dot, space, or parenthesis) silently found nothing. It now matches Claude Code's exact directory encoding.
+- **`today`, `forecast`, and `trend` no longer crash** on `--agent auto` (which the help advertised) or a mistyped agent name.
+- **Opt-out flags are honored.** `init --no-proxy` / `--no-marker` / `--no-verify-mcp` / `--no-claude-md` and `receipt --no-share` were silently ignored.
+- **`cat` / `grep` rewriters corrected.** The proxy no longer rewrites bash's `type` builtin (which is not a file reader), and `grep -rn` keeps the matching lines and numbers instead of collapsing to per-file counts.
+- **Empty / in-flight sessions are skipped consistently.** `impact`, `why`, and the `audit_latest_session` MCP tool no longer build an all-zero report from an empty latest session.
+- Docs: `sipcode receipt` produces a PNG, not a "PDF"; a sample output file updated to opus 4.8.
+
+### Internal
+- Test count: 1,373 → 1,388. Full suite green; privacy and no-shell-args guards green. Findings verified by a 3-part component audit.
 
 ## [1.6.18] — 2026-06-25
 
@@ -237,7 +257,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.18...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.19...HEAD
+[1.6.19]: https://github.com/Anuj7411/sipcode/compare/v1.6.18...v1.6.19
 [1.6.18]: https://github.com/Anuj7411/sipcode/compare/v1.6.17...v1.6.18
 [1.6.17]: https://github.com/Anuj7411/sipcode/compare/v1.6.16...v1.6.17
 [1.6.16]: https://github.com/Anuj7411/sipcode/compare/v1.6.15...v1.6.16

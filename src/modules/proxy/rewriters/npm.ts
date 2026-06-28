@@ -10,7 +10,12 @@
  * piped output, or asked for json.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag, hasOutputLimit } from "./base.js";
+import {
+  commandStartsWith,
+  hasFlag,
+  hasOutputLimit,
+  capLines,
+} from "./base.js";
 
 export const rewriteNpmLs: RewriterFn = (input) => {
   const cmd = String(input.command ?? "");
@@ -80,7 +85,7 @@ export const rewriteNpmView: RewriterFn = (input) => {
   // Only cap when no field is specified (full dump is the verbose case).
   const tokens = cmd.trim().split(/\s+/).filter((t) => !t.startsWith("-"));
   if (tokens.length !== 3) return null;
-  const updated = `${cmd.trim()} 2>&1 | head -80`;
+  const updated = capLines(cmd, 80, true);
   return {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 2500,

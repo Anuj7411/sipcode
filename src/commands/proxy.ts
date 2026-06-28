@@ -28,6 +28,8 @@ import {
 import { generateProxyHookScript } from "../modules/proxy/proxyHookScript.js";
 import { readReport } from "../modules/proxy/stats-store.js";
 import { renderProxyReport } from "../modules/proxy/format-terminal.js";
+import { shouldShowStarNudge } from "../lib/starNudge.js";
+import { MESSAGES } from "../lib/messages.js";
 
 export interface ProxyOptions {
   install?: boolean;
@@ -88,7 +90,26 @@ export async function runProxy(
   // --stats —
   if (opts.stats) {
     const report = await readReport(statsDir);
-    stdout(opts.json ? JSON.stringify(report, null, 2) : renderProxyReport(report));
+    if (opts.json) {
+      stdout(JSON.stringify(report, null, 2));
+      return { exitCode: 0 };
+    }
+    stdout(renderProxyReport(report));
+    // One-time star nudge, only at a real value moment (rewrites happened).
+    // Marker lives under ~/.sipcode so it shows once per machine, ever.
+    if (report.totalInvocations > 0) {
+      const shown = await shouldShowStarNudge(
+        {
+          hasMarker: async (p) => (await readFile(p)) !== undefined,
+          writeMarker: writeFile,
+        },
+        homeDir,
+      );
+      if (shown) {
+        stdout("");
+        stdout(MESSAGES.starNudge());
+      }
+    }
     return { exitCode: 0 };
   }
 

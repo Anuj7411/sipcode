@@ -12,7 +12,12 @@
  *   - --version is the only flag (already terse)
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag, hasOutputLimit } from "./base.js";
+import {
+  commandStartsWith,
+  hasFlag,
+  hasOutputLimit,
+  capLines,
+} from "./base.js";
 
 const HEAD_LIMIT = 100;
 
@@ -27,9 +32,9 @@ export const rewriteTsc: RewriterFn = (input) => {
   if (hasFlag(cmd, "--listFiles", "--listEmittedFiles", "--version", "-v")) {
     return null;
   }
-  // Append a head cap. Stderr-to-stdout merge ensures we cap diagnostic output,
-  // not just successful builds.
-  const updated = `${cmd.trim()} 2>&1 | head -${HEAD_LIMIT}`;
+  // Cap diagnostic output (stderr merged) while preserving tsc's real exit
+  // code, so a FAILING typecheck is never reported to Claude as success.
+  const updated = capLines(cmd, HEAD_LIMIT, true);
   return {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 3000,

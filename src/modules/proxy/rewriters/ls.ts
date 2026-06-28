@@ -3,7 +3,7 @@
  * Appends `| head -50` when output is not already length-limited.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasOutputLimit } from "./base.js";
+import { commandStartsWith, hasOutputLimit, capLines } from "./base.js";
 
 const HEAD_LIMIT = 50;
 
@@ -16,7 +16,7 @@ export const rewriteLs: RewriterFn = (input) => {
   if (cmd.includes("&&") || cmd.includes("||") || cmd.includes(";") || cmd.includes("|")) {
     return null;
   }
-  const updated = `${cmd} | head -${HEAD_LIMIT}`;
+  const updated = capLines(cmd, HEAD_LIMIT);
   return {
     updatedInput: { ...input, command: updated },
     savedTokensEstimate: 1500,

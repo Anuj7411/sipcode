@@ -7,7 +7,12 @@
  * tool I/O at the hook layer.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag, hasOutputLimit } from "./base.js";
+import {
+  commandStartsWith,
+  hasFlag,
+  hasOutputLimit,
+  capLines,
+} from "./base.js";
 
 const DIFF_HEAD = 200;
 
@@ -74,7 +79,7 @@ export const rewriteGitDiff: RewriterFn = (input) => {
     return null;
   }
   return {
-    updatedInput: { ...input, command: `${cmd} | head -${DIFF_HEAD}` },
+    updatedInput: { ...input, command: capLines(cmd, DIFF_HEAD) },
     savedTokensEstimate: 3500,
     rewriterName: "git-diff",
     integrityScore: 0.5,

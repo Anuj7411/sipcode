@@ -6,7 +6,7 @@ Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/c
 
 On a locked, public 20-task benchmark corpus, Sipcode delivers 62.6% median tool-output savings (range 37.4% to 80.6%), totalling 3,567,170 tokens saved and $67.43 at current Claude Sonnet pricing. Anyone can reproduce these numbers with `sipcode benchmark`. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode is solo-maintained, MIT licensed, has 1,373 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode is solo-maintained, MIT licensed, has 1,388 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
@@ -140,7 +140,7 @@ Verify: `node --version` should show v18.0.0 or higher.
 npm i -g sipcode
 ```
 
-Verify: `sipcode --version` should show 1.6.18 or higher.
+Verify: `sipcode --version` should show 1.6.19 or higher.
 
 ### Step 3. Run `sipcode init`
 
@@ -221,7 +221,7 @@ npm uninstall -g sipcode
 | `sipcode impact` | Before vs after Sipcode comparison |
 | `sipcode why` | Per-session forensics |
 | `sipcode score` | Audit a repo for AI-friendliness |
-| `sipcode receipt` | Generate a shareable PDF receipt of a session |
+| `sipcode receipt` | Generate a shareable PNG receipt of a session |
 
 ## Requirements
 

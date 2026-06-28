@@ -102,5 +102,44 @@ describe("runProxy", () => {
       expect(report.schemaVersion).toBe("sipcode-proxy/2");
       expect(report.totalInvocations).toBe(0);
     });
+
+    it("shows the star nudge once when there are rewrites, then never again", async () => {
+      const dir = join(home, ".sipcode", "proxy-stats");
+      await writeStats(dir, {
+        timestamp: "t",
+        toolName: "Bash",
+        rewriterName: "git-status",
+        savedTokensEstimate: 800,
+      });
+      const first: string[] = [];
+      await runProxy({ stats: true }, { homeDir: home, stdout: (s) => first.push(s) });
+      expect(first.join("\n")).toContain("a GitHub star helps");
+
+      const second: string[] = [];
+      await runProxy({ stats: true }, { homeDir: home, stdout: (s) => second.push(s) });
+      expect(second.join("\n")).not.toContain("a GitHub star helps");
+    });
+
+    it("never shows the star nudge in --json mode", async () => {
+      const dir = join(home, ".sipcode", "proxy-stats");
+      await writeStats(dir, {
+        timestamp: "t",
+        toolName: "Bash",
+        rewriterName: "git-status",
+        savedTokensEstimate: 800,
+      });
+      const out: string[] = [];
+      await runProxy(
+        { stats: true, json: true },
+        { homeDir: home, stdout: (s) => out.push(s) },
+      );
+      expect(out.join("\n")).not.toContain("a GitHub star helps");
+    });
+
+    it("does not nudge when there are zero rewrites", async () => {
+      const out: string[] = [];
+      await runProxy({ stats: true }, { homeDir: home, stdout: (s) => out.push(s) });
+      expect(out.join("\n")).not.toContain("a GitHub star helps");
+    });
   });
 });

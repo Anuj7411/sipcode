@@ -14,7 +14,10 @@ import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import { resolveProjectsDir } from "../modules/transcript/discover.js";
+import {
+  resolveProjectsDir,
+  cwdToProjectHash,
+} from "../modules/transcript/discover.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
@@ -151,7 +154,7 @@ export async function runStats(
 
   // --here filter: scope to the cwd's projectHash.
   if (opts.here) {
-    const cwdHash = cwd.replace(/:/g, "-").replace(/[\\/]/g, "-");
+    const cwdHash = cwdToProjectHash(cwd);
     metas = metas.filter(
       (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
     );

@@ -66,14 +66,14 @@ describe("rewriteGitLog", () => {
 });
 
 describe("rewriteGitDiff", () => {
-  it("caps `git diff` with | head -200", () => {
+  it("caps `git diff` to 200 lines (awk) preserving exit code", () => {
     const r = rewriteGitDiff({ command: "git diff" });
-    expect(r?.updatedInput.command).toBe("git diff | head -200");
+    expect(r?.updatedInput.command).toBe("set -o pipefail; git diff | awk 'NR<=200'");
     expect(r?.rewriterName).toBe("git-diff");
   });
   it("caps `git show` too", () => {
     expect(rewriteGitDiff({ command: "git show" })?.updatedInput.command).toBe(
-      "git show | head -200",
+      "set -o pipefail; git show | awk 'NR<=200'",
     );
   });
   it("does NOT rewrite compact summary modes", () => {

@@ -1,6 +1,6 @@
 (showing latest session 84bbf968 from C--Projects-Sipcode; pass --here to scope to this directory)
 
-sipcode why · session 84bbf968 · 60h 26m · claude-opus-4-7
+sipcode why · session 84bbf968 · 60h 26m · claude-opus-4-8
 project: C--Projects-Sipcode
 
 you burned 225,576,407 tokens. 936,947 were code output. the other 224,639,460 were exploration, re-reads, and idle context.

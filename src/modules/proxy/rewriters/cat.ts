@@ -23,12 +23,15 @@ const THRESHOLD = HEAD + TAIL; // only elide when the file exceeds this
 
 export const rewriteCat: RewriterFn = (input) => {
   const cmd = String(input.command ?? "").trim();
-  if (!commandStartsWith(cmd, "cat") && !commandStartsWith(cmd, "type")) return null;
+  // Only `cat`. NOT `type`: in bash (which Claude Code runs) `type` is a
+  // builtin that reports what kind of command a name is — it does NOT read
+  // files — so rewriting it to awk would change its meaning entirely.
+  if (!commandStartsWith(cmd, "cat")) return null;
   if (cmd.includes("|") || cmd.includes("&&") || cmd.includes("||") || cmd.includes(";")) {
     return null;
   }
   // Match: `cat <single-token>` or `cat -<flag> <single-token>`. Multi-file → skip.
-  const m = cmd.match(/^(?:cat|type)(?:\s+-[^\s]+)?\s+(\S+)\s*$/);
+  const m = cmd.match(/^cat(?:\s+-[^\s]+)?\s+(\S+)\s*$/);
   if (!m) return null;
   const file = m[1]!;
   // Single-pass, size-aware. Buffers lines, then prints full content for small

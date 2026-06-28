@@ -17,7 +17,10 @@ import {
   type SessionMeta,
 } from "../modules/transcript/discover.js";
 import { parseTranscriptVerbose } from "../modules/transcript/parse.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import {
+  analyzeTokens,
+  isEmptySession,
+} from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
@@ -49,6 +52,34 @@ export interface WhyDeps {
 
 export interface WhyResult {
   exitCode: 0 | 1;
+}
+
+/**
+ * Return the newest session that actually has work in it (skips empty /
+ * in-flight transcripts that would render an all-zero report). Sessions are
+ * newest-first; falls back to the newest if every one is empty so we always
+ * show something. Parses lazily and stops at the first non-empty hit, so the
+ * common case (latest session is real) parses exactly one transcript.
+ */
+async function pickLatestNonEmpty(
+  fs: FileSystem,
+  sessions: SessionMeta[],
+  now: Date,
+): Promise<SessionMeta | undefined> {
+  for (const m of sessions) {
+    let contents: string;
+    try {
+      contents = await fs.readFile(m.filePath);
+    } catch {
+      continue;
+    }
+    const { session } = parseTranscriptVerbose(contents);
+    const date = session.startedAt ? new Date(session.startedAt) : now;
+    if (!isEmptySession(analyzeTokens(session, loadPricingForDate(date)))) {
+      return m;
+    }
+  }
+  return sessions[0];
 }
 
 export async function runWhy(
@@ -120,7 +151,10 @@ export async function runWhy(
       return { exitCode: 1 };
     }
   } else {
-    chosen = sessions[0];
+    // Auto-pick the newest NON-empty session. An empty/in-flight latest
+    // session would otherwise render an all-zero report (drift guards the same
+    // way). Falls back to the newest if every session is empty.
+    chosen = await pickLatestNonEmpty(fs, sessions, clock.now());
   }
   if (!chosen) {
     stderr(MESSAGES.noSessionsFound(projectsDir));

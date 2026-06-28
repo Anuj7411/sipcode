@@ -29,4 +29,8 @@ describe("rewriteCat", () => {
   it("does NOT match `category` substring", () => {
     expect(rewriteCat({ command: "category foo" })).toBeNull();
   });
+  it("does NOT rewrite `type` (bash builtin, not a file reader)", () => {
+    expect(rewriteCat({ command: "type foo.txt" })).toBeNull();
+    expect(rewriteCat({ command: "type ls" })).toBeNull();
+  });
 });

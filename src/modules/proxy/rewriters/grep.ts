@@ -7,7 +7,13 @@
  * For non-recursive grep without an output limit, pipe to `| head -50`.
  */
 import type { RewriterFn } from "../types.js";
-import { commandStartsWith, hasFlag, hasOutputLimit, hasShortFlag } from "./base.js";
+import {
+  commandStartsWith,
+  hasFlag,
+  hasOutputLimit,
+  hasShortFlag,
+  capLines,
+} from "./base.js";
 
 const HEAD_LIMIT = 50;
 
@@ -23,7 +29,30 @@ export const rewriteGrep: RewriterFn = (input) => {
   const summaryMode = countMode || listMode;
 
   if (recursive && !summaryMode) {
-    // Switch recursive grep to count mode (1 line per file).
+    // If the caller explicitly asked for matching lines, line numbers, or
+    // context, collapsing to -c (per-file counts) would throw away exactly that
+    // content. Cap volume with head instead so the requested lines survive.
+    const wantsLines =
+      hasShortFlag(cmd, "n") ||
+      hasShortFlag(cmd, "o") ||
+      hasShortFlag(cmd, "A") ||
+      hasShortFlag(cmd, "B") ||
+      hasShortFlag(cmd, "C") ||
+      hasFlag(cmd, "--line-number", "--only-matching", "--context");
+    if (wantsLines) {
+      if (!hasOutputLimit(cmd) && !cmd.includes("|")) {
+        return {
+          updatedInput: { ...input, command: capLines(cmd, HEAD_LIMIT) },
+          savedTokensEstimate: 1500,
+          rewriterName: "grep",
+          integrityScore: 0.6,
+          integrityNote:
+            "kept first 50 matching lines via head; later matches dropped",
+        };
+      }
+      return null;
+    }
+    // Plain recursive grep (no line/context flags): collapse to per-file counts.
     const updated = cmd.replace(/^(\s*(?:grep|rg))/, "$1 -c");
     return {
       updatedInput: { ...input, command: updated },
@@ -37,7 +66,7 @@ export const rewriteGrep: RewriterFn = (input) => {
   // Non-recursive grep without an output cap → pipe to head.
   if (!recursive && !hasOutputLimit(cmd) && !cmd.includes("|")) {
     return {
-      updatedInput: { ...input, command: `${cmd} | head -${HEAD_LIMIT}` },
+      updatedInput: { ...input, command: capLines(cmd, HEAD_LIMIT) },
       savedTokensEstimate: 1500,
       rewriterName: "grep",
       integrityScore: 0.6,
