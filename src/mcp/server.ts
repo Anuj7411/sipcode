@@ -51,9 +51,13 @@ import {
   listAllSessions,
   findSessionById,
   resolveProjectsDir,
+  type SessionMeta,
 } from "../modules/transcript/discover.js";
 import { parseTranscriptVerbose } from "../modules/transcript/parse.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import {
+  analyzeTokens,
+  isEmptySession,
+} from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
@@ -242,11 +246,30 @@ async function toolAuditLatestSession(
   const sessions = await listAllSessions(fs, projectsDir);
   if (sessions.length === 0) return fail("No sessions to audit.");
 
-  let chosen = sessions[0];
+  let chosen: SessionMeta | undefined;
   if (opts.sessionId) {
     const match = await findSessionById(fs, projectsDir, opts.sessionId);
     if (!match) return fail(`No session matches "${opts.sessionId}".`);
     chosen = match;
+  } else {
+    // Auto-pick the newest NON-empty session; an empty/in-flight latest
+    // session would otherwise return an all-zero audit. Falls back to newest.
+    for (const m of sessions) {
+      try {
+        const c = await readTranscript(fs, m.filePath);
+        const { session } = parseTranscriptVerbose(c);
+        const date = session.startedAt
+          ? new Date(session.startedAt)
+          : clock.now();
+        if (!isEmptySession(analyzeTokens(session, loadPricingForDate(date)))) {
+          chosen = m;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+    chosen = chosen ?? sessions[0];
   }
   if (!chosen) return fail("No sessions to audit.");
 

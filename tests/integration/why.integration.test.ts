@@ -36,6 +36,35 @@ function makeEnv(): FakeProcessEnv {
 }
 
 describe("runWhy integration", () => {
+  it("auto-pick skips an empty/in-flight latest session", async () => {
+    const fs = new InMemoryFs();
+    fs.writeFile(
+      "/home/u/.claude/projects/test-proj/readheavy1.jsonl",
+      loadFixture("read-heavy.jsonl"),
+      new Date("2026-05-02T09:00:30Z").getTime(),
+    );
+    // NEWEST file, but empty — must be skipped in favour of the real one.
+    fs.writeFile(
+      "/home/u/.claude/projects/test-proj/empty-latest.jsonl",
+      loadFixture("empty.jsonl"),
+      new Date("2026-05-10T09:00:30Z").getTime(),
+    );
+    const out: string[] = [];
+    const result = await runWhy(
+      { json: true },
+      {
+        fs,
+        env: makeEnv(),
+        clock: new FakeClock(new Date("2026-05-15T00:00:00Z")),
+        stdout: (s) => out.push(s),
+        stderr: () => {},
+      },
+    );
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(out.join("\n"));
+    expect(parsed.header.sessionIdShort).toBe("readheav");
+  });
+
   it("--json on most recent (read-heavy) returns valid JSON with savings", async () => {
     const out: string[] = [];
     const err: string[] = [];
