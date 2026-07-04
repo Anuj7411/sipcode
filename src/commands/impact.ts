@@ -16,7 +16,10 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import { resolveProjectsDir } from "../modules/transcript/discover.js";
+import {
+  resolveProjectsDir,
+  cwdToProjectHash,
+} from "../modules/transcript/discover.js";
 import {
   analyzeTokens,
   isEmptySession,
@@ -37,6 +40,7 @@ export interface ImpactOptions {
   json?: boolean;
   agent?: string;
   cwd?: string;
+  here?: boolean;
 }
 
 export interface ImpactDeps {
@@ -108,7 +112,13 @@ export async function runImpactCommand(
       for (const i of discovery.error) stderr(i.message);
       return { exitCode: 1 };
     }
-    const metas = discovery.value;
+    let metas = discovery.value;
+    if (opts.here) {
+      const cwdHash = cwdToProjectHash(cwd);
+      metas = metas.filter(
+        (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
+      );
+    }
     const pricing = loadPricingForDate(clock.now());
     for (const meta of metas) {
       let content: string;

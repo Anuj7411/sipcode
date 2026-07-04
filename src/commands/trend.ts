@@ -14,6 +14,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
+import { cwdToProjectHash } from "../modules/transcript/discover.js";
 import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
@@ -33,6 +34,7 @@ export interface TrendOptions {
   json?: boolean;
   agent?: string;
   cwd?: string;
+  here?: boolean;
 }
 
 export interface TrendDeps {
@@ -108,7 +110,13 @@ export async function runTrend(
     stderr(metasResult.error.map((e: { message: string }) => e.message).join("\n"));
     return { exitCode: 1 };
   }
-  const metas = metasResult.value;
+  let metas = metasResult.value;
+  if (opts.here) {
+    const cwdHash = cwdToProjectHash(opts.cwd ?? process.cwd());
+    metas = metas.filter(
+      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
+    );
+  }
 
   // Pre-filter by mtime then parse and aggregate.
   const sessions: TrendSession[] = [];

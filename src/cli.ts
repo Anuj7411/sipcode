@@ -152,6 +152,7 @@ program
   .description("Daily dashboard: spend so far + vs your N-day median (adaptive 30/14/7/3).")
   .option("--json", "machine-readable output")
   .option("--agent <id>", "claude-code | cursor | auto")
+  .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runTodayCmd } = await import("./commands/today.js");
     const r = await runTodayCmd(opts);
@@ -163,6 +164,7 @@ program
   .description("Projected month-end spend with confidence band + last-month comparison.")
   .option("--json", "machine-readable output")
   .option("--agent <id>", "claude-code | cursor | auto")
+  .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runForecastCmd } = await import("./commands/forecast.js");
     const r = await runForecastCmd(opts);
@@ -176,6 +178,7 @@ program
   .option("--since <window>", "time window: NNd | NNw | NNm (e.g. 30d, 4w, 3m)", "30d")
   .option("--json", "machine-readable output")
   .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runTrend } = await import("./commands/trend.js");
     const r = await runTrend(opts);
@@ -273,6 +276,7 @@ program
   .option("--since <YYYY-MM-DD>", "override the install date (defaults to .sipcode/install-state.json)")
   .option("--json", "machine-readable output")
   .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runImpactCommand } = await import("./commands/impact.js");
     const r = await runImpactCommand(opts);
