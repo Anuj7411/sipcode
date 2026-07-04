@@ -8,6 +8,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
+import { cwdToProjectHash } from "../modules/transcript/discover.js";
 import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
@@ -19,6 +20,7 @@ export interface ForecastOptions {
   json?: boolean;
   agent?: string;
   cwd?: string;
+  here?: boolean;
 }
 
 export interface ForecastDeps {
@@ -67,8 +69,16 @@ export async function runForecastCmd(
     return { exitCode: 1 };
   }
 
+  let metas = discovery.value;
+  if (opts.here) {
+    const cwdHash = cwdToProjectHash(opts.cwd ?? process.cwd());
+    metas = metas.filter(
+      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
+    );
+  }
+
   const sessions: ForecastSession[] = [];
-  for (const meta of discovery.value) {
+  for (const meta of metas) {
     let content: string;
     try {
       content = await fs.readFile(meta.filePath);

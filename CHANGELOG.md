@@ -8,7 +8,15 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.19]._
+_Nothing landed since [1.6.20]._
+
+## [1.6.20] — 2026-07-04
+
+### Added
+- **`--here` now works on `today`, `forecast`, `trend`, and `impact`.** Previously only `why`, `stats`, and `receipt` accepted it; the others errored with "unknown option" — which is exactly what a user expects to work. All analytics/report commands now scope to the current project consistently, using the same shared project-hash filter. (`drift` already scopes to the latest session's project internally.)
+
+### Internal
+- Test count: 1,388 → 1,389 (added a `--here` scoping integration test that exercises the shared filter all five commands share). Full suite green.
 
 ## [1.6.19] — 2026-06-28
 
@@ -257,7 +265,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.19...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.20...HEAD
+[1.6.20]: https://github.com/Anuj7411/sipcode/compare/v1.6.19...v1.6.20
 [1.6.19]: https://github.com/Anuj7411/sipcode/compare/v1.6.18...v1.6.19
 [1.6.18]: https://github.com/Anuj7411/sipcode/compare/v1.6.17...v1.6.18
 [1.6.17]: https://github.com/Anuj7411/sipcode/compare/v1.6.16...v1.6.17

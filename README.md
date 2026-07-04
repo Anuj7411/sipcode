@@ -15,7 +15,7 @@
   <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-1%2C388%20passing-28C840" alt="1388 tests passing" />
+  <img src="https://img.shields.io/badge/tests-1%2C389%20passing-28C840" alt="1389 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -179,7 +179,7 @@ Verify it installed:
 sipcode --version
 ```
 
-You should see `1.6.19` or higher.
+You should see `1.6.20` or higher.
 
 ### Step 3. Run `sipcode init` to wire it into Claude Code
 
@@ -329,7 +329,7 @@ npm uninstall -g sipcode
 
 Run any of them with `--help` for full options.
 
-**Tip: which session do these report on?** `sipcode why` and `sipcode stats` look at your most recent session across **all** projects by default, not the folder you happen to be standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope either to the project you are currently in, add `--here` (for example, `sipcode why --here`). Use `sipcode why --list` to see every session and pick one with `--session <id>`. (`sipcode today` always summarizes all of today's sessions and has no `--here`.)
+**Tip: which sessions do these report on?** By default, `why`, `stats`, `today`, `forecast`, `trend`, and `impact` look across **all** your projects, not just the folder you are standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope any of them to the project you are currently in, add `--here` (for example, `sipcode why --here` or `sipcode today --here`). Use `sipcode why --list` to see every session and pick a specific one with `--session <id>`.
 
 ---
 

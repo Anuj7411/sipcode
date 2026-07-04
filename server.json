@@ -7,12 +7,12 @@
     "url": "https://github.com/Anuj7411/sipcode",
     "source": "github"
   },
-  "version": "1.6.19",
+  "version": "1.6.20",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "sipcode",
-      "version": "1.6.19",
+      "version": "1.6.20",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

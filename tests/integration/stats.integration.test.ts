@@ -239,6 +239,36 @@ describe("runStats integration", () => {
     expect(out.join("\n")).not.toContain("transcripts exist");
   });
 
+  it("--here scopes to the cwd's project (shared filter used by today/forecast/trend/impact too)", async () => {
+    // makeFs seeds 2 sessions under C--Projects-Sipcode + 1 under other-proj.
+    const all: string[] = [];
+    await runStats(
+      { json: true, since: "all" },
+      {
+        fs: makeFs(),
+        env: makeEnv(),
+        clock: new FakeClock(NOW),
+        stdout: (s) => all.push(s),
+        stderr: () => {},
+      },
+    );
+    expect(JSON.parse(all.join("\n")).sessionCount).toBe(3);
+
+    // cwd "C:\Projects\Sipcode" hashes to "C--Projects-Sipcode" → only its 2.
+    const here: string[] = [];
+    await runStats(
+      { json: true, since: "all", here: true, cwd: "C:\\Projects\\Sipcode" },
+      {
+        fs: makeFs(),
+        env: makeEnv(),
+        clock: new FakeClock(NOW),
+        stdout: (s) => here.push(s),
+        stderr: () => {},
+      },
+    );
+    expect(JSON.parse(here.join("\n")).sessionCount).toBe(2);
+  });
+
   it("--html writes .sipcode/stats.html via injected writeFile", async () => {
     const wrote: { path: string; content: string } = { path: "", content: "" };
     const out: string[] = [];
