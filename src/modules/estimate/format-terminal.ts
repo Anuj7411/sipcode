@@ -37,18 +37,19 @@ function money(n: number): string {
 }
 
 /**
- * Short label for a model id — used in the table. DERIVED from the id
- * (e.g. "claude-opus-4-8" -> "opus 4.8") rather than hardcoded, so the label
- * always matches the actual model and never rots to a stale version. Padded to
- * keep the table columns aligned; falls back to the raw id.
+ * Short label for a model id — used in the table. Labels by TIER only
+ * (opus/sonnet/haiku), deliberately WITHOUT a version number. estimate is a
+ * forward cost comparator and prices per tier — every opus minor version costs
+ * the same — so the tier is the meaningful unit. Dropping the version means the
+ * estimate can never show a model version that disagrees with what your session
+ * actually used (that exact version is reported by why/stats/impact, which read
+ * it from your transcript) and it can never rot. Falls back to the raw id.
  */
 function modelLabel(m: string): string {
-  const match = m.match(/(opus|sonnet|haiku)-(\d+)(?:-(\d+))?/);
-  if (match) {
-    const ver = match[3] ? `${match[2]}.${match[3]}` : match[2];
-    return `${match[1]} ${ver}`.padEnd(10);
-  }
-  return m.padEnd(10);
+  if (/opus/.test(m)) return "opus".padEnd(6);
+  if (/sonnet/.test(m)) return "sonnet".padEnd(6);
+  if (/haiku/.test(m)) return "haiku".padEnd(6);
+  return m.padEnd(6);
 }
 
 function renderRow(p: ModelPrediction): string {
@@ -122,13 +123,11 @@ export function formatTerminal(
   }
   lines.push("");
 
-  // Recommendation.
+  // Recommendation. The reason text already names the model tier (e.g.
+  // "sonnet is the sweet spot"), so we don't prefix a redundant label.
   const r = result.recommendation;
-  const recLabel = modelLabel(r.model).trim();
   lines.push(
-    c.bold(
-      `${recLabel} — ${r.reason}. ~${money(r.costCenter)}. sip don't gulp.`,
-    ),
+    c.bold(`${r.reason}. ~${money(r.costCenter)}. sip don't gulp.`),
   );
 
   if (result.warnings.length > 0) {

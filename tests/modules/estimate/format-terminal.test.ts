@@ -79,15 +79,15 @@ describe("formatTerminal", () => {
 
   it("shows a row per model by default", () => {
     const s = formatTerminal(baseResult);
-    expect(s).toContain("opus 4");
-    expect(s).toContain("sonnet 4");
-    expect(s).toContain("haiku 4");
+    expect(s).toContain("opus");
+    expect(s).toContain("sonnet");
+    expect(s).toContain("haiku");
   });
 
   it("filters to a single model with onlyModel", () => {
     const s = formatTerminal(baseResult, { onlyModel: "opus" });
-    expect(s).toContain("opus 4");
-    expect(s).not.toContain("haiku 4");
+    expect(s).toContain("opus");
+    expect(s).not.toContain("haiku");
   });
 
   it("shows recommendation line with brand voice", () => {

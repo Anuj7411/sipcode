@@ -154,9 +154,9 @@ describe("sipcode estimate (integration)", () => {
     // but the table itself only has the opus row.
     const tableLines = out
       .split("\n")
-      .filter((l) => /\bopus 4|sonnet 4|haiku 4\b/.test(l) && /\$/.test(l));
+      .filter((l) => /\b(opus|sonnet|haiku)\b/.test(l) && /\$/.test(l));
     expect(tableLines.length).toBeGreaterThan(0);
-    expect(tableLines.every((l) => /opus 4.8/.test(l))).toBe(true);
+    expect(tableLines.every((l) => /\bopus\b/.test(l))).toBe(true);
   });
 
   it("falls back to quick scan when no manifest", async () => {
