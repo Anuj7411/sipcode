@@ -30,21 +30,21 @@ const baseResult: EstimateResult = {
   },
   predictions: [
     {
-      model: "claude-opus-4",
+      model: "claude-opus-4-8",
       estimatedTokens: 195_000,
       tokenBand: [137_000, 274_000],
       costCenter: 1.83,
       costBand: [1.28, 2.56],
     },
     {
-      model: "claude-sonnet-4",
+      model: "claude-sonnet-4-6",
       estimatedTokens: 195_000,
       tokenBand: [137_000, 274_000],
       costCenter: 0.37,
       costBand: [0.26, 0.51],
     },
     {
-      model: "claude-haiku-4",
+      model: "claude-haiku-4-5",
       estimatedTokens: 195_000,
       tokenBand: [137_000, 274_000],
       costCenter: 0.1,
@@ -52,7 +52,7 @@ const baseResult: EstimateResult = {
     },
   ],
   recommendation: {
-    model: "claude-sonnet-4",
+    model: "claude-sonnet-4-6",
     reason: "sonnet is the sweet spot",
     costCenter: 0.37,
   },

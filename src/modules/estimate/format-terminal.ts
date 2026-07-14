@@ -36,11 +36,18 @@ function money(n: number): string {
   })}`;
 }
 
-/** Short label for a model id — used in the table. */
+/**
+ * Short label for a model id — used in the table. DERIVED from the id
+ * (e.g. "claude-opus-4-8" -> "opus 4.8") rather than hardcoded, so the label
+ * always matches the actual model and never rots to a stale version. Padded to
+ * keep the table columns aligned; falls back to the raw id.
+ */
 function modelLabel(m: string): string {
-  if (m.includes("opus")) return "opus 4.8  ";
-  if (m.includes("sonnet")) return "sonnet 4.6";
-  if (m.includes("haiku")) return "haiku 4.5 ";
+  const match = m.match(/(opus|sonnet|haiku)-(\d+)(?:-(\d+))?/);
+  if (match) {
+    const ver = match[3] ? `${match[2]}.${match[3]}` : match[2];
+    return `${match[1]} ${ver}`.padEnd(10);
+  }
   return m.padEnd(10);
 }
 
