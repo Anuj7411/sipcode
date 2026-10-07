@@ -31,6 +31,13 @@ export interface ToolCall {
   readonly cacheCreationTokens: number;
   /** Total cost-weighted token count (input + output + cache_creation + cache_read, equal weights). */
   readonly totalTokens: number;
+  /** tool_use id, used to pair the call with its tool_result. */
+  readonly id?: string | undefined;
+  /**
+   * Estimated tokens of the tool_result this call returned (chars / 4). This is
+   * what the call actually added to the context; 0 when no result was logged.
+   */
+  readonly resultTokens: number;
 }
 
 export interface AssistantTurn {
@@ -78,12 +85,34 @@ function usageNumbers(u: Usage | undefined): {
   cacheRead: number;
   cacheCreation: number;
 } {
+  // Claude Code before 2.1.152 could log the top-level cache_creation field as 0
+  // while the nested 5m/1h breakdown held the real value.
+  const nested = (u as { cache_creation?: Record<string, unknown> } | undefined)
+    ?.cache_creation;
+  const nestedSum =
+    nested && typeof nested === "object"
+      ? Number(nested.ephemeral_5m_input_tokens ?? 0) +
+        Number(nested.ephemeral_1h_input_tokens ?? 0)
+      : 0;
   return {
     input: u?.input_tokens ?? 0,
     output: u?.output_tokens ?? 0,
     cacheRead: u?.cache_read_input_tokens ?? 0,
-    cacheCreation: u?.cache_creation_input_tokens ?? 0,
+    cacheCreation: Math.max(u?.cache_creation_input_tokens ?? 0, nestedSum || 0),
   };
+}
+
+/** Rough token estimate for tool_result content (text blocks only). */
+function resultChars(content: unknown): number {
+  if (typeof content === "string") return content.length;
+  if (!Array.isArray(content)) return 0;
+  let n = 0;
+  for (const b of content) {
+    if (b && typeof b === "object" && typeof (b as { text?: unknown }).text === "string") {
+      n += (b as { text: string }).text.length;
+    }
+  }
+  return n;
 }
 
 /**
@@ -105,6 +134,11 @@ export function parseTranscript(
   const modelCounts = new Map<string, number>();
   const assistantTurns: AssistantTurn[] = [];
   const toolCalls: ToolCall[] = [];
+  // Claude Code writes one line per content block of a response, and every
+  // line repeats the request's usage. One API request = one turn, so lines are
+  // merged by message.id + requestId; summing them would count the request 2-3x.
+  const turnByRequest = new Map<string, AssistantTurn>();
+  const resultCharsById = new Map<string, number>();
   let userTurnCount = 0;
   let linesParsed = 0;
   let linesSkipped = 0;
@@ -149,9 +183,6 @@ export function parseTranscript(
       const a = entry as AssistantEntry;
       const msg = a.message ?? {};
       const model = msg.model;
-      if (model) {
-        modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1);
-      }
       const ts = a.timestamp;
       if (ts) {
         if (!firstTs || ts < firstTs) firstTs = ts;
@@ -159,40 +190,66 @@ export function parseTranscript(
       }
       const usage = msg.usage;
       const u = usageNumbers(usage);
-      const turn: AssistantTurn = {
-        index: assistantTurns.length,
-        model,
-        timestamp: ts,
-        inputTokens: u.input,
-        outputTokens: u.output,
-        cacheReadTokens: u.cacheRead,
-        cacheCreationTokens: u.cacheCreation,
-        toolCalls: [],
-        missingUsage: !usage,
-      };
-      // Find tool_use contents.
+      const msgId = (msg as { id?: unknown }).id;
+      const reqId = (a as { requestId?: unknown }).requestId;
+      const requestKey =
+        typeof msgId === "string" && msgId.length > 0
+          ? `${msgId}|${typeof reqId === "string" ? reqId : ""}`
+          : undefined;
+
+      let turn = requestKey ? turnByRequest.get(requestKey) : undefined;
+      if (turn) {
+        // Another content block of a request we already counted. Keep the
+        // largest value per field (streamed lines can carry partial output).
+        const t = turn as {
+          -readonly [K in keyof AssistantTurn]: AssistantTurn[K];
+        };
+        t.inputTokens = Math.max(t.inputTokens, u.input);
+        t.outputTokens = Math.max(t.outputTokens, u.output);
+        t.cacheReadTokens = Math.max(t.cacheReadTokens, u.cacheRead);
+        t.cacheCreationTokens = Math.max(t.cacheCreationTokens, u.cacheCreation);
+        if (usage) t.missingUsage = false;
+      } else {
+        if (model) {
+          modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1);
+        }
+        turn = {
+          index: assistantTurns.length,
+          model,
+          timestamp: ts,
+          inputTokens: u.input,
+          outputTokens: u.output,
+          cacheReadTokens: u.cacheRead,
+          cacheCreationTokens: u.cacheCreation,
+          toolCalls: [],
+          missingUsage: !usage,
+        };
+        assistantTurns.push(turn);
+        if (requestKey) turnByRequest.set(requestKey, turn);
+      }
+      // Find tool_use contents. Per-call usage fields are filled in after the
+      // loop, once every line of the request has been merged.
       const contents = Array.isArray(msg.content) ? msg.content : [];
-      const turnTotal =
-        u.input + u.output + u.cacheRead + u.cacheCreation;
       for (const c of contents) {
         if (c && typeof c === "object" && (c as { type?: string }).type === "tool_use") {
-          const tu = c as { name?: string; input?: unknown };
+          const tu = c as { id?: string; name?: string; input?: unknown };
           const call: ToolCall = {
             name: tu.name ?? "(unknown)",
             input: tu.input,
             assistantTurnIndex: turn.index,
             timestamp: ts,
-            inputTokens: u.input,
-            outputTokens: u.output,
-            cacheReadTokens: u.cacheRead,
-            cacheCreationTokens: u.cacheCreation,
-            totalTokens: turnTotal,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheReadTokens: 0,
+            cacheCreationTokens: 0,
+            totalTokens: 0,
+            id: typeof tu.id === "string" ? tu.id : undefined,
+            resultTokens: 0,
           };
           turn.toolCalls.push(call);
           toolCalls.push(call);
         }
       }
-      assistantTurns.push(turn);
     } else if (entry.type === "user") {
       const u = entry as UserEntry;
       const ts = u.timestamp;
@@ -202,6 +259,14 @@ export function parseTranscript(
       }
       // Skip tool_result-only wrappers when counting user turns.
       const content = u.message?.content;
+      if (Array.isArray(content)) {
+        for (const c of content) {
+          const tr = c as { type?: string; tool_use_id?: unknown; content?: unknown };
+          if (tr && tr.type === "tool_result" && typeof tr.tool_use_id === "string") {
+            resultCharsById.set(tr.tool_use_id, resultChars(tr.content));
+          }
+        }
+      }
       const isToolResultOnly =
         Array.isArray(content) &&
         content.every(
@@ -212,6 +277,22 @@ export function parseTranscript(
         );
       if (!isToolResultOnly) userTurnCount++;
     }
+  }
+
+  // Stamp each call with its (now fully merged) request usage and result size.
+  for (const call of toolCalls) {
+    const turn = assistantTurns[call.assistantTurnIndex];
+    const c = call as { -readonly [K in keyof ToolCall]: ToolCall[K] };
+    if (turn) {
+      c.inputTokens = turn.inputTokens;
+      c.outputTokens = turn.outputTokens;
+      c.cacheReadTokens = turn.cacheReadTokens;
+      c.cacheCreationTokens = turn.cacheCreationTokens;
+      c.totalTokens =
+        turn.inputTokens + turn.outputTokens + turn.cacheReadTokens + turn.cacheCreationTokens;
+    }
+    const chars = call.id ? resultCharsById.get(call.id) : undefined;
+    c.resultTokens = chars ? Math.ceil(chars / 4) : 0;
   }
 
   // Pick primary model = most messages.

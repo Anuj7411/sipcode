@@ -133,22 +133,22 @@ exports[`renderReport > matches JSON snapshot for read-heavy 1`] = `
     {
       "filePath": "/home/test/proj/src/main.ts",
       "reads": 3,
-      "wastedTokens": 17940,
+      "wastedTokens": 2870,
     },
     {
       "filePath": "/home/test/proj/src/utils.ts",
       "reads": 2,
-      "wastedTokens": 9020,
+      "wastedTokens": 1435,
     },
   ],
   "estimatedSavings": {
     "breakdown": {
       "s001_manifest": 2233,
       "s021_diffOutput": 0,
-      "s030_readOnce": 26960,
+      "s030_readOnce": 4305,
     },
-    "totalTokens": 11265,
-    "totalUSD": 0.07522232226623579,
+    "totalTokens": 6538,
+    "totalUSD": 0.04365766027311581,
   },
   "header": {
     "durationHuman": "30s",
@@ -204,16 +204,16 @@ exports[`renderReport > matches JSON snapshot for read-heavy 1`] = `
   ],
   "topLeaks": [
     {
-      "detail": "2 files read more than once",
-      "rank": 1,
-      "title": "duplicate file reads",
-      "tokens": 26960,
-    },
-    {
       "detail": "context written into cache",
-      "rank": 2,
+      "rank": 1,
       "title": "cache-creation overhead",
       "tokens": 10150,
+    },
+    {
+      "detail": "2 files read more than once",
+      "rank": 2,
+      "title": "duplicate file reads",
+      "tokens": 4305,
     },
     {
       "detail": "rehydrated each turn",
