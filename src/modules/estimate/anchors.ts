@@ -67,6 +67,7 @@ interface SessionShape {
  */
 const CACHE_READ_WEIGHT = 0.1;
 const CACHE_CREATION_WEIGHT = 1.25;
+const CACHE_CREATION_1H_WEIGHT = 2.0;
 const OUTPUT_WEIGHT = 5.0;
 
 function shapeFor(content: string): SessionShape {
@@ -78,11 +79,14 @@ function shapeFor(content: string): SessionShape {
   let totalTokens = 0;
   const reads = new Set<string>();
   for (const turn of s.assistantTurns) {
+    // 1-hour cache writes cost 2x input, 5-minute writes 1.25x.
+    const oneHour = Math.min(turn.cacheCreation1hTokens ?? 0, turn.cacheCreationTokens);
     totalTokens +=
       turn.inputTokens +
       turn.outputTokens * OUTPUT_WEIGHT +
       turn.cacheReadTokens * CACHE_READ_WEIGHT +
-      turn.cacheCreationTokens * CACHE_CREATION_WEIGHT;
+      (turn.cacheCreationTokens - oneHour) * CACHE_CREATION_WEIGHT +
+      oneHour * CACHE_CREATION_1H_WEIGHT;
   }
   for (const c of s.toolCalls) {
     if (c.name === "Read") {

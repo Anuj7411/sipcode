@@ -1,0 +1,29 @@
+{
+  "as_of": "2026-10-08",
+  "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "models": {
+    "claude-fable-5-1": { "input_per_mtok": 10.00, "output_per_mtok": 50.00, "cache_read_per_mtok": 0.25, "cache_creation_per_mtok": 12.50, "cache_creation_1h_per_mtok": 20.00 },
+    "claude-mythos-5-1": { "input_per_mtok": 10.00, "output_per_mtok": 50.00, "cache_read_per_mtok": 0.25, "cache_creation_per_mtok": 12.50, "cache_creation_1h_per_mtok": 20.00 },
+    "claude-fable-5": { "input_per_mtok": 10.00, "output_per_mtok": 50.00, "cache_read_per_mtok": 1.00, "cache_creation_per_mtok": 12.50, "cache_creation_1h_per_mtok": 20.00 },
+    "claude-mythos-5": { "input_per_mtok": 10.00, "output_per_mtok": 50.00, "cache_read_per_mtok": 1.00, "cache_creation_per_mtok": 12.50, "cache_creation_1h_per_mtok": 20.00 },
+    "claude-opus-5-5": { "input_per_mtok": 4.00, "output_per_mtok": 20.00, "cache_read_per_mtok": 0.20, "cache_creation_per_mtok": 5.00, "cache_creation_1h_per_mtok": 8.00 },
+    "claude-opus-5": { "input_per_mtok": 5.00, "output_per_mtok": 25.00, "cache_read_per_mtok": 0.50, "cache_creation_per_mtok": 6.25, "cache_creation_1h_per_mtok": 10.00 },
+    "claude-opus-4-8": { "input_per_mtok": 5.00, "output_per_mtok": 25.00, "cache_read_per_mtok": 0.50, "cache_creation_per_mtok": 6.25, "cache_creation_1h_per_mtok": 10.00 },
+    "claude-opus-4-7": { "input_per_mtok": 5.00, "output_per_mtok": 25.00, "cache_read_per_mtok": 0.50, "cache_creation_per_mtok": 6.25, "cache_creation_1h_per_mtok": 10.00 },
+    "claude-opus-4-6": { "input_per_mtok": 5.00, "output_per_mtok": 25.00, "cache_read_per_mtok": 0.50, "cache_creation_per_mtok": 6.25, "cache_creation_1h_per_mtok": 10.00 },
+    "claude-opus-4-5": { "input_per_mtok": 5.00, "output_per_mtok": 25.00, "cache_read_per_mtok": 0.50, "cache_creation_per_mtok": 6.25, "cache_creation_1h_per_mtok": 10.00 },
+    "claude-opus-4-1": { "input_per_mtok": 15.00, "output_per_mtok": 75.00, "cache_read_per_mtok": 1.50, "cache_creation_per_mtok": 18.75, "cache_creation_1h_per_mtok": 30.00 },
+    "claude-opus-4": { "input_per_mtok": 15.00, "output_per_mtok": 75.00, "cache_read_per_mtok": 1.50, "cache_creation_per_mtok": 18.75, "cache_creation_1h_per_mtok": 30.00 },
+    "claude-sonnet-5-5": { "input_per_mtok": 2.00, "output_per_mtok": 10.00, "cache_read_per_mtok": 0.20, "cache_creation_per_mtok": 2.50, "cache_creation_1h_per_mtok": 4.00 },
+    "claude-sonnet-5": { "input_per_mtok": 2.00, "output_per_mtok": 10.00, "cache_read_per_mtok": 0.20, "cache_creation_per_mtok": 2.50, "cache_creation_1h_per_mtok": 4.00 },
+    "claude-sonnet-4-6": { "input_per_mtok": 3.00, "output_per_mtok": 15.00, "cache_read_per_mtok": 0.30, "cache_creation_per_mtok": 3.75, "cache_creation_1h_per_mtok": 6.00 },
+    "claude-sonnet-4-5": { "input_per_mtok": 3.00, "output_per_mtok": 15.00, "cache_read_per_mtok": 0.30, "cache_creation_per_mtok": 3.75, "cache_creation_1h_per_mtok": 6.00 },
+    "claude-sonnet-4": { "input_per_mtok": 3.00, "output_per_mtok": 15.00, "cache_read_per_mtok": 0.30, "cache_creation_per_mtok": 3.75, "cache_creation_1h_per_mtok": 6.00 },
+    "claude-haiku-5-5": {
+      "input_per_mtok": 0.10, "output_per_mtok": 0.50, "cache_read_per_mtok": 0.01, "cache_creation_per_mtok": 0.125, "cache_creation_1h_per_mtok": 0.20,
+      "long_prompt": { "over_tokens": 100000, "input_per_mtok": 0.50, "output_per_mtok": 2.50, "cache_read_per_mtok": 0.05, "cache_creation_per_mtok": 0.625, "cache_creation_1h_per_mtok": 1.00 }
+    },
+    "claude-haiku-4-5": { "input_per_mtok": 1.00, "output_per_mtok": 5.00, "cache_read_per_mtok": 0.10, "cache_creation_per_mtok": 1.25, "cache_creation_1h_per_mtok": 2.00 },
+    "claude-haiku-3-5": { "input_per_mtok": 0.80, "output_per_mtok": 4.00, "cache_read_per_mtok": 0.08, "cache_creation_per_mtok": 1.00, "cache_creation_1h_per_mtok": 1.60 }
+  }
+}

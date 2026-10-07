@@ -29,15 +29,25 @@ function costForTurn(
   output: number,
   cacheRead: number,
   cacheCreation: number,
+  cacheCreation1h = 0,
 ): number {
   if (!model) return 0;
   const row = priceForModel(pricing, model);
   if (!row) return 0;
+  // Prompt-length tiers (Haiku 5.5 bills above 100K at higher rates).
+  const promptTokens = input + cacheRead + cacheCreation;
+  const rates =
+    row.long_prompt && promptTokens > row.long_prompt.over_tokens ? row.long_prompt : row;
+  // 1-hour cache writes cost 2x input, 5-minute writes 1.25x.
+  const oneHour = Math.min(Math.max(cacheCreation1h, 0), cacheCreation);
+  const fiveMin = cacheCreation - oneHour;
+  const oneHourRate = rates.cache_creation_1h_per_mtok ?? rates.input_per_mtok * 2;
   return (
-    (input * row.input_per_mtok +
-      output * row.output_per_mtok +
-      cacheRead * row.cache_read_per_mtok +
-      cacheCreation * row.cache_creation_per_mtok) /
+    (input * rates.input_per_mtok +
+      output * rates.output_per_mtok +
+      cacheRead * rates.cache_read_per_mtok +
+      fiveMin * rates.cache_creation_per_mtok +
+      oneHour * oneHourRate) /
     1_000_000
   );
 }
@@ -82,6 +92,7 @@ export function analyzeTokens(
       t.outputTokens,
       t.cacheReadTokens,
       t.cacheCreationTokens,
+      t.cacheCreation1hTokens ?? 0,
     );
     const key = t.model ?? "(unknown)";
     const prev = perModel.get(key) ?? { tokens: 0, usd: 0 };

@@ -48,6 +48,8 @@ export interface AssistantTurn {
   readonly outputTokens: number;
   readonly cacheReadTokens: number;
   readonly cacheCreationTokens: number;
+  /** Part of cacheCreationTokens written with the 1-hour TTL (billed at 2x input). */
+  readonly cacheCreation1hTokens: number;
   /** Tool calls emitted in this turn. */
   readonly toolCalls: ToolCall[];
   /** True if this turn had no usage block at all (older Claude Code). */
@@ -84,21 +86,24 @@ function usageNumbers(u: Usage | undefined): {
   output: number;
   cacheRead: number;
   cacheCreation: number;
+  cacheCreation1h: number;
 } {
   // Claude Code before 2.1.152 could log the top-level cache_creation field as 0
   // while the nested 5m/1h breakdown held the real value.
   const nested = (u as { cache_creation?: Record<string, unknown> } | undefined)
     ?.cache_creation;
+  const nested1h =
+    nested && typeof nested === "object" ? Number(nested.ephemeral_1h_input_tokens ?? 0) || 0 : 0;
   const nestedSum =
     nested && typeof nested === "object"
-      ? Number(nested.ephemeral_5m_input_tokens ?? 0) +
-        Number(nested.ephemeral_1h_input_tokens ?? 0)
+      ? Number(nested.ephemeral_5m_input_tokens ?? 0) + nested1h
       : 0;
   return {
     input: u?.input_tokens ?? 0,
     output: u?.output_tokens ?? 0,
     cacheRead: u?.cache_read_input_tokens ?? 0,
     cacheCreation: Math.max(u?.cache_creation_input_tokens ?? 0, nestedSum || 0),
+    cacheCreation1h: nested1h,
   };
 }
 
@@ -208,6 +213,7 @@ export function parseTranscript(
         t.outputTokens = Math.max(t.outputTokens, u.output);
         t.cacheReadTokens = Math.max(t.cacheReadTokens, u.cacheRead);
         t.cacheCreationTokens = Math.max(t.cacheCreationTokens, u.cacheCreation);
+        t.cacheCreation1hTokens = Math.max(t.cacheCreation1hTokens, u.cacheCreation1h);
         if (usage) t.missingUsage = false;
       } else {
         if (model) {
@@ -221,6 +227,7 @@ export function parseTranscript(
           outputTokens: u.output,
           cacheReadTokens: u.cacheRead,
           cacheCreationTokens: u.cacheCreation,
+          cacheCreation1hTokens: u.cacheCreation1h,
           toolCalls: [],
           missingUsage: !usage,
         };

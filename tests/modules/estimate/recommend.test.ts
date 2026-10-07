@@ -73,7 +73,7 @@ describe("recommend", () => {
         classifyTask("implement a healthz endpoint"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-sonnet-4-6");
+      expect(r.model).toBe("claude-sonnet-5-5");
     });
 
     it("high refactor → opus", () => {
@@ -83,7 +83,7 @@ describe("recommend", () => {
         classifyTask("refactor the auth module"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-opus-4-8");
+      expect(r.model).toBe("claude-opus-5-5");
     });
 
     it("high debug → sonnet (iterates a lot)", () => {
@@ -95,7 +95,7 @@ describe("recommend", () => {
         classifyTask("fix the broken parser across the codebase"),
         goodAnchors,
       );
-      expect(r.model).toBe("claude-sonnet-4-6");
+      expect(r.model).toBe("claude-sonnet-5-5");
     });
 
     it("test verb → sonnet", () => {
