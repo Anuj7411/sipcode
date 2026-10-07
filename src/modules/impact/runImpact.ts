@@ -245,7 +245,7 @@ function noteFor(status: ImpactStatus): string[] {
     case "measured":
       return [
         "Run `sipcode why` on any specific session for a forensic per-session breakdown.",
-        "Run `sipcode benchmark` to compare your savings against the published 62.6% corpus median.",
+        "Run `sipcode benchmark` to compare your savings against the 62.6% median on the synthetic benchmark corpus.",
       ];
     case "insufficient-post-data":
       return [

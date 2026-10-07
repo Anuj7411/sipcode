@@ -65,7 +65,7 @@ It is open source under the MIT license. It makes zero network calls during norm
 | **Dedups same-session re-reads** | ✓ | ✗ | docs only | ✗ |
 | **Mid-session install support** | ✓ Verified Warm-Fill | n/a | n/a | n/a |
 | **Zero false-dedup by construction** | ✓ | n/a | n/a | n/a |
-| **Reproducible benchmark on locked corpus** | ✓ 62.6% median (20 tasks) | ✗ | ✗ | ✗ |
+| **Reproducible benchmark on locked corpus** | ✓ 62.6% median (20 synthetic tasks) | ✗ | ✗ | ✗ |
 | **Self-introspection MCP tools** | ✓ 15 tools | ✗ | ✗ | partial |
 | **Zero network calls in normal use** | ✓ | ✓ | n/a | ✗ |
 | **MIT licensed** | ✓ | ✓ | ✓ | ✓ |
@@ -84,7 +84,7 @@ If you use Claude Code for real work, you have already felt this:
 - Quality drops as the context window fills. Claude starts re-reading files, repeating itself, losing the thread of what you asked
 - You cannot tell what is bloat and what is signal
 
-Sipcode measures the bloat, then removes the parts Claude does not need. The savings are not theoretical. Run `sipcode benchmark` on any machine and you will see the same 62.6% median reduction on the locked 20-task corpus.
+Sipcode measures the bloat, then removes the parts Claude does not need. Run `sipcode benchmark` on any machine and you will see the same 62.6% median reduction on the locked 20-task corpus. That corpus is synthetic: scripted pairs of Claude Code transcripts (without and with Sipcode), not recordings of live sessions. It shows what Sipcode's mechanisms remove from a modeled session. Your own number depends on your workload, and `sipcode impact` measures it on your real sessions.
 
 ---
 
@@ -113,11 +113,11 @@ Sipcode proxy, rewrite stats
 
 ### 3. `sipcode benchmark`
 
-Runs the locked 20-task corpus and produces a verifiable savings number. Anyone, anywhere can run this and get 62.6%.
+Runs the locked 20-task corpus and produces a reproducible savings number. Anyone, anywhere can run this and get 62.6%. The transcripts are scripted, not recorded from live sessions, so read it as a model of Sipcode's mechanisms rather than a measured bill (see [METHODOLOGY](benchmark/METHODOLOGY.md)).
 
 ```
 62.6%  median savings on a locked 20-task corpus
-       range 37.4% to 80.6%   3,567,170 tokens   $67.43
+       range 37.4% to 80.6%   3,567,170 tokens   $22.48
 ```
 
 ### 4. `sipcode today`
