@@ -242,6 +242,7 @@ export async function runReceipt(
     report,
     variant,
     sessionStartedAt: session.startedAt,
+    agentId: agent.id,
   });
 
   // --- 6. write artifacts (idempotent: bytes are deterministic) ---

@@ -232,6 +232,16 @@ describe("Codex wording in the reports", () => {
     expect(j.hero.sublabel).toBe("wasted");
   });
 
+  it("receipt: two Codex sessions get their own folder (time-ordered ids share 4 characters)", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "0199a1b2-0000-7000-8000-000000000001", [solTurn("2026-05-10T10:00:00Z")]);
+    addCodexRollout(fs, "0199c3d4-0000-7000-8000-000000000002", [solTurn("2026-05-11T10:00:00Z")]);
+    const a = JSON.parse((await receipt({ json: true, session: "0199a1b2" }, fs)).out);
+    const b = JSON.parse((await receipt({ json: true, session: "0199c3d4" }, fs)).out);
+    expect([a.sessionIdShort, b.sessionIdShort]).toEqual(["0199a1b2", "0199c3d4"]);
+    expect(a.htmlPath).not.toBe(b.htmlPath);
+  });
+
   it("drift: Codex wording when there is not enough history", async () => {
     const r = await drift({}, codexOnlyFs());
     expect(r.out).toContain("Keep using Codex and re-run.");

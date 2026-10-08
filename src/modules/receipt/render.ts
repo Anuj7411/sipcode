@@ -11,6 +11,7 @@
  */
 import { formatNum, formatUSD } from "../../lib/format.js";
 import type { RenderedReport } from "../why/render.js";
+import type { AgentId } from "../agents/types.js";
 import type {
   ReceiptLeak,
   ReceiptModel,
@@ -22,6 +23,12 @@ export interface RenderReceiptInput {
   readonly variant: ReceiptVariant;
   /** ISO timestamp of session start (drives the "as of" date — idempotent). */
   readonly sessionStartedAt: string | undefined;
+  /**
+   * The tool the session came from. Codex ids are time-ordered (UUIDv7): their
+   * first 4 characters change only every ~50 days, so a Codex receipt keeps 8
+   * (the folder and title would otherwise be shared by every recent session).
+   */
+  readonly agentId?: AgentId | undefined;
 }
 
 const TAGLINE = "sip your tokens. don't gulp them.";
@@ -71,7 +78,9 @@ export function renderReceipt(input: RenderReceiptInput): ReceiptModel {
     schemaVersion: "sipcode-receipt/1",
     variant,
     header: {
-      sessionIdShort: report.header.sessionIdShort.slice(0, 4).toLowerCase(),
+      sessionIdShort: report.header.sessionIdShort
+        .slice(0, input.agentId === "codex" ? 8 : 4)
+        .toLowerCase(),
       dateDisplay: fmtDate(input.sessionStartedAt),
       durationDisplay: report.header.durationHuman,
     },
