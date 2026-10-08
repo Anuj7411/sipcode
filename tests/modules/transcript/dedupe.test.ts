@@ -175,4 +175,51 @@ describe("dedupeAcrossSessions", () => {
     expect(out.toolCalls).toHaveLength(0);
     expect(out.primaryModel).toBeUndefined();
   });
+  describe("order-independent usage across copies", () => {
+    const zeroed = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0 };
+    const real = { inputTokens: 5, outputTokens: 7, cacheReadTokens: 900, cacheCreationTokens: 40, cacheCreation1hTokens: 30 };
+
+    it("the winning copy carries the largest usage even when it was logged zeroed", () => {
+      // "a" starts first, so it wins the tie-break, but its copy of k1 has zeroed usage.
+      const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1", ["Read"], zeroed)]);
+      const b = session("b", "2026-09-01T10:00:00Z", [turn(0, "k1", ["Read"], real), turn(1, "k2")]);
+      for (const input of [[a, b], [b, a]]) {
+        const r = dedupeAcrossSessions(input);
+        const winner = r.sessions[input.indexOf(a)]!;
+        const kept = winner.assistantTurns[0]!;
+        expect(kept.inputTokens).toBe(5);
+        expect(kept.outputTokens).toBe(7);
+        expect(kept.cacheReadTokens).toBe(900);
+        expect(kept.cacheCreationTokens).toBe(40);
+        expect(kept.cacheCreation1hTokens).toBe(30);
+        const c = kept.toolCalls[0]!;
+        expect([c.inputTokens, c.outputTokens, c.cacheReadTokens, c.cacheCreationTokens]).toEqual([5, 7, 900, 40]);
+        expect(c.totalTokens).toBe(952);
+        expect(winner.toolCalls[0]).toBe(c);
+        expect(r.droppedRequests).toBe(1);
+      }
+    });
+
+    it("does not mutate the input session", () => {
+      const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1", [], zeroed)]);
+      const b = session("b", "2026-09-02T10:00:00Z", [turn(0, "k1", [], real)]);
+      dedupeAcrossSessions([a, b]);
+      expect(a.assistantTurns[0]!.cacheReadTokens).toBe(0);
+    });
+
+    it("returns an unchanged session as the same object (no allocation)", () => {
+      const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1"), turn(1, "k2")]);
+      const b = session("b", "2026-09-02T10:00:00Z", [turn(0, "k3")]);
+      const r = dedupeAcrossSessions([a, b]);
+      expect(r.sessions[0]).toBe(a);
+      expect(r.sessions[1]).toBe(b);
+    });
+
+    it("keeps a copy that already holds the maximum as-is (same object)", () => {
+      const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1", [], real)]);
+      const b = session("b", "2026-09-02T10:00:00Z", [turn(0, "k1", [], zeroed), turn(1, "k2")]);
+      const r = dedupeAcrossSessions([a, b]);
+      expect(r.sessions[0]).toBe(a);
+    });
+  });
 });

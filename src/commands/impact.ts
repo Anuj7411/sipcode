@@ -116,6 +116,14 @@ export async function runImpactCommand(
       for (const i of loaded.error) stderr(i.message);
       return { exitCode: 1 };
     }
+    if (
+      !opts.json &&
+      (loaded.value.unreadable > 0 || loaded.value.issues.length > 0)
+    ) {
+      stderr(
+        `note: ${loaded.value.unreadable + loaded.value.issues.length} transcript file(s) could not be read or parsed; totals exclude them.`,
+      );
+    }
     const pricing = loadPricingForDate(clock.now());
     for (const { meta, parsed } of loaded.value.sessions) {
       const totals = analyzeTokens(parsed, pricing);

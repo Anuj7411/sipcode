@@ -42,11 +42,25 @@ export function dedupeAcrossSessions(
         cmp(a.s.assistantTurns.length, b.s.assistantTurns.length) ||
         a.i - b.i,
     );
+  // Resumed files re-log some copied requests with the top-level usage zeroed.
+  // Whichever copy wins the ordering must carry the largest value per field
+  // across all copies (same rule as the within-file merge in parseTranscript).
+  const maxUsage = new Map<string, Usage>();
+  for (const s of sessions) {
+    for (const t of s.assistantTurns) {
+      if (!t.requestKey) continue;
+      const m = maxUsage.get(t.requestKey);
+      if (!m) maxUsage.set(t.requestKey, usageOf(t));
+      else
+        for (const f of USAGE_FIELDS) if (t[f] > m[f]) m[f] = t[f];
+    }
+  }
   const seen = new Set<string>();
   const out: ParsedSession[] = sessions.slice();
   let dropped = 0;
   for (const { s, i } of order) {
     const keep: number[] = [];
+    const maxed = new Map<number, AssistantTurn>();
     s.assistantTurns.forEach((t, idx) => {
       if (t.requestKey) {
         if (seen.has(t.requestKey)) {
@@ -54,12 +68,52 @@ export function dedupeAcrossSessions(
           return;
         }
         seen.add(t.requestKey);
+        const m = maxUsage.get(t.requestKey)!;
+        if (USAGE_FIELDS.some((f) => t[f] < m[f])) maxed.set(idx, withUsage(t, m));
       }
       keep.push(idx);
     });
-    out[i] = keep.length === s.assistantTurns.length ? s : rebuild(s, keep);
+    out[i] =
+      keep.length === s.assistantTurns.length && maxed.size === 0 ? s : rebuild(s, keep, maxed);
   }
   return { sessions: out, droppedRequests: dropped };
+}
+
+const USAGE_FIELDS = [
+  "inputTokens",
+  "outputTokens",
+  "cacheReadTokens",
+  "cacheCreationTokens",
+  "cacheCreation1hTokens",
+] as const;
+type Usage = { -readonly [K in (typeof USAGE_FIELDS)[number]]: number };
+
+function usageOf(t: AssistantTurn): Usage {
+  return {
+    inputTokens: t.inputTokens,
+    outputTokens: t.outputTokens,
+    cacheReadTokens: t.cacheReadTokens,
+    cacheCreationTokens: t.cacheCreationTokens,
+    cacheCreation1hTokens: t.cacheCreation1hTokens,
+  };
+}
+
+/** Copy of the turn carrying `u`; its tool calls mirror the turn's usage like parseTranscript stamps them. */
+function withUsage(t: AssistantTurn, u: Usage): AssistantTurn {
+  const totalTokens = u.inputTokens + u.outputTokens + u.cacheReadTokens + u.cacheCreationTokens;
+  return {
+    ...t,
+    ...u,
+    missingUsage: t.missingUsage && totalTokens === 0,
+    toolCalls: t.toolCalls.map((c) => ({
+      ...c,
+      inputTokens: u.inputTokens,
+      outputTokens: u.outputTokens,
+      cacheReadTokens: u.cacheReadTokens,
+      cacheCreationTokens: u.cacheCreationTokens,
+      totalTokens,
+    })),
+  };
 }
 
 function cmp(a: number, b: number): number {
@@ -72,7 +126,11 @@ function parseTime(v: string | undefined): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function rebuild(s: ParsedSession, keep: number[]): ParsedSession {
+function rebuild(
+  s: ParsedSession,
+  keep: number[],
+  maxed: ReadonlyMap<number, AssistantTurn>,
+): ParsedSession {
   const kept = new Set(keep);
   // Copied history is assumed to precede a file's own requests (true for
   // Claude resume and Codex forks on all observed data), so every read of a
@@ -86,7 +144,7 @@ function rebuild(s: ParsedSession, keep: number[]): ParsedSession {
     }
   });
   const assistantTurns: AssistantTurn[] = keep.map((oldIdx, newIdx) => {
-    const t = s.assistantTurns[oldIdx]!;
+    const t = maxed.get(oldIdx) ?? s.assistantTurns[oldIdx]!;
     return {
       ...t,
       index: newIdx,
