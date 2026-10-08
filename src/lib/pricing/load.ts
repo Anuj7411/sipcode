@@ -108,6 +108,9 @@ const MODEL_ALIASES: Record<string, string> = {
   "claude-sonnet-4-0": "claude-sonnet-4",
 };
 
+/** What may follow a table key in a snapshot id: only dash-separated digit groups. */
+const SNAPSHOT_SUFFIX = /^(-\d+)+$/;
+
 export function priceForModel(
   pricing: PricingFile,
   model: string,
@@ -116,11 +119,13 @@ export function priceForModel(
   if (direct) return direct;
   const alias = MODEL_ALIASES[model];
   if (alias && pricing.models[alias]) return pricing.models[alias];
-  // Loose match (e.g. dated ids like claude-haiku-4-5-20251001): the LONGEST
-  // matching key wins, so claude-opus-5-5 never falls back to claude-opus-5.
+  // Loose match for snapshot ids (claude-haiku-4-5-20251001, gpt-5.4-2026-03-01):
+  // a key matches only when the rest of the id is dash-separated digit groups, so
+  // gpt-5.1-codex-mini never borrows gpt-5.1's price (unknown stays unknown).
+  // The LONGEST matching key wins, so claude-opus-5-5 never falls back to claude-opus-5.
   let best: string | undefined;
   for (const key of Object.keys(pricing.models)) {
-    if (model === key || model.startsWith(key + "-")) {
+    if (model === key || (model.startsWith(key) && SNAPSHOT_SUFFIX.test(model.slice(key.length)))) {
       if (!best || key.length > best.length) best = key;
     }
   }

@@ -99,3 +99,24 @@ describe("OpenAI models (Codex)", () => {
     expect(priceForModel(p, "claude-opus-4-8")).toBeDefined();
   });
 });
+
+describe("snapshot-id matching", () => {
+  const p = loadPricingForDate(new Date("2026-10-08"));
+  it("resolves dated and versioned snapshot ids to their base row", () => {
+    expect(priceForModel(p, "claude-haiku-4-5-20251001")?.input_per_mtok).toBe(1);
+    expect(priceForModel(p, "gpt-5.4-2026-03-01")?.input_per_mtok).toBe(2.5);
+    expect(priceForModel(p, "gpt-5.4-mini-2026-03-01")?.input_per_mtok).toBe(0.75);
+  });
+  it("leaves codex-mini and other non-snapshot suffixes unpriced", () => {
+    expect(priceForModel(p, "gpt-5.1-codex-mini")).toBeUndefined();
+    expect(priceForModel(p, "gpt-5-codex-mini")).toBeUndefined();
+    expect(priceForModel(p, "gpt-5.1-codex")).toBeUndefined();
+    expect(priceForModel(p, "gpt-5.4-turbo")).toBeUndefined();
+    expect(priceForModel(p, "claude-opus-5-5[1m]")).toBeUndefined();
+    expect(priceForModel(p, "<synthetic>")).toBeUndefined();
+  });
+  it("still prefers exact rows over a shorter key with a digit-suffix", () => {
+    expect(priceForModel(p, "gpt-5.5-pro")?.input_per_mtok).toBe(30);
+    expect(priceForModel(p, "claude-opus-5-5")?.input_per_mtok).toBe(4);
+  });
+});
