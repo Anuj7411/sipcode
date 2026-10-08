@@ -14,8 +14,12 @@ import type { SessionMeta } from "../../transcript/discover.js";
 import { cwdToProjectHash } from "../../transcript/discover.js";
 import { parseCodexMeta } from "./parse.js";
 
-/** Line 1 carries Codex's base instructions, typically tens of KB; 1 MiB covers it. */
-const HEAD_BYTES = 1024 * 1024;
+/**
+ * Line 1 carries Codex's base instructions, typically 14-41 KB. Start small and
+ * double until line 1 ends; past the cap, read the whole file.
+ */
+const HEAD_START_BYTES = 64 * 1024;
+const HEAD_MAX_BYTES = 4 * 1024 * 1024;
 
 export function resolveCodexHome(env: ProcessEnv): string {
   return env.get("CODEX_HOME") || path.join(env.homeDir(), ".codex");
@@ -69,11 +73,16 @@ async function walk(fs: FileSystem, dir: string, out: Found[], counters: Counter
   }
 }
 
-/** Line 1 of a rollout, reading the whole file only when line 1 outgrows the head window. */
+/** Line 1 of a rollout, reading the whole file only when line 1 outgrows the largest head window. */
 async function readFirstLine(fs: FileSystem, file: string): Promise<string> {
-  const head = await fs.readHead(file, HEAD_BYTES);
-  const nl = head.indexOf("\n");
-  if (nl >= 0) return head.slice(0, nl);
+  for (let n = HEAD_START_BYTES; n <= HEAD_MAX_BYTES; n *= 2) {
+    const head = await fs.readHead(file, n);
+    const nl = head.indexOf("\n");
+    if (nl >= 0) return head.slice(0, nl);
+    // A full window decodes to at least n-3 bytes (a split UTF-8 character is
+    // held back), so anything shorter means the file ended: a one-line rollout.
+    if (Buffer.byteLength(head) < n - 3) return head;
+  }
   const full = await fs.readFile(file);
   const fullNl = full.indexOf("\n");
   return fullNl >= 0 ? full.slice(0, fullNl) : full;

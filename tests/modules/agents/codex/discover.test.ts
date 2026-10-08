@@ -104,20 +104,45 @@ describe("Codex discovery", () => {
     const r = await listCodexSessions(fs, "/c");
     expect(r.sessions.map((s) => [s.sessionId, s.cwd])).toEqual([["a", "/p"]]);
     expect(calls.readFile).toBe(0);
-    expect(calls.readHead).toBe(1);
+    expect(calls.headSizes).toEqual([64 * 1024]);
   });
 
-  it("falls back to a full read when line 1 is longer than the head window", async () => {
-    const mem = new InMemoryFs();
-    const big = JSON.stringify({
+  const bigMeta = (id: string, chars: number) =>
+    JSON.stringify({
       type: "session_meta",
-      payload: { id: "big", cwd: "/p", base_instructions: { text: "é".repeat(600_000) } },
+      payload: { id, cwd: "/p", base_instructions: { text: "é".repeat(chars) } },
     });
-    expect(Buffer.byteLength(big)).toBeGreaterThan(1024 * 1024);
+
+  it("doubles the head window from 64 KiB until line 1 ends", async () => {
+    const mem = new InMemoryFs();
+    const line1 = bigMeta("mid", 50_000); // ~100 KB: past 64 KiB, inside 128 KiB
+    mem.writeFile("/c/sessions/2026/10/01/rollout-mid.jsonl", [line1, turn].join("\n"), 1);
+    const { fs, calls } = spyFs(mem);
+    const r = await listCodexSessions(fs, "/c");
+    expect(r.sessions.map((s) => [s.sessionId, s.cwd])).toEqual([["mid", "/p"]]);
+    expect(calls.headSizes).toEqual([64 * 1024, 128 * 1024]);
+    expect(calls.readFile).toBe(0);
+  });
+
+  it("does not re-read a one-line rollout shorter than the head window", async () => {
+    const mem = new InMemoryFs();
+    mem.writeFile("/c/sessions/2026/10/01/rollout-one.jsonl", meta("one", "/p"), 1);
+    const { fs, calls } = spyFs(mem);
+    const r = await listCodexSessions(fs, "/c");
+    expect(r.sessions.map((s) => s.sessionId)).toEqual(["one"]);
+    expect(calls.headSizes).toEqual([64 * 1024]);
+    expect(calls.readFile).toBe(0);
+  });
+
+  it("falls back to a full read when line 1 is longer than 4 MiB", async () => {
+    const mem = new InMemoryFs();
+    const big = bigMeta("big", 2_200_000);
+    expect(Buffer.byteLength(big)).toBeGreaterThan(4 * 1024 * 1024);
     mem.writeFile("/c/sessions/2026/10/01/rollout-big.jsonl", [big, turn].join("\n"), 1);
     const { fs, calls } = spyFs(mem);
     const r = await listCodexSessions(fs, "/c");
     expect(r.sessions.map((s) => [s.sessionId, s.cwd])).toEqual([["big", "/p"]]);
+    expect(calls.headSizes).toEqual([64, 128, 256, 512, 1024, 2048, 4096].map((k) => k * 1024));
     expect(calls.readFile).toBe(1);
   });
 
