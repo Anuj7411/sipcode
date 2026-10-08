@@ -115,6 +115,12 @@ describe("snapshot-id matching", () => {
     expect(priceForModel(p, "claude-opus-5-5[1m]")).toBeUndefined();
     expect(priceForModel(p, "<synthetic>")).toBeUndefined();
   });
+  it("does not let a minor-version suffix borrow a base model's price", () => {
+    expect(priceForModel(p, "claude-opus-5-6")).toBeUndefined();
+    expect(priceForModel(p, "claude-sonnet-5-6")).toBeUndefined();
+    expect(priceForModel(p, "claude-opus-4-10")).toBeUndefined();
+    expect(priceForModel(p, "gpt-5-1")).toBeUndefined();
+  });
   it("still prefers exact rows over a shorter key with a digit-suffix", () => {
     expect(priceForModel(p, "gpt-5.5-pro")?.input_per_mtok).toBe(30);
     expect(priceForModel(p, "claude-opus-5-5")?.input_per_mtok).toBe(4);

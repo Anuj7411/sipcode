@@ -79,6 +79,7 @@ export function loadPricingForDate(sessionDate: Date): PricingFile {
       if (!file.models[model]) file.models[model] = row;
     }
   }
+  // OpenAI prices are not dated: the newest openai-*.json applies to all session dates.
   // OpenAI (Codex) models live in their own table; ids never collide with claude-*.
   const openai = listOpenAiPricingFiles().at(-1);
   if (openai) {
@@ -108,8 +109,8 @@ const MODEL_ALIASES: Record<string, string> = {
   "claude-sonnet-4-0": "claude-sonnet-4",
 };
 
-/** What may follow a table key in a snapshot id: only dash-separated digit groups. */
-const SNAPSHOT_SUFFIX = /^(-\d+)+$/;
+/** What may follow a table key in a snapshot id: a date only (-20251001 or -2026-03-01), never a minor version. */
+const SNAPSHOT_SUFFIX = /^-(\d{8}|\d{4}-\d{2}-\d{2})$/;
 
 export function priceForModel(
   pricing: PricingFile,
@@ -120,7 +121,7 @@ export function priceForModel(
   const alias = MODEL_ALIASES[model];
   if (alias && pricing.models[alias]) return pricing.models[alias];
   // Loose match for snapshot ids (claude-haiku-4-5-20251001, gpt-5.4-2026-03-01):
-  // a key matches only when the rest of the id is dash-separated digit groups, so
+  // a key matches only when the rest of the id is a date, so
   // gpt-5.1-codex-mini never borrows gpt-5.1's price (unknown stays unknown).
   // The LONGEST matching key wins, so claude-opus-5-5 never falls back to claude-opus-5.
   let best: string | undefined;
