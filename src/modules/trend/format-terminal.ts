@@ -7,7 +7,10 @@
 import { sparkline, sparklineStats } from "../stats/sparkline.js";
 import type { TrendResult, TrendMetric, TrendVerdict } from "./compute.js";
 
-export function formatTrendTerminal(result: TrendResult): string {
+export function formatTrendTerminal(
+  result: TrendResult,
+  opts: { unpricedNote?: string | undefined } = {},
+): string {
   const lines: string[] = [];
   const title = metricTitle(result.metric);
   lines.push(`sipcode trend · ${title}`);
@@ -23,6 +26,8 @@ export function formatTrendTerminal(result: TrendResult): string {
   lines.push(`  ${spark}`);
   const stats = sparklineStats(values);
   lines.push(`  min ${fmtMetric(stats.min, result.metric)} · median ${fmtMetric(stats.median, result.metric)} · max ${fmtMetric(stats.max, result.metric)}`);
+  // Only the cost metric prints a cost.
+  if (opts.unpricedNote && result.metric === "cost-per-session") lines.push(`  ${opts.unpricedNote}`);
   lines.push("");
   lines.push(`  total sessions across window: ${result.days.reduce((a, d) => a + d.sessions, 0)}`);
 
