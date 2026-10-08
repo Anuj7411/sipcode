@@ -173,8 +173,9 @@ export async function ownRequestsOnly(i: {
   return r.sessions[0]!;
 }
 
-export function otherAgentHint(o: PickedSession): string {
-  return `${o.agent.displayName} also has a recent session (${o.meta.sessionId.slice(0, 8)}): run with --agent ${o.agent.id}.`;
+/** With --here, the suggested command keeps it (without it, --agent picks the newest anywhere). */
+export function otherAgentHint(o: Pick<PickedSession, "agent" | "meta">, here = false): string {
+  return `${o.agent.displayName} also has a recent session (${o.meta.sessionId.slice(0, 8)}): run with --agent ${o.agent.id}${here ? " --here" : ""}.`;
 }
 
 /** Whose prices a session is costed with (and whose table date to show). */

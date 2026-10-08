@@ -272,7 +272,7 @@ export async function runDriftCommand(
   stdout(renderDriftTerminal(report, agent));
   if (picked.others.length > 0) {
     stdout("");
-    for (const o of picked.others) stdout(otherAgentHint(o));
+    for (const o of picked.others) stdout(otherAgentHint(o, opts.here ?? false));
   }
   return { exitCode: 0 };
 }

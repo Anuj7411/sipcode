@@ -344,7 +344,7 @@ export async function runReceipt(
 
   if (picked.others.length > 0) {
     stdout("");
-    for (const o of picked.others) stdout(otherAgentHint(o));
+    for (const o of picked.others) stdout(otherAgentHint(o, opts.here ?? false));
   }
 
   // --- 10. warnings ---

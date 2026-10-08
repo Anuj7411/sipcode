@@ -192,6 +192,17 @@ for (const [name, run] of commands) {
       expect(codex.err).toBe("");
     });
 
+    it("with --here, the other-tool hint keeps --here", async () => {
+      const fs = new InMemoryFs();
+      fs.writeFile("/home/u/.claude/projects/-w/readheavy1.jsonl", loadFixture("read-heavy.jsonl"), Date.parse("2026-05-02T09:00:30Z"));
+      addCodexRollout(fs, "cx1", [solTurn("2026-05-10T10:00:00Z")], "/w");
+      const r = await run({ here: true }, fs);
+      expect(r.exitCode).toBe(0);
+      expect(r.outLines.at(-1)).toBe(
+        "Claude Code also has a recent session (readheav): run with --agent claude-code --here.",
+      );
+    });
+
     it("--agent codex with no Codex logs never shows Claude Code data", async () => {
       const r = await run({ agent: "codex" }, claudeFs());
       expect(r.out).not.toContain("readheav");
