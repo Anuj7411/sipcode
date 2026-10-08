@@ -92,8 +92,9 @@ export function analyzeIdleContext(session: ParsedSession): IdleContextResult {
         firstRead.set(norm, {
           displayPath: p,
           turn: call.assistantTurnIndex,
-          // Per-turn carry cost. Cache_read tokens are the cheap "in-context" tokens.
-          cost: call.cacheReadTokens || call.inputTokens,
+          // What reading the file added to the context. Before v1.6.21 this
+          // was the request's whole cached context, not the file.
+          cost: call.resultTokens,
         });
       }
     }

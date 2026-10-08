@@ -70,7 +70,10 @@ import { runEstimate } from "../commands/estimate.js";
 // ---- Server metadata ----
 
 import { readFileSync as _readFileSync } from "node:fs";
-import { fileURLToPath as _fileURLToPath } from "node:url";
+import {
+  fileURLToPath as _fileURLToPath,
+  pathToFileURL as _pathToFileURL,
+} from "node:url";
 import { dirname as _dirname, join as _join } from "node:path";
 
 const SERVER_NAME = "sipcode";
@@ -821,33 +824,6 @@ function logFatal(scope: string, err: unknown): void {
   process.stderr.write(`[sipcode-mcp] ${scope}: ${msg}\n`);
 }
 
-process.on("uncaughtException", (err) => {
-  logFatal("uncaughtException", err);
-  process.exit(1);
-});
-
-process.on("unhandledRejection", (reason) => {
-  logFatal("unhandledRejection", reason);
-  process.exit(1);
-});
-
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
-  process.on(sig, () => {
-    process.stderr.write(`[sipcode-mcp] received ${sig}, shutting down\n`);
-    process.exit(0);
-  });
-}
-
-// Parent died / disconnected the stdio pipe — we have no work left.
-process.stdin.on("end", () => {
-  process.stderr.write(`[sipcode-mcp] stdin closed, shutting down\n`);
-  process.exit(0);
-});
-process.stdin.on("error", (err) => {
-  logFatal("stdin error", err);
-  process.exit(1);
-});
-
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -857,7 +833,45 @@ async function main(): Promise<void> {
   );
 }
 
-main().catch((err) => {
-  logFatal("fatal during boot", err);
-  process.exit(1);
-});
+// Only start the server — and install its process-level exit handlers — when
+// this module is run AS the sipcode-mcp binary. When it is merely imported
+// (e.g. `sipcode init` pulls in getRegisteredMcpToolCount), starting the server
+// would attach a stdin "end" handler that calls process.exit(0); with non-TTY
+// stdin (CI, pipes) that fires immediately and kills the host command mid-run.
+const _isMainModule =
+  process.argv[1] != null &&
+  _pathToFileURL(process.argv[1]).href === import.meta.url;
+
+if (_isMainModule) {
+  process.on("uncaughtException", (err) => {
+    logFatal("uncaughtException", err);
+    process.exit(1);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    logFatal("unhandledRejection", reason);
+    process.exit(1);
+  });
+
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+    process.on(sig, () => {
+      process.stderr.write(`[sipcode-mcp] received ${sig}, shutting down\n`);
+      process.exit(0);
+    });
+  }
+
+  // Parent died / disconnected the stdio pipe — we have no work left.
+  process.stdin.on("end", () => {
+    process.stderr.write(`[sipcode-mcp] stdin closed, shutting down\n`);
+    process.exit(0);
+  });
+  process.stdin.on("error", (err) => {
+    logFatal("stdin error", err);
+    process.exit(1);
+  });
+
+  main().catch((err) => {
+    logFatal("fatal during boot", err);
+    process.exit(1);
+  });
+}

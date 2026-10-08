@@ -1,0 +1,42 @@
+name: ci
+
+# Runs the full test suite on every pull request and every push to main, so a
+# broken change is caught before merge, not at release time. (Before this, the
+# suite only ran inside release.yml.) Closes #33 and #38.
+#
+# Same toolchain as release.yml: Node 24, npm ci, build, then tests. The e2e
+# suite packs and installs the real tarball, so it also guards the published
+# artifact (bundled pricing JSON, MCP binary, 15 tools).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: typecheck, build, test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows matters: path handling and CRLF have broken Sipcode before.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:e2e

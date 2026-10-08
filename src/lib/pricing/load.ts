@@ -9,11 +9,19 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PriceRowSchema = z.object({
+const RatesSchema = z.object({
   input_per_mtok: z.number(),
   output_per_mtok: z.number(),
   cache_read_per_mtok: z.number(),
+  /** 5-minute cache write. */
   cache_creation_per_mtok: z.number(),
+  /** 1-hour cache write (2x input). Claude Code subscriptions use it for the main conversation. */
+  cache_creation_1h_per_mtok: z.number().optional(),
+});
+
+const PriceRowSchema = RatesSchema.extend({
+  /** Higher rates once a prompt exceeds `over_tokens` (e.g. Haiku 5.5 above 100K). */
+  long_prompt: RatesSchema.extend({ over_tokens: z.number() }).optional(),
 });
 
 const PricingFileSchema = z.object({
@@ -51,7 +59,19 @@ export function loadPricingForDate(sessionDate: Date): PricingFile {
     if (f.date <= iso) chosen = f;
   }
   const raw = JSON.parse(readFileSync(chosen.absPath, "utf-8")) as unknown;
-  return PricingFileSchema.parse(raw);
+  const file = PricingFileSchema.parse(raw);
+  // A session dated before a model's pricing file was bundled would otherwise
+  // find no price and cost $0. Fill missing models from the newest table.
+  const newest = files[files.length - 1]!;
+  if (newest.absPath !== chosen.absPath) {
+    const latest = PricingFileSchema.parse(
+      JSON.parse(readFileSync(newest.absPath, "utf-8")) as unknown,
+    );
+    for (const [model, row] of Object.entries(latest.models)) {
+      if (!file.models[model]) file.models[model] = row;
+    }
+  }
+  return file;
 }
 
 /**
@@ -66,20 +86,10 @@ export function pricingAgeDays(pricing: PricingFile, now: Date): number {
 }
 
 const MODEL_ALIASES: Record<string, string> = {
-  // Internal/dotted Claude Code model names → canonical pricing keys.
-  "claude-opus-4-8": "claude-opus-4",
-  "claude-opus-4-7": "claude-opus-4",
-  "claude-opus-4-6": "claude-opus-4",
-  "claude-opus-4-5": "claude-opus-4",
+  // Only names with no table row of their own. Opus 4.5+ must NOT map to
+  // claude-opus-4: Opus 4/4.1 cost $15/$75, Opus 4.5 and later $5/$25.
   "claude-opus-4-0": "claude-opus-4",
-  "claude-opus-4": "claude-opus-4",
-  "claude-sonnet-4-7": "claude-sonnet-4",
-  "claude-sonnet-4-6": "claude-sonnet-4",
-  "claude-sonnet-4-5": "claude-sonnet-4",
   "claude-sonnet-4-0": "claude-sonnet-4",
-  "claude-sonnet-4": "claude-sonnet-4",
-  "claude-haiku-4-5": "claude-haiku-4",
-  "claude-haiku-4": "claude-haiku-4",
 };
 
 export function priceForModel(
@@ -90,11 +100,15 @@ export function priceForModel(
   if (direct) return direct;
   const alias = MODEL_ALIASES[model];
   if (alias && pricing.models[alias]) return pricing.models[alias];
-  // Loose match: try prefix.
+  // Loose match (e.g. dated ids like claude-haiku-4-5-20251001): the LONGEST
+  // matching key wins, so claude-opus-5-5 never falls back to claude-opus-5.
+  let best: string | undefined;
   for (const key of Object.keys(pricing.models)) {
-    if (model.startsWith(key)) return pricing.models[key];
+    if (model === key || model.startsWith(key + "-")) {
+      if (!best || key.length > best.length) best = key;
+    }
   }
-  return undefined;
+  return best ? pricing.models[best] : undefined;
 }
 
 export const PRICING_SCHEMA = PricingFileSchema;

@@ -13,6 +13,8 @@ function makeCall(name: string, turn: number, filePath: string): ToolCall {
     cacheReadTokens: 500,
     cacheCreationTokens: 0,
     totalTokens: 650,
+    // Size of what the Read returned; this, not the request context, is the idle cost.
+    resultTokens: 1200,
   };
 }
 
@@ -54,7 +56,9 @@ describe("analyzeIdleContext", () => {
     const res = analyzeIdleContext(session);
     expect(res.idleFiles.length).toBe(1);
     expect(res.idleFiles[0]?.idleTurns).toBeGreaterThanOrEqual(5);
-    expect(res.idleTokenCost).toBeGreaterThan(0);
+    // Cost is the file content the Read added (resultTokens), never the cached
+    // context of the request that made the call (cacheReadTokens = 500 here).
+    expect(res.idleTokenCost).toBe(1200);
   });
 
   it("does not flag files referenced again recently", () => {

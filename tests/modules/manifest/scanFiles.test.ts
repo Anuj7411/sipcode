@@ -57,3 +57,37 @@ describe("scanFiles", () => {
     expect(out.map((f) => f.path)).toEqual(["a.ts", "b.ts", "c.ts"]);
   });
 });
+
+// Issue #22: a Python virtual environment's Lib/ and include/ were scanned.
+describe("scanFiles skips Python environments (issue #22)", () => {
+  it("skips a venv nested under any name, by its pyvenv.cfg", async () => {
+    const fs = new InMemoryFs();
+    fs.writeFile("/p/app/main.py", "print(1)");
+    fs.writeFile("/p/myenv/pyvenv.cfg", "home = /usr/bin");
+    fs.writeFile("/p/myenv/Lib/site-packages/requests/__init__.py", "x");
+    fs.writeFile("/p/myenv/include/python3.12/Python.h", "x");
+    const paths = (await scanFiles(fs, "/p")).map((f) => f.path);
+    expect(paths).toEqual(["app/main.py"]);
+  });
+
+  it("skips only the venv folders when the project root is itself a venv", async () => {
+    const fs = new InMemoryFs();
+    fs.writeFile("/p/pyvenv.cfg", "home = C:\Python312");
+    fs.writeFile("/p/Lib/site-packages/flask/app.py", "x");
+    fs.writeFile("/p/include/site/python3.12/greenlet.h", "x");
+    fs.writeFile("/p/Scripts/activate.bat", "x");
+    fs.writeFile("/p/app.py", "print(1)");
+    fs.writeFile("/p/src/models.py", "x");
+    const paths = (await scanFiles(fs, "/p")).map((f) => f.path);
+    expect(paths).toEqual(["app.py", "pyvenv.cfg", "src/models.py"]);
+  });
+
+  it("skips a conda environment by its conda-meta folder", async () => {
+    const fs = new InMemoryFs();
+    fs.writeFile("/p/src/a.py", "x");
+    fs.writeFile("/p/envs/dev/conda-meta/history", "x");
+    fs.writeFile("/p/envs/dev/lib/python3.12/os.py", "x");
+    const paths = (await scanFiles(fs, "/p")).map((f) => f.path);
+    expect(paths).toEqual(["src/a.py"]);
+  });
+});

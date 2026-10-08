@@ -1,5 +1,5 @@
 ---
-description: Run the published 20-task Sipcode benchmark on the user's machine and report measured median savings (target 62.6%). Reproducible, locked corpus. Use when the user asks "what's the proof?", "how much does sipcode actually save?", "run the benchmark", or wants to verify the headline savings claim themselves.
+description: Run the published 20-task Sipcode benchmark on the user's machine and report the median savings on the synthetic corpus (62.6%). Reproducible, locked corpus. Use when the user asks "what's the proof?", "how much does sipcode actually save?", "run the benchmark", or wants to verify the headline savings claim themselves.
 ---
 
 # Sipcode — Benchmark (the reproducibility proof)
@@ -16,4 +16,4 @@ When the user reports back the output:
   - ~36% from S030 read-once cache
 - Be explicit that these are **simulation numbers** computed against the locked corpus, not a live Claude session A/B. The methodology is at `benchmark/METHODOLOGY.md` for reproducibility.
 
-If the user's measured savings differ significantly from the 62.6% median, that's interesting — surface it as a real workload signal, not a bug.
+The benchmark is deterministic: the locked corpus always produces 62.6%. A different number means a different Sipcode version or a modified corpus, not a workload signal. For the user's real savings, point them to `sipcode impact`, which compares their own sessions before and after install.

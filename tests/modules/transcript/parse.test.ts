@@ -79,3 +79,77 @@ describe("parseTranscript", () => {
     expect(issues.length).toBe(0);
   });
 });
+
+// Regression (v1.6.21): Claude Code writes one line per content block of a
+// response, and every line repeats the request's usage. Summing lines counted
+// each request 2-3x on real sessions (measured 2.06x and 2.35x).
+describe("parseTranscript: one API request split across lines", () => {
+  const usage = {
+    input_tokens: 3,
+    output_tokens: 400,
+    cache_read_input_tokens: 100_000,
+    cache_creation_input_tokens: 2_000,
+  };
+  const line = (content: unknown[], u: Record<string, unknown> = usage) =>
+    JSON.stringify({
+      type: "assistant",
+      requestId: "req_1",
+      timestamp: "2026-09-01T10:00:00.000Z",
+      message: { id: "msg_1", model: "claude-opus-5", role: "assistant", content, usage: u },
+    });
+  const jsonl = [
+    line([{ type: "thinking", thinking: "" }]),
+    line([{ type: "text", text: "Reading both files." }]),
+    line([{ type: "tool_use", id: "tu_a", name: "Read", input: { file_path: "/p/a.ts" } }]),
+    line([{ type: "tool_use", id: "tu_b", name: "Read", input: { file_path: "/p/b.ts" } }]),
+    JSON.stringify({
+      type: "user",
+      timestamp: "2026-09-01T10:00:01.000Z",
+      message: {
+        role: "user",
+        content: [
+          { type: "tool_result", tool_use_id: "tu_a", content: "x".repeat(4000) },
+          { type: "tool_result", tool_use_id: "tu_b", content: [{ type: "text", text: "y".repeat(800) }] },
+        ],
+      },
+    }),
+  ].join("\n");
+
+  it("counts the request once, not once per line", () => {
+    const r = parseTranscript(jsonl);
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.assistantTurns).toHaveLength(1);
+    const t = r.value.assistantTurns[0]!;
+    expect(t.cacheReadTokens).toBe(100_000);
+    expect(t.outputTokens).toBe(400);
+  });
+
+  it("still collects tool calls from every line of the request", () => {
+    const r = parseTranscript(jsonl);
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.toolCalls.map((c) => c.id)).toEqual(["tu_a", "tu_b"]);
+    expect(r.value.toolCalls.every((c) => c.assistantTurnIndex === 0)).toBe(true);
+  });
+
+  it("sizes each call by the tool_result it returned", () => {
+    const r = parseTranscript(jsonl);
+    if (!r.ok) throw new Error("parse failed");
+    const [a, b] = r.value.toolCalls;
+    expect(a!.resultTokens).toBe(1000); // 4000 chars / 4
+    expect(b!.resultTokens).toBe(200); // text block, 800 chars / 4
+  });
+
+  it("uses the nested 5m/1h cache split when the top-level field is 0", () => {
+    const r = parseTranscript(
+      line([{ type: "text", text: "." }], {
+        input_tokens: 1,
+        output_tokens: 10,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        cache_creation: { ephemeral_5m_input_tokens: 300, ephemeral_1h_input_tokens: 4_700 },
+      }),
+    );
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.assistantTurns[0]!.cacheCreationTokens).toBe(5_000);
+  });
+});

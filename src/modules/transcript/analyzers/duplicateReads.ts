@@ -76,11 +76,11 @@ export function analyzeDuplicateReads(
 
   for (const { calls, displayPath } of readsByPath.values()) {
     if (calls.length < 2) continue;
-    // For dup cost, estimate ~ per-call cache_creation+input cost of subsequent reads.
-    // Use average per-read non-output token cost as the per-read estimate.
-    const perRead = calls.map(
-      (c) => c.inputTokens + c.cacheCreationTokens + c.cacheReadTokens,
-    );
+    // Cost of a read = the tokens its result added to the context (the file
+    // content). Before v1.6.21 this used the whole request's usage, which
+    // charged every re-read the full cached conversation. Claude Code's native
+    // "File unchanged since last read" stub is tiny, so it now costs ~nothing.
+    const perRead = calls.map((c) => c.resultTokens);
     const first = perRead[0] ?? 0;
     const rest = perRead.slice(1);
     const dupCost = rest.reduce((a, b) => a + b, 0);

@@ -3,6 +3,10 @@
  *
  * Respects:
  *   - Hard skip dirs (node_modules, .git, dist, build, coverage, .next, etc.)
+ *   - Python virtual environments and conda envs, by marker file (pyvenv.cfg,
+ *     conda-meta/), whatever the folder is called. A venv created in the
+ *     project root itself (python -m venv .) skips only its own Lib/,
+ *     include/, Scripts/, bin/, lib/, lib64/ and share/ folders.
  *   - Hidden dirs by default (anything starting with ".") unless allow-listed
  *   - A simple .sipcodeignore (one glob per line, # comments) if present
  *   - Optional gitignore-style basics (only handles directory excludes, not
@@ -38,7 +42,17 @@ const HARD_SKIP_DIRS = new Set([
   ".nuxt",
   ".sipcode",
   ".parcel-cache",
+  "site-packages",
 ]);
+
+/** Folders a venv creates at its own root (Windows and POSIX layouts). */
+const VENV_INTERNAL_DIRS = new Set(["Lib", "lib", "lib64", "include", "Include", "Scripts", "bin", "share"]);
+
+function isPythonEnv(entries: ReadonlyArray<{ name: string; isFile: boolean; isDirectory: boolean }>): boolean {
+  return entries.some(
+    (e) => (e.isFile && e.name === "pyvenv.cfg") || (e.isDirectory && e.name === "conda-meta"),
+  );
+}
 
 const ALLOWED_HIDDEN_FILES = new Set([
   ".sipcodeignore",
@@ -100,9 +114,14 @@ async function walk(
   } catch {
     return;
   }
+  const envHere = isPythonEnv(entries);
+  // A venv/conda env nested anywhere in the project: skip it entirely.
+  if (envHere && relDir !== "") return;
   for (const e of entries) {
     if (e.isDirectory) {
       if (HARD_SKIP_DIRS.has(e.name)) continue;
+      // The project root is itself a venv: skip only the venv's own folders.
+      if (envHere && VENV_INTERNAL_DIRS.has(e.name)) continue;
       if (e.name.startsWith(".") && !ALLOWED_HIDDEN_FILES.has(e.name)) continue;
       const childRel = relDir === "" ? e.name : `${relDir}/${e.name}`;
       if (extraSkip.has(childRel)) continue;

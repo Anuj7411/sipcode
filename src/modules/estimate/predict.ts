@@ -29,10 +29,15 @@ import type {
   RepoContext,
 } from "./types.js";
 
-/** The three canonical models we always predict against. */
+/**
+ * The three models we always predict against: Claude Code's current default
+ * Opus and Sonnet, and Haiku 4.5. Haiku 5.5 is not used here because its price
+ * depends on prompt length (higher above 100K), which a whole-task estimate
+ * can't place reliably.
+ */
 export const PREDICTION_MODELS: ReadonlyArray<string> = [
-  "claude-opus-4-8",
-  "claude-sonnet-4-6",
+  "claude-opus-5-5",
+  "claude-sonnet-5-5",
   "claude-haiku-4-5",
 ];
 

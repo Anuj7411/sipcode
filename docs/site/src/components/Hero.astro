@@ -8,8 +8,8 @@ import PlotBackground from "./PlotBackground.astro";
 
 // Tier-1 fix #2 — test count from the project root. Single source of truth.
 // Update on each release alongside Hero/Footer version labels.
-// Last bumped: 2026-07-04 (v1.6.20 — --here now on today/forecast/trend/impact).
-const TEST_COUNT = 1389;
+// Last bumped: 2026-10-08 (v1.6.21: accuracy release, token counts and pricing corrected).
+const TEST_COUNT = 1404;
 ---
 
 <section class="hero">
@@ -19,7 +19,7 @@ const TEST_COUNT = 1389;
 
   <div class="container">
     <div class="hero-head-row">
-      <span class="hero-eyebrow"><span class="hero-tick"></span>v1.6.20 · MIT licensed</span>
+      <span class="hero-eyebrow"><span class="hero-tick"></span>v1.6.21 · MIT licensed</span>
       <span class="hero-head-meta">{TEST_COUNT.toLocaleString()} tests passing</span>
     </div>
   </div>
@@ -55,7 +55,7 @@ const TEST_COUNT = 1389;
 
   <div class="container stat-row-wrap">
     <div class="stat-row">
-      <div><strong>62.6%</strong><span>median tokens saved</span></div>
+      <div><strong>62.6%</strong><span>median saved on a synthetic benchmark</span></div>
       <div><strong>15</strong><span>MCP tools</span></div>
       <div><strong>0</strong><span>network calls</span></div>
       <div><strong>MIT</strong><span>open source</span></div>
