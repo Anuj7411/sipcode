@@ -472,6 +472,9 @@ describe("runStats: resumed sessions are not double counted", () => {
     deps: { fs, env, clock },
     cwd,
     here: opts.here,
+    // Files last modified before the window are only key-scanned (Task 4b): they
+    // still remove their copies from newer resumed files, but are not parsed.
+    windowSinceMs: Date.parse(window.sinceIso),
   });
   if (!loaded.ok) {
     for (const i of loaded.error) stderr(i.message);
@@ -483,18 +486,20 @@ describe("runStats: resumed sessions are not double counted", () => {
   const aggregated: AggregatedSession[] = [];
   const warnings: { code: string; message: string }[] = [];
   if (loaded.value.unreadable > 0) {
-    warnings.push({ code: "E003", message: `couldn't read ${loaded.value.unreadable} transcript file(s).` });
+    warnings.push({ code: "E003", message: `couldn't read ${loaded.value.unreadable} transcript file(s); totals exclude them.` });
   }
+  // Parse problems must surface (review finding: a Codex parse error would otherwise vanish).
+  for (const i of loaded.value.issues) warnings.push({ code: i.code, message: i.message });
   for (const { meta, parsed } of loaded.value.sessions) {
     const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
     if (!isInWindow(window, startedAt)) continue;
     // ...unchanged from here: analyzeTokens, isEmptySession, analyzeDuplicateReads, analyzeIdleContext, aggregateSession...
 ```
 
-  **today.ts / forecast.ts**: replace the discovery + `--here` + `for (const meta of metas) { ...read...parse... }` prologue with:
+  **today.ts / forecast.ts**: replace the discovery + `--here` + `for (const meta of metas) { ...read...parse... }` prologue with the block below. Pass `windowSinceMs`: today → start of the local day (`new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()` minus 1 day of slack for timezone edges); forecast → start of the current month minus 1 day. On `loaded.value.unreadable > 0` or `issues.length > 0` print one stderr line (terminal mode only): `note: N transcript file(s) could not be read or parsed; totals exclude them.`
 
 ```ts
-  const loaded = await loadSessions({ agent, deps: { fs, env, clock }, cwd: opts.cwd ?? process.cwd(), here: opts.here });
+  const loaded = await loadSessions({ agent, deps: { fs, env, clock }, cwd: opts.cwd ?? process.cwd(), here: opts.here, windowSinceMs });
   if (!loaded.ok) {
     stderr(loaded.error.map((e) => e.message).join("\n"));
     return { exitCode: 1 };
@@ -504,9 +509,9 @@ describe("runStats: resumed sessions are not double counted", () => {
     // ...unchanged analysis from here...
 ```
 
-  **trend.ts**: same; keep the `startedDay` window check (it now sees recomputed start times for resumed sessions).
+  **trend.ts**: same, with `windowSinceMs: Date.parse(sinceIso)`; keep the `startedDay` window check (it now sees recomputed start times for resumed sessions).
 
-  **impact.ts**: inside `if (projectsExists)`, replace discovery + `--here` + read/parse with the same `loadSessions` call (`cwd`, `here: opts.here`, `deps: { fs: fileSys, env, clock }`).
+  **impact.ts**: inside `if (projectsExists)`, replace discovery + `--here` + read/parse with the same `loadSessions` call (`cwd`, `here: opts.here`, `deps: { fs: fileSys, env, clock }`, no `windowSinceMs`: impact compares before/after install and needs all history).
 
   In all five, add `import { loadSessions } from "../modules/agents/loadSessions.js";` and remove now-unused imports (`cwdToProjectHash`, and `path` where it was only used for the warning). Run `npm run lint` to catch them.
 
