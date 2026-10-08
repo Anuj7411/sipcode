@@ -99,9 +99,24 @@ describe("drift store", () => {
     await persistNewSessions(path, new Set(), xs, io);
     await pruneIfLarge(path, io);
     const got = await loadCachedSessions(path, io);
-    expect(got).toHaveLength(50);
+    expect(got).toHaveLength(100);
     // The kept set must be the newest (highest endedAtMs).
     expect(got[0]!.endedAtMs).toBe(24900);
-    expect(got[got.length - 1]!.endedAtMs).toBe(20000);
+    expect(got[got.length - 1]!.endedAtMs).toBe(15000);
+  });
+
+  it("pruneIfLarge compacts a file grown by re-appends of the same sessions", async () => {
+    // drift appends a session again whenever its file changed (a live session:
+    // one line per run), so lines grow while distinct sessions do not.
+    const io = memIO();
+    const path = "/x/sessions-v3.jsonl";
+    for (let run = 0; run < 250; run++) {
+      await persistNewSessions(path, new Set(), [m("live", run), m("other", 1)], io);
+      await pruneIfLarge(path, io);
+    }
+    const lines = (await io.read(path))!.split("\n").filter((l) => l.trim()).length;
+    expect(lines).toBeLessThanOrEqual(200);
+    const got = await loadCachedSessions(path, io);
+    expect(got.map((x) => [x.sessionId, x.endedAtMs])).toEqual([["live", 249], ["other", 1]]);
   });
 });
