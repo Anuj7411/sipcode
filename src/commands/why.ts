@@ -25,6 +25,7 @@ import { resolveDisplayAgents, sectionHeader } from "../modules/agents/multi.js"
 import {
   listAgentSessions,
   otherAgentHint,
+  ownRequestsOnly,
   parseIssues,
   pickFrom,
   priceProvider,
@@ -168,6 +169,9 @@ export async function runWhy(
     session = picked.chosen.parsed;
     issues = parseIssues(session);
   }
+  // A resumed session (or a Codex fork) repeats requests another file holds:
+  // report only this session's own, as the period commands count them.
+  session = await ownRequestsOnly({ agent, deps: agentDeps, meta: chosen, parsed: session, lists });
 
   // Pricing.
   const sessionDate = session.startedAt

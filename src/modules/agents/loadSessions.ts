@@ -209,3 +209,70 @@ export async function loadSessions(
     issues,
   });
 }
+
+/** Clock and write-order jitter allowed by the copy-window rule in couldHoldCopy. */
+const COPY_WINDOW_SLACK_MS = 60 * 60 * 1000;
+
+/**
+ * Whether `other` can hold a copy of one of `target`'s requests.
+ * Claude Code: a resumed session stays in its project folder, and copied
+ * lines keep their original timestamps, so every request in the target is
+ * logged at or after its startedAt; a file holding the same request was
+ * written at or after that moment too. A file in another folder, or last
+ * written before the target started, holds none of its requests.
+ * Codex: forks may restamp copied history and can run in another folder, so
+ * every Codex log is a candidate.
+ */
+function couldHoldCopy(agent: Agent, target: LoadedSession, other: SessionMeta): boolean {
+  if (agent.id !== "claude-code") return true;
+  if (other.projectHash !== target.meta.projectHash) return false;
+  const start = target.parsed.startedAt ? Date.parse(target.parsed.startedAt) : NaN;
+  return !Number.isFinite(start) || other.mtimeMs >= start - COPY_WINDOW_SLACK_MS;
+}
+
+/**
+ * Single-session commands (why / receipt): drop from each target the
+ * requests another file of the same agent also holds and that file keeps,
+ * by the period commands' rule (dedupeAcrossSessions: the session that
+ * started first keeps a request). A resumed Claude Code session or a Codex
+ * fork then reports only its own requests; reads in the dropped history
+ * become priorReads, so a later read of the same file still counts as a
+ * re-read. Only files that can hold a copy (couldHoldCopy) are read, and
+ * only their request keys (scanRequestKeys) when the agent has a scanner.
+ * Unreadable or unparseable candidates are skipped.
+ */
+export async function dropCopiedRequests(i: {
+  agent: Agent;
+  deps: AgentDeps;
+  targets: ReadonlyArray<LoadedSession>;
+  /** The agent's discovered sessions (targets may be among them). */
+  all: ReadonlyArray<SessionMeta>;
+}): Promise<{ sessions: ParsedSession[]; candidatesRead: number; droppedRequests: number }> {
+  const { agent, deps, targets } = i;
+  const targetFiles = new Set(targets.map((t) => t.meta.filePath));
+  const scan = agent.scanRequestKeys?.bind(agent);
+  const others: ParsedSession[] = [];
+  for (const meta of i.all) {
+    if (targetFiles.has(meta.filePath)) continue;
+    if (!targets.some((t) => couldHoldCopy(agent, t, meta))) continue;
+    let content: string;
+    try {
+      content = await deps.fs.readFile(meta.filePath);
+    } catch {
+      continue;
+    }
+    if (scan) {
+      others.push(stubSession(agent, meta, scan(content)));
+      continue;
+    }
+    const parsed = agent.parseTranscript(content);
+    if (parsed.ok) others.push(parsed.value);
+  }
+  const sessions = dedupeAcrossSessions([...targets.map((t) => t.parsed), ...others])
+    .sessions.slice(0, targets.length);
+  const droppedRequests = targets.reduce(
+    (n, t, k) => n + t.parsed.assistantTurns.length - sessions[k]!.assistantTurns.length,
+    0,
+  );
+  return { sessions, candidatesRead: others.length, droppedRequests };
+}

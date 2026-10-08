@@ -19,7 +19,7 @@ import { issue, type SipcodeIssue } from "../../lib/errors.js";
 import { MESSAGES } from "../../lib/messages.js";
 import { loadPricingForDate, type PriceProvider } from "../../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../transcript/analyzers/tokens.js";
-import { discoverAgentSessions } from "./loadSessions.js";
+import { discoverAgentSessions, dropCopiedRequests } from "./loadSessions.js";
 import type { ParsedSession, SessionMeta } from "./shared.js";
 import type { Agent, AgentDeps } from "./types.js";
 
@@ -131,6 +131,28 @@ export async function pickLatestSession(i: {
   skipEmpty?: boolean | undefined;
 }): Promise<PickResult | undefined> {
   return pickFrom(await listAgentSessions(i), i.deps, i);
+}
+
+/**
+ * The chosen session's own requests: those a resumed Claude Code session or
+ * a Codex fork copied from another file are dropped (dropCopiedRequests), so
+ * why / receipt count what the period commands count.
+ */
+export async function ownRequestsOnly(i: {
+  agent: Agent;
+  deps: AgentDeps;
+  meta: SessionMeta;
+  parsed: ParsedSession;
+  lists: ReadonlyArray<AgentSessions>;
+}): Promise<ParsedSession> {
+  const all = i.lists.find((l) => l.agent === i.agent)?.all ?? [];
+  const r = await dropCopiedRequests({
+    agent: i.agent,
+    deps: i.deps,
+    targets: [{ meta: i.meta, parsed: i.parsed }],
+    all,
+  });
+  return r.sessions[0]!;
 }
 
 export function otherAgentHint(o: PickedSession): string {
