@@ -5,7 +5,6 @@
  */
 import { ok, type Result } from "../../lib/result.js";
 import { issue, type SipcodeIssue } from "../../lib/errors.js";
-import type { KeyScan } from "../agents/types.js";
 import {
   TranscriptEntrySchema,
   type AssistantEntry,
@@ -392,30 +391,140 @@ export function parseTranscriptVerbose(
   return { session, issues };
 }
 
-const SCAN_MSG_ID = /"id":"([^"]+)"/g;
-const SCAN_REQ_ID = /"requestId":"([^"]*)"/;
-const SCAN_TS = /"timestamp":"([^"]+)"/;
+/**
+ * Result of a fast, parse-free scan of one transcript: just what cross-file
+ * dedupe needs (request keys, keyless turn count, time span).
+ */
+export interface KeyScan {
+  /** Unique request keys in first-seen order. */
+  readonly keys: string[];
+  /** Assistant turns with no request key (each counts as its own turn). */
+  readonly keylessTurns: number;
+  readonly startedAt?: string | undefined;
+  readonly endedAt?: string | undefined;
+}
+
+const M_ASSISTANT = '"type":"assistant"';
+const M_USER = '"type":"user"';
+const M_TS = '"timestamp":"';
+const M_MESSAGE = '"message":{';
+const M_REQ = '"requestId"';
+const M_CONTENT = '"content":';
+const M_ID = '"id":"';
 
 /**
- * message.id of an assistant line: the first `"id"` string inside the message
- * object and before its content array (tool_use blocks carry their own ids).
+ * Copy a string into its own storage. Slices are views into the parent
+ * string, so a key or timestamp kept from the scan would pin the ENTIRE file
+ * text (hundreds of MB) in memory until dedupe finishes.
  */
-function scanMessageId(line: string): string | undefined {
-  const m = line.indexOf("\"message\":{");
-  if (m < 0) return undefined;
-  const c = line.indexOf("\"content\":", m);
-  SCAN_MSG_ID.lastIndex = m;
-  const hit = SCAN_MSG_ID.exec(line);
-  if (!hit || (c >= 0 && hit.index > c)) return undefined;
-  return hit[1];
+function own(s: string): string {
+  return Buffer.from(s, "utf8").toString("utf8");
+}
+
+/** Index of `marker` if it occurs exactly once; -1 if absent; -2 if repeated. */
+function single(line: string, marker: string): number {
+  const i = line.indexOf(marker);
+  if (i < 0) return -1;
+  return line.indexOf(marker, i + marker.length) < 0 ? i : -2;
+}
+
+/** String value starting at `from` (just after an opening quote); undefined if it needs unescaping. */
+function quoted(line: string, from: number): string | undefined {
+  const e = line.indexOf('"', from);
+  if (e < 0) return undefined;
+  const v = line.slice(from, e);
+  return v.includes("\\") ? undefined : v;
+}
+
+interface ScannedLine {
+  readonly isAssistant: boolean;
+  readonly ts: string | undefined;
+  /** Request key; undefined for a keyless assistant turn. */
+  readonly key: string | undefined;
 }
 
 /**
- * Fast dedupe-only scan of a Claude Code transcript: no JSON.parse. Produces
- * what parseTranscript would for cross-file dedupe (request keys in first-seen
- * order, keyless turn count, first/last timestamp). Used for files older than
- * a command's window, which can only claim request keys, never contribute turns.
- * Equivalence with parseTranscript is pinned by tests/modules/transcript/scanKeys.test.ts.
+ * Exact (slow) reading of one line: JSON.parse and read the real top-level
+ * fields. Used when a line holds nested look-alikes of the markers the fast
+ * path greps for. Returns undefined for lines parseTranscript would skip or
+ * that are neither assistant nor user.
+ */
+function scanLineExact(line: string): ScannedLine | undefined {
+  let o: unknown;
+  try {
+    o = JSON.parse(line);
+  } catch {
+    return undefined;
+  }
+  if (!o || typeof o !== "object") return undefined;
+  const e = o as Record<string, unknown>;
+  if (e.type !== "assistant" && e.type !== "user") return undefined;
+  // Same shape rules as TranscriptEntrySchema: a non-string timestamp or
+  // sessionId fails every branch, so parseTranscript skips the line.
+  if (e.timestamp !== undefined && typeof e.timestamp !== "string") return undefined;
+  if (e.sessionId !== undefined && typeof e.sessionId !== "string") return undefined;
+  const ts = typeof e.timestamp === "string" && e.timestamp.length > 0 ? e.timestamp : undefined;
+  if (e.type === "user") return { isAssistant: false, ts, key: undefined };
+  const msg = e.message;
+  const id = msg && typeof msg === "object" ? (msg as { id?: unknown }).id : undefined;
+  const key =
+    typeof id === "string" && id.length > 0
+      ? `${id}|${typeof e.requestId === "string" ? e.requestId : ""}`
+      : undefined;
+  return { isAssistant: true, ts, key };
+}
+
+/** Fast reading of one line, or undefined when the line needs the exact path. */
+function scanLineFast(line: string): ScannedLine | undefined | "skip" {
+  const ia = single(line, M_ASSISTANT);
+  const iu = single(line, M_USER);
+  if (ia === -1 && iu === -1) return "skip";
+  if (ia === -2 || iu === -2 || (ia >= 0 && iu >= 0)) return undefined;
+  const isAssistant = ia >= 0;
+
+  let ts: string | undefined;
+  const it = single(line, M_TS);
+  if (it === -2) return undefined;
+  if (it >= 0) {
+    const v = quoted(line, it + M_TS.length);
+    if (v === undefined) return undefined;
+    ts = v.length > 0 ? v : undefined;
+  }
+  if (!isAssistant) return { isAssistant: false, ts, key: undefined };
+
+  // The message id sits in the message object before its content array
+  // (tool_use blocks carry their own ids). Anything else: exact path.
+  const im = single(line, M_MESSAGE);
+  const ir = single(line, M_REQ);
+  if (im < 0 || ir === -2) return undefined;
+  const c = line.indexOf(M_CONTENT, im);
+  if (c < 0) return undefined;
+  const ii = line.indexOf(M_ID, im);
+  if (ii >= 0 && ii > c) return undefined;
+  let id: string | undefined;
+  if (ii >= 0) {
+    id = quoted(line, ii + M_ID.length);
+    if (id === undefined) return undefined;
+  }
+  if (id === undefined || id.length === 0) return { isAssistant: true, ts, key: undefined };
+  let req = "";
+  if (ir >= 0 && line.startsWith(':"', ir + M_REQ.length)) {
+    const r = quoted(line, ir + M_REQ.length + 2);
+    if (r === undefined) return undefined;
+    req = r;
+  }
+  return { isAssistant: true, ts, key: `${id}|${req}` };
+}
+
+/**
+ * Fast dedupe-only scan of a Claude Code transcript: JSON.parse is avoided
+ * for ordinary lines. Produces what parseTranscript would for cross-file
+ * dedupe (request keys in first-seen order, keyless turn count, first/last
+ * timestamp). Used for files older than a command's window, which can only
+ * claim request keys, never contribute turns. Lines where a marker occurs
+ * more than once (nested look-alikes) fall back to an exact parse of that
+ * line. Equivalence with parseTranscript is pinned by
+ * tests/modules/transcript/scanKeys.test.ts.
  */
 export function scanClaudeRequestKeys(content: string): KeyScan {
   const keys: string[] = [];
@@ -433,24 +542,29 @@ export function scanClaudeRequestKeys(content: string): KeyScan {
     // A truncated final write is not valid JSON, so parseTranscript skips it.
     line = line.trimEnd();
     if (line.length === 0 || line.charCodeAt(line.length - 1) !== 125 /* } */) continue;
-    const isAssistant = line.includes('"type":"assistant"');
-    if (!isAssistant && !line.includes('"type":"user"')) continue;
-    const ts = SCAN_TS.exec(line)?.[1];
+    const fast = scanLineFast(line);
+    if (fast === "skip") continue;
+    const scanned = fast ?? scanLineExact(line);
+    if (!scanned) continue;
+
+    const ts = scanned.ts;
     if (ts) {
       if (!firstTs || ts < firstTs) firstTs = ts;
       if (!lastTs || ts > lastTs) lastTs = ts;
     }
-    if (!isAssistant) continue;
-    const msgId = scanMessageId(line);
-    if (!msgId) {
+    if (!scanned.isAssistant) continue;
+    if (scanned.key === undefined) {
       keylessTurns++;
-      continue;
-    }
-    const key = `${msgId}|${SCAN_REQ_ID.exec(line)?.[1] ?? ""}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      keys.push(key);
+    } else if (!seen.has(scanned.key)) {
+      const k = own(scanned.key);
+      seen.add(k);
+      keys.push(k);
     }
   }
-  return { keys, keylessTurns, startedAt: firstTs, endedAt: lastTs };
+  return {
+    keys,
+    keylessTurns,
+    startedAt: firstTs === undefined ? undefined : own(firstTs),
+    endedAt: lastTs === undefined ? undefined : own(lastTs),
+  };
 }

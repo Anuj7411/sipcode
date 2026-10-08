@@ -17,6 +17,7 @@ import type { FileSystem } from "../../lib/fs.js";
 import type { ProcessEnv } from "../../lib/process.js";
 import type { SipcodeIssue } from "../../lib/errors.js";
 import type { Result } from "../../lib/result.js";
+import type { KeyScan } from "../transcript/parse.js";
 import type {
   ParsedSession,
   SessionMeta,
@@ -76,18 +77,7 @@ export interface AgentRulesRead {
   readonly content: string;
 }
 
-/**
- * Result of a fast, parse-free scan of one transcript: just what cross-file
- * dedupe needs (request keys, keyless turn count, time span).
- */
-export interface KeyScan {
-  /** Unique request keys in first-seen order. */
-  readonly keys: string[];
-  /** Assistant turns with no request key (each counts as its own turn). */
-  readonly keylessTurns: number;
-  readonly startedAt?: string | undefined;
-  readonly endedAt?: string | undefined;
-}
+export type { KeyScan };
 
 /** Full agent interface — capabilities + I/O behaviors. */
 export interface Agent extends AgentCapabilities {

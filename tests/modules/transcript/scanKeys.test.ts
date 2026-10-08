@@ -96,6 +96,66 @@ const synthetic: Record<string, string> = {
       blocks: [{ type: "tool_use", id: "toolu_77", name: "Read", input: { file_path: "/a" } }],
     }),
   ].join("\n"),
+  "tool_use input containing a timestamp key (timestamp after message)": [
+    JSON.stringify({
+      type: "assistant",
+      requestId: "req_t1",
+      message: {
+        id: "msg_t1",
+        content: [
+          { type: "tool_use", id: "toolu_5", name: "Bash", input: { timestamp: "2099-12-31T00:00:00Z" } },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+      timestamp: "2026-09-01T10:00:00Z",
+    }),
+    assistant({ msg: "msg_t2", req: "req_t2", ts: "2026-09-01T10:00:05Z" }),
+  ].join("\n"),
+  "user line whose toolUseResult nests an assistant object": [
+    assistant({ msg: "msg_real", req: "req_real", ts: "2026-09-01T10:00:00Z" }),
+    JSON.stringify({
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: "ok" }] },
+      toolUseResult: {
+        type: "assistant",
+        requestId: "req_nested",
+        message: { id: "msg_nested", content: [{ type: "text", text: "x" }] },
+        timestamp: "2031-01-01T00:00:00Z",
+      },
+      timestamp: "2026-09-01T10:00:09Z",
+    }),
+  ].join("\n"),
+  "progress line nesting an assistant message": [
+    assistant({ msg: "msg_p0", req: "req_p0", ts: "2026-09-01T10:00:00Z" }),
+    JSON.stringify({
+      type: "progress",
+      data: {
+        message: {
+          type: "assistant",
+          requestId: "req_p",
+          message: { id: "msg_p", content: [] },
+          timestamp: "2032-01-01T00:00:00Z",
+        },
+      },
+      timestamp: "2026-09-01T10:00:02Z",
+    }),
+  ].join("\n"),
+  "assistant message without a content field": [
+    JSON.stringify({
+      type: "assistant",
+      requestId: "req_nc",
+      message: { id: "msg_nc", model: "claude-opus-5", usage: { input_tokens: 1 } },
+      timestamp: "2026-09-01T10:00:00Z",
+    }),
+  ].join("\n"),
+  "message id after the content array": [
+    JSON.stringify({
+      type: "assistant",
+      requestId: "req_ac",
+      message: { content: [{ type: "text", text: "." }], id: "msg_ac", usage: { input_tokens: 1 } },
+      timestamp: "2026-09-01T10:00:00Z",
+    }),
+  ].join("\n"),
   empty: "",
 };
 
