@@ -9,7 +9,9 @@ import { discoverAgentSessions } from "../../../src/modules/agents/loadSessions.
 import {
   combinedLine,
   resolveDisplayAgents,
+  runSections,
   sectionHeader,
+  type SectionResult,
 } from "../../../src/modules/agents/multi.js";
 import type { Agent } from "../../../src/modules/agents/types.js";
 
@@ -173,5 +175,61 @@ describe("discoverAgentSessions", () => {
   it("passes an error through", async () => {
     const r = await discoverAgentSessions(fake({ ok: false, error: [issue("E009", "no")] }), deps);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("runSections", () => {
+  const detect = { agent: "claude-code", reason: "global-claude-code", ambiguous: false, explicit: false } as const;
+  const codex = { ...claudeCodeAgent, id: "codex", displayName: "Codex" } as Agent;
+
+  async function sections(results: SectionResult[], agents: Agent[] = [claudeCodeAgent, codex]) {
+    const out: string[] = [];
+    const err: string[] = [];
+    const exitCode = await runSections({
+      agents,
+      detect,
+      banner: true,
+      combined: true,
+      stdout: (s) => out.push(s),
+      stderr: (s) => err.push(s),
+      run: async (_a, i) => results[i]!,
+    });
+    return { exitCode, out, err };
+  }
+  const w = (stream: "stdout" | "stderr", text: string) => ({ stream, text });
+
+  it("one agent: banner, then the section's output exactly, with its exit code", async () => {
+    const r = await sections([{ exitCode: 1, writes: [w("stdout", "a"), w("stderr", "b")], emptyWindow: true }], [claudeCodeAgent]);
+    expect(r.exitCode).toBe(1);
+    expect(r.out).toEqual(["detected agent: claude-code (auto). pass --agent to override.", "a"]);
+    expect(r.err).toEqual(["b"]);
+  });
+
+  it("an empty window next to another section prints inside its section and does not fail", async () => {
+    const r = await sections([
+      { exitCode: 0, writes: [w("stdout", "claude report")], totals: { tokens: 10, usd: 1 } },
+      { exitCode: 1, writes: [w("stderr", "no sessions found in the last 30d.")], emptyWindow: true },
+    ]);
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toEqual(["── Claude Code ──", "claude report", "", "── Codex ──", "no sessions found in the last 30d.", ""]);
+    expect(r.err).toEqual([]);
+  });
+
+  it("a real error in any section fails the command; its stderr names the agent", async () => {
+    const r = await sections([
+      { exitCode: 1, writes: [w("stderr", "[E009] unsupported")] },
+      { exitCode: 0, writes: [w("stdout", "codex report")], totals: { tokens: 5, usd: 2 } },
+    ]);
+    expect(r.exitCode).toBe(1);
+    expect(r.err).toEqual(["Claude Code: [E009] unsupported"]);
+    expect(r.out).not.toContain("Both tools: 5 tokens · ~$2");
+  });
+
+  it("ends with the combined line when two sections have totals", async () => {
+    const r = await sections([
+      { exitCode: 0, writes: [], totals: { tokens: 1_000, usd: 2 } },
+      { exitCode: 0, writes: [], totals: { tokens: 2_000, usd: 3 } },
+    ]);
+    expect(r.out.at(-1)).toBe("Both tools: 3.0k tokens · ~$2 + ~$3");
   });
 });
