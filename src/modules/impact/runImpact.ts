@@ -23,7 +23,12 @@ export interface RunImpactInput {
   readonly nowIso: string;
   /** Minimum days of post-install data required to call the result "measured". Default 3. */
   readonly minPostDays?: number;
+  /** Agent named in headlines and notes. Default: Claude Code / `claude`. */
+  readonly agent?: { readonly name: string; readonly command: string } | undefined;
 }
+
+type AgentLabel = { readonly name: string; readonly command: string };
+const CLAUDE_CODE: AgentLabel = { name: "Claude Code", command: "claude" };
 
 const SCHEMA_VERSION = "sipcode-impact/1" as const;
 
@@ -180,9 +185,9 @@ function fmtTokensCompact(n: number): string {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
-function renderHeadlineNoMarker(allTime: ImpactBucket): string {
+function renderHeadlineNoMarker(allTime: ImpactBucket, agent: AgentLabel): string {
   if (allTime.sessionCount === 0) {
-    return "no install marker found AND no sessions on disk yet — run `claude` in a project to create some, then `sipcode rules --install` to start measuring.";
+    return `no install marker found AND no sessions on disk yet — run \`${agent.command}\` in a project to create some, then \`sipcode rules --install\` to start measuring.`;
   }
   const tokens = fmtTokensCompact(allTime.totalTokens);
   const dollars = allTime.estCostUSD.toFixed(2);
@@ -240,7 +245,7 @@ function renderHeadline(
   }
 }
 
-function noteFor(status: ImpactStatus): string[] {
+function noteFor(status: ImpactStatus, agent: AgentLabel): string[] {
   switch (status) {
     case "measured":
       return [
@@ -263,13 +268,14 @@ function noteFor(status: ImpactStatus): string[] {
       ];
     case "no-post-sessions":
       return [
-        "Use Claude Code for a few sessions, then re-run `sipcode impact`.",
+        `Use ${agent.name} for a few sessions, then re-run \`sipcode impact\`.`,
       ];
   }
 }
 
 export function runImpact(input: RunImpactInput): ImpactReport {
   const minPostDays = input.minPostDays ?? 3;
+  const agent = input.agent ?? CLAUDE_CODE;
   const sortedByStart = [...input.sessions].sort((a, b) =>
     a.startedAt.localeCompare(b.startedAt),
   );
@@ -296,8 +302,8 @@ export function runImpact(input: RunImpactInput): ImpactReport {
       delta: null, // gated — see types.ts contract
       warningReason: "no-install-marker",
       allTime,
-      headline: renderHeadlineNoMarker(allTime),
-      notes: noteFor(status),
+      headline: renderHeadlineNoMarker(allTime, agent),
+      notes: noteFor(status, agent),
     };
   }
 
@@ -334,6 +340,6 @@ export function runImpact(input: RunImpactInput): ImpactReport {
     // allTime is only populated in the no-install-marker case (above).
     allTime: null,
     headline: renderHeadline(status, computedDelta, beforeBucket, afterBucket, warningReason),
-    notes: noteFor(status),
+    notes: noteFor(status, agent),
   };
 }
