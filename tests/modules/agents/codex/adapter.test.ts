@@ -153,11 +153,11 @@ describe("codex agent", () => {
     const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/" });
     if (!r.ok) throw new Error("load failed");
     expect(r.value.sessions.map((s) => s.meta.sessionId)).toEqual(["a"]);
-    expect(r.value.unreadable).toBe(1);
-    expect(r.value.issues).toHaveLength(1);
-    expect(r.value.issues[0]?.code).toBe("E009");
-    expect(r.value.issues[0]?.message).toMatch(/compressed/);
-    expect(r.value.issues[0]?.path?.replace(/\\/g, "/")).toBe("/c/sessions/2026/10/01/rollout-z.jsonl.zst");
+    // A folder is not a file: counted apart. Compressed logs are one count, not one issue each.
+    expect(r.value.unreadable).toBe(0);
+    expect(r.value.unreadableFolders).toBe(1);
+    expect(r.value.skippedCompressed).toBe(1);
+    expect(r.value.issues).toEqual([]);
   });
 
   it("a missing archived_sessions folder is not reported", async () => {
@@ -166,6 +166,8 @@ describe("codex agent", () => {
     const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/" });
     if (!r.ok) throw new Error("load failed");
     expect(r.value.unreadable).toBe(0);
+    expect(r.value.unreadableFolders).toBe(0);
+    expect(r.value.skippedCompressed).toBe(0);
     expect(r.value.issues).toEqual([]);
   });
 

@@ -6,6 +6,7 @@
 import type { Clock } from "../../lib/clock.js";
 import type { FileSystem } from "../../lib/fs.js";
 import { formatNum, formatTokensShort } from "../../lib/format.js";
+import { MESSAGES } from "../../lib/messages.js";
 import type { ProcessEnv } from "../../lib/process.js";
 import { resolveProjectsDir } from "../transcript/discover.js";
 import { parseAgentFlag } from "./cli.js";
@@ -82,4 +83,83 @@ export function combinedLine(parts: ReadonlyArray<CombinedPart>): string {
   return tokens > 0
     ? `Both tools: ${formatTokensShort(tokens)} tokens · ${usd}`
     : `Both tools: ${usd}`;
+}
+
+/** One line a section wants printed, in order. */
+export interface SectionWrite {
+  readonly stream: "stdout" | "stderr";
+  readonly text: string;
+}
+
+/** What one agent's part of a command produced. */
+export interface SectionResult {
+  readonly exitCode: 0 | 1;
+  readonly writes: readonly SectionWrite[];
+  /**
+   * No sessions in the window. Alone, the command keeps its usual exit code and
+   * stderr message; next to another section, the message is printed inside the
+   * section and the command does not fail.
+   */
+  readonly emptyWindow?: boolean;
+  /** Totals for the combined line (stats / today / forecast). */
+  readonly totals?: CombinedPart;
+}
+
+/** Collects a section's output in order instead of printing it. */
+export class SectionOutput {
+  readonly writes: SectionWrite[] = [];
+  readonly out = (text: string): void => {
+    this.writes.push({ stream: "stdout", text });
+  };
+  readonly err = (text: string): void => {
+    this.writes.push({ stream: "stderr", text });
+  };
+  result(exitCode: 0 | 1, extra: { emptyWindow?: boolean; totals?: CombinedPart } = {}): SectionResult {
+    return { exitCode, writes: this.writes, ...extra };
+  }
+}
+
+export interface RunSectionsInput {
+  readonly agents: readonly Agent[];
+  readonly detect: AgentDetectResult;
+  /** Print the "detected agent: … (auto)" banner when one agent is shown (stats, impact). */
+  readonly banner: boolean;
+  /** End with the `Both tools:` line (stats, today, forecast). */
+  readonly combined: boolean;
+  readonly stdout: (s: string) => void;
+  readonly stderr: (s: string) => void;
+  readonly run: (agent: Agent, index: number) => Promise<SectionResult>;
+}
+
+/**
+ * One agent: exactly the command's single-agent output. Several: a header per
+ * agent, each section's output, then the combined line. The exit code is 1 only
+ * for a real error, never for a section that merely had nothing in the window.
+ */
+export async function runSections(i: RunSectionsInput): Promise<0 | 1> {
+  if (i.agents.length === 1) {
+    const agent = i.agents[0]!;
+    if (i.banner && !i.detect.explicit) {
+      i.stdout(MESSAGES.agentDetectedAuto(agent.id));
+      if (i.detect.ambiguous && agent.id === i.detect.agent) i.stdout(MESSAGES.agentAmbiguous());
+    }
+    const r = await i.run(agent, 0);
+    for (const w of r.writes) (w.stream === "stdout" ? i.stdout : i.stderr)(w.text);
+    return r.exitCode;
+  }
+  const totals: CombinedPart[] = [];
+  let exitCode: 0 | 1 = 0;
+  for (const [index, agent] of i.agents.entries()) {
+    i.stdout(sectionHeader(agent.displayName));
+    const r = await i.run(agent, index);
+    for (const w of r.writes) {
+      if (w.stream === "stdout" || r.emptyWindow) i.stdout(w.text);
+      else i.stderr(w.text === "" ? "" : `${agent.displayName}: ${w.text}`);
+    }
+    if (r.totals) totals.push(r.totals);
+    if (!r.emptyWindow && r.exitCode === 1) exitCode = 1;
+    i.stdout("");
+  }
+  if (i.combined && totals.length > 1) i.stdout(combinedLine(totals));
+  return exitCode;
 }

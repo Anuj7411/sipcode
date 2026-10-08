@@ -37,7 +37,12 @@ export interface LoadSessionsOutput {
   readonly sessions: LoadedSession[];
   /** Files discovered before any filtering (tells a brand-new user from an empty window). */
   readonly discovered: number;
+  /** Session files that could not be read. */
   readonly unreadable: number;
+  /** Folders discovery could not list. */
+  readonly unreadableFolders: number;
+  /** Compressed logs skipped on purpose (Codex `.jsonl.zst`). */
+  readonly skippedCompressed: number;
   /** Files scanned for dedupe only (older than windowSinceMs), not returned. */
   readonly scannedOnly: number;
   readonly droppedDuplicateRequests: number;
@@ -83,6 +88,9 @@ function stubSession(agent: Agent, meta: SessionMeta, scan: KeyScan): ParsedSess
   };
 }
 
+/** SessionDiscovery with every count filled in. */
+export type AgentDiscovery = Required<SessionDiscovery>;
+
 /**
  * The one way to run an agent's discovery: adapters may return a bare
  * SessionMeta[] or a full SessionDiscovery; callers always get the full shape.
@@ -90,14 +98,40 @@ function stubSession(agent: Agent, meta: SessionMeta, scan: KeyScan): ParsedSess
 export async function discoverAgentSessions(
   agent: Agent,
   deps: AgentDeps,
-): Promise<Result<SessionDiscovery, SipcodeIssue[]>> {
+): Promise<Result<AgentDiscovery, SipcodeIssue[]>> {
   const discovery = await agent.discoverSessions(deps);
   if (!discovery.ok) return discovery;
-  return ok(
-    Array.isArray(discovery.value)
-      ? { sessions: discovery.value, unreadable: 0, issues: [] }
-      : discovery.value,
-  );
+  const d = Array.isArray(discovery.value)
+    ? { sessions: discovery.value, unreadable: 0, issues: [] }
+    : discovery.value;
+  return ok({
+    sessions: d.sessions,
+    unreadable: d.unreadable,
+    unreadableFolders: d.unreadableFolders ?? 0,
+    skippedCompressed: d.skippedCompressed ?? 0,
+    issues: d.issues,
+  });
+}
+
+/**
+ * The stderr notes every period command prints about logs it could not use:
+ * unreadable or unparseable files, unreadable folders, skipped compressed logs.
+ */
+export function discoveryNotes(o: LoadSessionsOutput): string[] {
+  const notes: string[] = [];
+  const files = o.unreadable + o.issues.length;
+  if (files > 0) {
+    notes.push(`note: ${files} transcript file(s) could not be read or parsed; totals exclude them.`);
+  }
+  if (o.unreadableFolders > 0) {
+    notes.push(`note: ${o.unreadableFolders} log folder(s) could not be read; totals exclude them.`);
+  }
+  if (o.skippedCompressed > 0) notes.push(`note: ${compressedSkippedMessage(o.skippedCompressed)}`);
+  return notes;
+}
+
+export function compressedSkippedMessage(n: number): string {
+  return `${n} compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.`;
 }
 
 export async function loadSessions(
@@ -148,6 +182,8 @@ export async function loadSessions(
     sessions,
     discovered,
     unreadable,
+    unreadableFolders: found.unreadableFolders,
+    skippedCompressed: found.skippedCompressed,
     scannedOnly,
     droppedDuplicateRequests: d.droppedRequests,
     issues,

@@ -11,6 +11,8 @@ import { sparkline, sparklineStats } from "./sparkline.js";
 
 interface FormatOptions {
   readonly useColor: boolean;
+  /** One line under the total cost naming tokens on models with no known price. */
+  readonly unpricedNote?: string | undefined;
 }
 
 function makeColors(useColor: boolean) {
@@ -152,6 +154,7 @@ export function formatTerminal(
 
   // Footer.
   lines.push(`est. total cost: ${c.bold(usd(report.totals.estCostUSD))}`);
+  if (opts.unpricedNote) lines.push(opts.unpricedNote);
   lines.push(
     c.dim(
       `prices from ${report.metaPricing.asOf} (${report.metaPricing.ageDays} days old)`,

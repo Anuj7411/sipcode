@@ -4,6 +4,8 @@
  * Voice: lowercase, no jargon, structured as (a) what happened (b) why
  * (c) how to fix (d) suggested next command.
  */
+import { formatNum } from "./format.js";
+
 export const MESSAGES = {
   tagline: "sip your tokens. don't gulp them.",
 
@@ -289,20 +291,30 @@ export const MESSAGES = {
       `     https://github.com/Anuj7411/sipcode`,
     ].join("\n"),
 
-  statsNoSessionsYet: () =>
-    [
-      `no Claude Code sessions found yet.`,
-      ``,
-      `why: sipcode reads the transcripts Claude Code writes per session, and none exist yet.`,
-      ``,
-      `fix: open Claude Code, run any prompt, then come back and run this again.`,
-    ].join("\n"),
+  statsNoSessionsYet: (agentName = "Claude Code") =>
+    agentName === "Claude Code"
+      ? [
+          `no Claude Code sessions found yet.`,
+          ``,
+          `why: sipcode reads the transcripts Claude Code writes per session, and none exist yet.`,
+          ``,
+          `fix: open Claude Code, run any prompt, then come back and run this again.`,
+        ].join("\n")
+      : [
+          `no ${agentName} sessions found yet.`,
+          ``,
+          `why: sipcode reads the session logs ${agentName} writes, and none exist yet.`,
+          ``,
+          `fix: open ${agentName}, run any prompt, then come back and run this again.`,
+        ].join("\n"),
 
-  statsNoSessionsInWindow: (raw: string) =>
+  statsNoSessionsInWindow: (raw: string, agentName = "Claude Code") =>
     [
       `no sessions found in the last ${raw}.`,
       ``,
-      `why: claude code transcripts exist, but none of them fall inside the window you asked for.`,
+      agentName === "Claude Code"
+        ? `why: claude code transcripts exist, but none of them fall inside the window you asked for.`
+        : `why: ${agentName} session logs exist, but none of them fall inside the window you asked for.`,
       ``,
       `fix: widen the window with --since all, or drop --here if you scoped to this cwd.`,
       ``,
@@ -310,6 +322,9 @@ export const MESSAGES = {
     ].join("\n"),
 
   statsHtmlWrote: (path: string) => `wrote ${path}`,
+
+  unpricedTokens: (u: { tokens: number; models: readonly string[] }) =>
+    `${formatNum(u.tokens)} tokens on models without a known price (${u.models.join(", ")}): not included in the cost above.`,
 
   // ---- score milestone (v0.2.0-alpha.5, S060) ----
 

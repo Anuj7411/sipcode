@@ -43,14 +43,13 @@ export const codexAgent: Agent = {
 
   async discoverSessions(deps: AgentDeps): Promise<Result<SessionDiscovery, SipcodeIssue[]>> {
     const r = await listCodexSessions(deps.fs, resolveCodexHome(deps.env));
-    const issues = r.compressedFiles.map((file) =>
-      issue(
-        "E009",
-        `skipped compressed Codex log ${path.basename(file)} (.jsonl.zst is not read yet); totals exclude it.`,
-        { path: file },
-      ),
-    );
-    return ok({ sessions: r.sessions, unreadable: r.unreadable, issues });
+    return ok({
+      sessions: r.sessions,
+      unreadable: r.unreadable,
+      unreadableFolders: r.unreadableFolders,
+      skippedCompressed: r.skippedCompressed,
+      issues: [],
+    });
   },
 
   parseTranscript(content: string) {

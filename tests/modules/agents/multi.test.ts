@@ -146,13 +146,28 @@ describe("discoverAgentSessions", () => {
 
   it("normalises a bare SessionMeta[]", async () => {
     const r = await discoverAgentSessions(fake(ok([meta])), deps);
-    expect(r.ok && r.value).toEqual({ sessions: [meta], unreadable: 0, issues: [] });
+    expect(r.ok && r.value).toEqual({
+      sessions: [meta],
+      unreadable: 0,
+      unreadableFolders: 0,
+      skippedCompressed: 0,
+      issues: [],
+    });
   });
 
   it("passes a full discovery through", async () => {
     const i = issue("E009", "x");
-    const r = await discoverAgentSessions(fake(ok({ sessions: [meta], unreadable: 2, issues: [i] })), deps);
-    expect(r.ok && r.value).toEqual({ sessions: [meta], unreadable: 2, issues: [i] });
+    const r = await discoverAgentSessions(
+      fake(ok({ sessions: [meta], unreadable: 2, skippedCompressed: 3, issues: [i] })),
+      deps,
+    );
+    expect(r.ok && r.value).toEqual({
+      sessions: [meta],
+      unreadable: 2,
+      unreadableFolders: 0,
+      skippedCompressed: 3,
+      issues: [i],
+    });
   });
 
   it("passes an error through", async () => {

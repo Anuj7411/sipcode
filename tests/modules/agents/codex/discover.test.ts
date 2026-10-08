@@ -8,7 +8,7 @@ const turn = JSON.stringify({ timestamp: "2026-10-01T10:00:01Z", type: "event_ms
 
 /** Wraps a FileSystem, counting full reads and optionally failing some paths. */
 function spyFs(base: FileSystem, fail: (p: string, op: string) => boolean = () => false) {
-  const calls = { readFile: 0, readHead: 0 };
+  const calls = { readFile: 0, readHead: 0, headSizes: [] as number[] };
   const guard = (p: string, op: string) => {
     if (fail(p.replace(/\\/g, "/"), op)) throw Object.assign(new Error(`EACCES: ${p}`), { code: "EACCES" });
   };
@@ -21,6 +21,7 @@ function spyFs(base: FileSystem, fail: (p: string, op: string) => boolean = () =
     },
     readHead: async (p, n) => {
       calls.readHead++;
+      calls.headSizes.push(n);
       guard(p, "readHead");
       return base.readHead(p, n);
     },
@@ -62,6 +63,7 @@ describe("Codex discovery", () => {
     const r = await listCodexSessions(new InMemoryFs(), "/none");
     expect(r.sessions).toEqual([]);
     expect(r.unreadable).toBe(0);
+    expect(r.unreadableFolders).toBe(0);
     expect(r.skippedCompressed).toBe(0);
   });
 
@@ -80,7 +82,8 @@ describe("Codex discovery", () => {
     const { fs } = spyFs(mem, (p, op) => op === "readDir" && p.endsWith("/10/02"));
     const r = await listCodexSessions(fs, "/c");
     expect(r.sessions.map((s) => s.sessionId)).toEqual(["a"]);
-    expect(r.unreadable).toBe(1);
+    expect(r.unreadableFolders).toBe(1);
+    expect(r.unreadable).toBe(0);
   });
 
   it("counts a rollout whose first line cannot be read as unreadable", async () => {
@@ -91,6 +94,7 @@ describe("Codex discovery", () => {
     const r = await listCodexSessions(fs, "/c");
     expect(r.sessions.map((s) => s.sessionId)).toEqual(["a"]);
     expect(r.unreadable).toBe(1);
+    expect(r.unreadableFolders).toBe(0);
   });
 
   it("reads only the head of each rollout, not the whole file", async () => {

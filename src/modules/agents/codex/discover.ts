@@ -26,8 +26,10 @@ export interface CodexDiscovery {
   readonly skippedCompressed: number;
   /** Paths of the skipped `.jsonl.zst` rollouts. */
   readonly compressedFiles: string[];
-  /** Folders that could not be listed plus rollouts that could not be read. */
+  /** Rollout files that could not be read. */
   readonly unreadable: number;
+  /** Folders that could not be listed. */
+  readonly unreadableFolders: number;
 }
 
 interface Found {
@@ -39,6 +41,7 @@ interface Found {
 interface Counters {
   compressed: string[];
   unreadable: number;
+  unreadableFolders: number;
 }
 
 async function walk(fs: FileSystem, dir: string, out: Found[], counters: Counters): Promise<void> {
@@ -46,7 +49,7 @@ async function walk(fs: FileSystem, dir: string, out: Found[], counters: Counter
   try {
     entries = await fs.readDir(dir);
   } catch {
-    counters.unreadable++;
+    counters.unreadableFolders++;
     return;
   }
   for (const e of entries) {
@@ -94,7 +97,7 @@ export async function hasCodexRollout(fs: FileSystem, dir: string): Promise<bool
 }
 
 export async function listCodexSessions(fs: FileSystem, home: string): Promise<CodexDiscovery> {
-  const counters: Counters = { compressed: [], unreadable: 0 };
+  const counters: Counters = { compressed: [], unreadable: 0, unreadableFolders: 0 };
   const byName = new Map<string, Found>();
   for (const sub of ["sessions", "archived_sessions"]) {
     const dir = path.join(home, sub);
@@ -133,5 +136,6 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
     skippedCompressed: counters.compressed.length,
     compressedFiles: counters.compressed,
     unreadable: counters.unreadable,
+    unreadableFolders: counters.unreadableFolders,
   };
 }

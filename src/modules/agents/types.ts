@@ -85,9 +85,13 @@ export type { KeyScan };
  */
 export interface SessionDiscovery {
   readonly sessions: SessionMeta[];
-  /** Files or folders that could not be read; added to loadSessions' unreadable count. */
+  /** Session files that could not be read; added to loadSessions' unreadable count. */
   readonly unreadable: number;
-  /** One issue per file discovery skipped on purpose (e.g. compressed logs). */
+  /** Folders that could not be listed (reported apart from files). Default 0. */
+  readonly unreadableFolders?: number;
+  /** Compressed logs (Codex `.jsonl.zst`) skipped on purpose, reported as one count. Default 0. */
+  readonly skippedCompressed?: number;
+  /** Other problems discovery wants surfaced. */
   readonly issues: readonly SipcodeIssue[];
 }
 
