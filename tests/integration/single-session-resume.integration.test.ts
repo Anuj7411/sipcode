@@ -11,6 +11,8 @@ import { FakeProcessEnv } from "../../src/lib/process.js";
 import { FakeClipboard } from "../../src/lib/clipboard.js";
 import { runWhy } from "../../src/commands/why.js";
 import { runReceipt } from "../../src/commands/receipt.js";
+import { runDriftCommand } from "../../src/commands/drift.js";
+import type { StoreIO } from "../../src/modules/drift/store.js";
 import { CODEX_SESSIONS, codexRollout, solTurn } from "./codex-fixtures.js";
 
 const NOW = new Date("2026-05-19T12:00:00.000Z");
@@ -157,3 +159,69 @@ describe("why on a Codex fork", () => {
   });
 });
 
+
+/**
+ * A session resumed a moment ago: Claude Code copied the original's requests
+ * and the user typed a prompt, but no reply has been logged yet. Every request
+ * it holds belongs to the original, so it has nothing of its own to report.
+ */
+function copiedOnlyFs(): InMemoryFs {
+  const fs = new InMemoryFs();
+  const r1 = [req("1", T1, 1_000_000, readCall("tu1")), readResult("tu1", T1)];
+  fs.writeFile(`${DIR}/orig.jsonl`, r1.join("\n"), ms("2026-05-19T09:01:00Z"));
+  const prompt = JSON.stringify({
+    type: "user",
+    timestamp: T2,
+    sessionId: "s",
+    message: { role: "user", content: [{ type: "text", text: "go on" }] },
+  });
+  fs.writeFile(`${DIR}/copied.jsonl`, [...r1, prompt].join("\n"), ms("2026-05-19T10:01:00Z"));
+  return fs;
+}
+
+function memStoreIO(): StoreIO {
+  const files = new Map<string, string>();
+  return {
+    async read(p) {
+      return files.get(p) ?? null;
+    },
+    async write(p, c) {
+      files.set(p, c);
+    },
+    async append(p, c) {
+      files.set(p, (files.get(p) ?? "") + c);
+    },
+  };
+}
+
+describe("auto-pick skips a resumed session that is all copied history", () => {
+  it("why reports the original, not the copy", async () => {
+    const j = await whyJson(copiedOnlyFs());
+    expect(j.punchline.totalTokens).toBe(1_000_000);
+  });
+
+  it("why --session still shows the copy when asked for it", async () => {
+    const j = await whyJson(copiedOnlyFs(), { session: "copied" });
+    expect(j.punchline.totalTokens).toBe(0);
+  });
+
+  it("receipt reports the original", async () => {
+    const c = io();
+    const r = await runReceipt(
+      { json: true, cwd: "/w", agent: "claude-code", htmlOnly: true, noShare: true },
+      { fs: copiedOnlyFs(), ...c.deps, clipboard: new FakeClipboard(), writeFile: async () => {} },
+    );
+    expect(r.exitCode).toBe(0);
+    expect(JSON.parse(c.out.join("\n")).hero.tokens).toBe(1_000_000);
+  });
+
+  it("drift checks the original", async () => {
+    const c = io();
+    const r = await runDriftCommand(
+      { json: true, cwd: "/w", agent: "claude-code" },
+      { fs: copiedOnlyFs(), ...c.deps, now: NOW, homeDir: "/home/u", stateDir: "/state", storeIO: memStoreIO(), configPaths: [], configReader: async () => null },
+    );
+    expect(r.exitCode).toBe(0);
+    expect(JSON.parse(c.out.join("\n")).latest.sessionId).toBe("orig");
+  });
+});

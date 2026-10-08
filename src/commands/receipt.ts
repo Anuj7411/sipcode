@@ -41,7 +41,6 @@ import { resolveDisplayAgents, sectionHeader } from "../modules/agents/multi.js"
 import {
   listAgentSessions,
   otherAgentHint,
-  ownRequestsOnly,
   parseIssues,
   pickFrom,
   priceProvider,
@@ -163,9 +162,13 @@ export async function runReceipt(
   }
 
   // The newest session (empty ones included, as before), or --session <prefix>.
+  // Only this session's own requests: a resumed session (or a Codex fork)
+  // repeats requests another file holds, and one with nothing of its own
+  // yet is not auto-picked.
   const picked = await pickFrom(lists, agentDeps, {
     sessionIdPrefix: opts.session,
     skipEmpty: false,
+    ownRequests: true,
   });
   const pickError = sessionPickError({
     command: "receipt",
@@ -182,7 +185,7 @@ export async function runReceipt(
   const { agent, meta: chosen } = picked.chosen;
 
   // --- 2. parse ---
-  let session: ParsedSession;
+  const session: ParsedSession = picked.chosen.parsed;
   let issues: SipcodeIssue[];
   if (agent.id === "claude-code") {
     let contents: string;
@@ -192,14 +195,10 @@ export async function runReceipt(
       stderr(MESSAGES.malformedTranscript(path.basename(chosen.filePath), 0));
       return { exitCode: 1 };
     }
-    ({ session, issues } = parseTranscriptVerbose(contents));
+    ({ issues } = parseTranscriptVerbose(contents));
   } else {
-    session = picked.chosen.parsed;
     issues = parseIssues(session);
   }
-  // A resumed session (or a Codex fork) repeats requests another file holds:
-  // report only this session's own, as the period commands count them.
-  session = await ownRequestsOnly({ agent, deps: agentDeps, meta: chosen, parsed: session, lists });
 
   // --- 3. analyze ---
   const sessionDate = session.startedAt ? new Date(session.startedAt) : clock.now();

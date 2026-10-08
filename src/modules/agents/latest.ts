@@ -68,6 +68,12 @@ export interface PickOptions {
   readonly sessionIdPrefix?: string | undefined;
   /** Skip sessions with no token usage when auto-picking. Default true. */
   readonly skipEmpty?: boolean | undefined;
+  /**
+   * Return each pick with only its own requests (ownRequestsOnly). Auto-pick
+   * then also skips a session whose every request was copied from another
+   * file (resumed, nothing new logged yet), as it skips an empty one.
+   */
+  readonly ownRequests?: boolean | undefined;
 }
 
 export async function pickFrom(
@@ -91,17 +97,24 @@ export async function pickFrom(
       }
       const p = agent.parseTranscript(content);
       if (!p.ok) continue;
-      const candidate = { agent, meta, parsed: p.value };
+      let candidate: PickedSession = { agent, meta, parsed: p.value };
       if (!prefix) {
         // Helper threads (Codex subagents, auto-review) are never "your latest session".
         if (p.value.isSubagent) continue;
-        if (skipEmpty) {
-          const date = p.value.startedAt ? new Date(p.value.startedAt) : deps.clock.now();
-          if (isEmptySession(analyzeTokens(p.value, loadPricingForDate(date)))) {
+        const rawEmpty = isEmpty(p.value, deps);
+        if (skipEmpty && rawEmpty) {
+          fallback ??= candidate;
+          continue;
+        }
+        if (opts.ownRequests) {
+          candidate = { ...candidate, parsed: await ownRequestsOnly({ ...candidate, deps, lists }) };
+          if (!rawEmpty && isEmpty(candidate.parsed, deps)) {
             fallback ??= candidate;
             continue;
           }
         }
+      } else if (opts.ownRequests) {
+        candidate = { ...candidate, parsed: await ownRequestsOnly({ ...candidate, deps, lists }) };
       }
       picked.push(candidate);
       break; // metas are newest-first
@@ -120,6 +133,11 @@ export async function pickFrom(
     others: picked.slice(1),
     ambiguous: prefix !== undefined && picked.length > 1,
   };
+}
+
+function isEmpty(session: ParsedSession, deps: AgentDeps): boolean {
+  const date = session.startedAt ? new Date(session.startedAt) : deps.clock.now();
+  return isEmptySession(analyzeTokens(session, loadPricingForDate(date)));
 }
 
 export async function pickLatestSession(i: {

@@ -25,7 +25,6 @@ import { resolveDisplayAgents, sectionHeader } from "../modules/agents/multi.js"
 import {
   listAgentSessions,
   otherAgentHint,
-  ownRequestsOnly,
   parseIssues,
   pickFrom,
   priceProvider,
@@ -133,7 +132,9 @@ export async function runWhy(
   // Pick session: --session <prefix> in any shown tool, else the newest
   // NON-empty session (an empty/in-flight one would render an all-zero
   // report; drift guards the same way), falling back to the newest.
-  const picked = await pickFrom(lists, agentDeps, { sessionIdPrefix: opts.session });
+  // A resumed session (or a Codex fork) repeats requests another file holds:
+  // the pick carries only this session's own, as the period commands count them.
+  const picked = await pickFrom(lists, agentDeps, { sessionIdPrefix: opts.session, ownRequests: true });
   const pickError = sessionPickError({
     command: "why",
     picked,
@@ -148,8 +149,8 @@ export async function runWhy(
   }
   const { agent, meta: chosen } = picked.chosen;
 
-  // Parse. Claude Code: the verbose parse also lists malformed lines.
-  let session: ParsedSession;
+  // Claude Code: the verbose parse also lists malformed lines.
+  const session: ParsedSession = picked.chosen.parsed;
   let issues: SipcodeIssue[];
   if (agent.id === "claude-code") {
     let contents: string;
@@ -164,14 +165,10 @@ export async function runWhy(
       );
       return { exitCode: 1 };
     }
-    ({ session, issues } = parseTranscriptVerbose(contents));
+    ({ issues } = parseTranscriptVerbose(contents));
   } else {
-    session = picked.chosen.parsed;
     issues = parseIssues(session);
   }
-  // A resumed session (or a Codex fork) repeats requests another file holds:
-  // report only this session's own, as the period commands count them.
-  session = await ownRequestsOnly({ agent, deps: agentDeps, meta: chosen, parsed: session, lists });
 
   // Pricing.
   const sessionDate = session.startedAt
