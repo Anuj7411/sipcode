@@ -243,6 +243,12 @@ describe("parseCodexRollout: tools", () => {
     expect((s.toolCalls[1]!.input as { file_path: string }).file_path).toBe("C:\\p\\a.ts");
   });
 
+  it("an unbalanced look-alike (comment, odd template literal) does not hide later commands", () => {
+    expect(execWrappedCommands('/* tools.exec_command({ */ await tools.exec_command({"cmd":"cat a.ts"});')).toEqual([{ cmd: "cat a.ts" }]);
+    expect(execWrappedCommands('tools.exec_command({"cmd":`${"`"}`}); tools.exec_command({"cmd":"npm test"})')).toEqual([{ cmd: "npm test" }]);
+    expect(execWrappedCommands('tools.exec_command({"cmd":"unterminated')).toEqual([]);
+  });
+
   it("a failed exec-wrapped read stays Bash", () => {
     const code = 'const r = await tools.exec_command({"cmd":"Get-Content -Raw missing.md","workdir":"C:\\\\p"}); text(r.output);';
     const s = parse([meta(), ctx("u1", "gpt-6.1-sol"),

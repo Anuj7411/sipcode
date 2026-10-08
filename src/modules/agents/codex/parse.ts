@@ -174,7 +174,7 @@ export function execWrappedCommands(code: string): Array<Record<string, unknown>
       else if (ch === "{") depth++;
       else if (ch === "}" && --depth === 0) { end = i; break; }
     }
-    if (end < 0) break;
+    if (end < 0) continue; // unbalanced (e.g. a match inside a comment): try the next match
     try {
       const v = JSON.parse(code.slice(start, end + 1)) as unknown;
       if (v && typeof v === "object" && !Array.isArray(v)) out.push(v as Record<string, unknown>);
