@@ -27,13 +27,13 @@ describe("analyzeDuplicateReads: priorReads", () => {
     );
     expect(r.duplicateReadTokenCost).toBe(500);
     expect(r.topOffenders).toHaveLength(1);
-    expect(r.topOffenders[0]).toMatchObject({ readCount: 1, duplicateTokenCost: 500, firstReadTokens: 0 });
+    expect(r.topOffenders[0]).toMatchObject({ readCount: 2, duplicateTokenCost: 500, firstReadTokens: 0 });
   });
 
   it("sums every read of a prior-read path", () => {
     const r = analyzeDuplicateReads(sessionOf([readCall("/p/a.ts", 500), readCall("/p/a.ts", 200)], new Set(["/p/a.ts"])));
     expect(r.duplicateReadTokenCost).toBe(700);
-    expect(r.topOffenders[0]).toMatchObject({ readCount: 2, firstReadTokens: 0 });
+    expect(r.topOffenders[0]).toMatchObject({ readCount: 3, firstReadTokens: 0 });
   });
 
   it("does not flag a single read of a path that is not in priorReads", () => {

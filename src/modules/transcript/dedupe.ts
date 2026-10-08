@@ -5,10 +5,10 @@
  * resumed, and Codex copies a parent's history into fork / subagent rollouts.
  * Summing each file on its own counts those requests twice (11.4% on one real
  * machine). The session with the oldest start time keeps each request; later
- * copies are dropped. Undated sessions go last; ties keep input order.
+ * copies are dropped. Ordering: see dedupeAcrossSessions.
  */
 import type { AssistantTurn, ParsedSession } from "./parse.js";
-import { extractReadPath } from "./analyzers/duplicateReads.js";
+import { extractReadPath } from "./readPaths.js";
 import { normalizeFilePath } from "../../lib/path-normalize.js";
 
 export interface DedupeResult {
@@ -74,6 +74,9 @@ function parseTime(v: string | undefined): number | undefined {
 
 function rebuild(s: ParsedSession, keep: number[]): ParsedSession {
   const kept = new Set(keep);
+  // Copied history is assumed to precede a file's own requests (true for
+  // Claude resume and Codex forks on all observed data), so every read of a
+  // prior-read path is a re-read.
   const priorReads = new Set<string>(s.priorReads ?? []);
   s.assistantTurns.forEach((t, idx) => {
     if (kept.has(idx)) return;

@@ -10,6 +10,7 @@
  */
 import type { ParsedSession, ToolCall } from "../parse.js";
 import { normalizeFilePath } from "../../../lib/path-normalize.js";
+import { extractReadPath } from "../readPaths.js";
 
 export interface DuplicateRead {
   readonly filePath: string;
@@ -32,26 +33,6 @@ export interface DuplicateReadsResult {
 // normalizeFilePath now lives in src/lib/path-normalize.ts (imported above).
 // Used to be a private function here; was duplicated and divergent across
 // hookReadDedup, vsRtk, topExpensive before v1.6.14 — see header comment.
-
-/**
- * Read-like tools and the field of their input that names the file.
- * (Add new mappings as Claude Code introduces tools — IDs documented in
- * AUDIT-FRAMEWORK; new ones should not break old transcripts.)
- */
-const READ_TOOL_FIELDS: Record<string, string> = {
-  Read: "file_path",
-  read_file: "path",
-};
-
-export function extractReadPath(call: ToolCall): string | undefined {
-  const field = READ_TOOL_FIELDS[call.name];
-  if (!field) return undefined;
-  const input = call.input as Record<string, unknown> | undefined;
-  if (!input || typeof input !== "object") return undefined;
-  const v = input[field];
-  if (typeof v !== "string" || v.length === 0) return undefined;
-  return v;
-}
 
 export function analyzeDuplicateReads(
   session: ParsedSession,
@@ -78,13 +59,14 @@ export function analyzeDuplicateReads(
   for (const [norm, { calls, displayPath }] of readsByPath) {
     // The file was already read in copied history (requests dropped by
     // cross-file dedupe) that the model still had in context, so every read
-    // in this session is a repeat.
+    // in this session is a repeat. The copied read counts as the first read
+    // (readCount is on the same scale as normal entries, which include it).
     if (prior?.has(norm)) {
       const cost = calls.reduce((a, c) => a + c.resultTokens, 0);
       totalDupCost += cost;
       duplicates.push({
         filePath: displayPath,
-        readCount: calls.length,
+        readCount: calls.length + 1,
         duplicateTokenCost: cost,
         firstReadTokens: 0,
       });
