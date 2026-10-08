@@ -59,6 +59,16 @@ export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<Displ
   return { ok: true, agents: ids.map(getAgentById), detect };
 }
 
+/** The command that starts an agent, for "run `x` in any project" hints. */
+export function agentStartCommand(id: AgentId): string {
+  return id === "claude-code" ? "claude" : id;
+}
+
+/** Name + start command for runners whose empty-state text names the agent. */
+export function agentLabel(agent: Agent): { readonly name: string; readonly command: string } {
+  return { name: agent.displayName, command: agentStartCommand(agent.id) };
+}
+
 export function sectionHeader(displayName: string): string {
   return `── ${displayName} ──`;
 }
@@ -114,8 +124,16 @@ export class SectionOutput {
   readonly err = (text: string): void => {
     this.writes.push({ stream: "stderr", text });
   };
-  result(exitCode: 0 | 1, extra: { emptyWindow?: boolean; totals?: CombinedPart } = {}): SectionResult {
-    return { exitCode, writes: this.writes, ...extra };
+  result(
+    exitCode: 0 | 1,
+    extra: { emptyWindow?: boolean; totals?: CombinedPart | undefined } = {},
+  ): SectionResult {
+    const r: SectionResult = { exitCode, writes: this.writes };
+    return {
+      ...r,
+      ...(extra.emptyWindow ? { emptyWindow: true } : {}),
+      ...(extra.totals ? { totals: extra.totals } : {}),
+    };
   }
 }
 
