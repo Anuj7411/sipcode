@@ -3,7 +3,10 @@
  */
 import type { ForecastReport } from "./types.js";
 
-export function formatForecastTerminal(report: ForecastReport): string {
+export function formatForecastTerminal(
+  report: ForecastReport,
+  opts: { unpricedNote?: string | undefined } = {},
+): string {
   const lines: string[] = [];
   const monthLabel = report.monthEnd?.monthLabel ?? "this month";
   const daysRemainingNote = report.monthEnd
@@ -28,6 +31,7 @@ export function formatForecastTerminal(report: ForecastReport): string {
   lines.push(
     `    spend               $${me.projectedSpendUSD.toFixed(2)}   (range: $${me.confidenceLowUSD.toFixed(0)} – $${me.confidenceHighUSD.toFixed(0)})`,
   );
+  if (opts.unpricedNote) lines.push(`    ${opts.unpricedNote}`);
   if (
     report.comparison !== null &&
     report.comparison.lastMonthSpendUSD !== null &&
