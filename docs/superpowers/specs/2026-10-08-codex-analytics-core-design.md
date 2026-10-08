@@ -12,7 +12,7 @@ accounting and OpenAI prices. Zero network calls, as for Claude.
 
 Fix, in the same shared layer, the Claude over-count found while designing this: requests
 repeated across log files (resumed sessions, subagent logs) are summed once per file.
-Measured on one real machine: 14.74B tokens summed vs 13.30B unique (10.8% over).
+Measured on one real machine, on exactly the files Sipcode reads: 13.37B tokens summed vs 12.00B unique (11.4% over; 3,163 repeated requests in 8 resumed-session files).
 
 ## Non-goals (later pieces)
 
@@ -27,9 +27,9 @@ Measured on one real machine: 14.74B tokens summed vs 13.30B unique (10.8% over)
 |---|---|
 | Only Claude Code installed | Unchanged. |
 | Only Codex installed | Every command runs on Codex automatically. |
-| Both installed, period commands (`stats`, `today`, `forecast`, `trend`, `impact`) | A Claude Code section, a Codex section, then one combined line, e.g. `Both tools: 13.1B tokens · ~$10,888 + ~$X`. |
+| Both installed, period commands (`stats`, `today`, `forecast`, `trend`, `impact`) | A Claude Code section and a Codex section. `stats`, `today` and `forecast` end with one combined line, e.g. `Both tools: 13.1B tokens · ~$10,888 + ~$412`; `trend` (a ratio) and `impact` (before/after) have no combined line because a sum would be meaningless. |
 | Both installed, single-session commands (`why`, `drift`, `receipt`) | The most recent session across both tools, labelled with its tool, plus a one-line hint naming the other tool's latest session and the flag to see it. |
-| `--json` (scripts, MCP) | One tool per call, existing schema unchanged. With both installed and no flag, the JSON is the Claude Code result (as today); `--agent codex` selects Codex. A `agentsAvailable` field lists both. |
+| `--json` (scripts, MCP) | One tool per call, existing schema unchanged (no new fields). With both installed and no flag, the JSON is the Claude Code result (as today) and a one-line note on stderr names the `--agent codex` flag; `--agent codex` selects Codex. MCP tools gain an optional `agent` input. |
 | `--agent codex` / `--agent claude-code` | Always restricts any command to that tool. |
 | `--here` | Claude: project-hash match (unchanged). Codex: session `cwd` from `session_meta` equals or is inside the current folder (normalised path compare). |
 
@@ -41,8 +41,8 @@ least one rollout file.
 New and changed units. Each has one job and is testable alone.
 
 1. **`src/modules/agents/codex/discover.ts`**: lists rollout files in `$CODEX_HOME/sessions`
-   and `$CODEX_HOME/archived_sessions` (`rollout-*.jsonl`, and `rollout-*.jsonl.zst` when
-   `zlib.zstdDecompressSync` exists; otherwise counted as skipped and reported). If the same
+   and `$CODEX_HOME/archived_sessions` (`rollout-*.jsonl`; `rollout-*.jsonl.zst`, an optional
+   Codex feature that is off by default, is counted as skipped and reported, not read). If the same
    file name exists in both folders, keep `sessions/`. Returns `SessionMeta` records; reads
    line 1 (`session_meta`) for `cwd`, `cli_version`, `source`, `forked_from_id`,
    `parent_thread_id`.
@@ -59,14 +59,19 @@ New and changed units. Each has one job and is testable alone.
 5. **`src/lib/pricing/openai-2026-10-08.json`**: OpenAI table from
    developers.openai.com/api/docs/pricing: input, cached input, cache write, output, and a
    `long_prompt` tier over 272,000 input tokens (reuses the schema added in v1.6.21). The
-   pricing loader gains a provider dimension (`anthropic` | `openai`).
+   loader merges the newest OpenAI table into the model map it returns; Claude (`claude-*`) and
+   OpenAI (`gpt-*`) model ids never collide, so the cost code is unchanged.
 6. **`src/modules/transcript/dedupe.ts`** (shared): `dedupeAcrossSessions(sessions)` removes
    requests already counted in another session, keyed by a per-request id. Used by every
    command that aggregates several sessions, for both agents.
 7. **`ParsedSession` additions**: `agent: AgentId`; `AssistantTurn.requestKey` (Claude:
    `message.id|requestId`; Codex: `response_id`, or `file:ordinal` for legacy events);
-   `AssistantTurn.isSubagent`.
-8. **Command and MCP changes**: `why`, `drift`, `receipt` and the MCP server move from direct
+   `ParsedSession.isSubagent` (Codex subagent and auto-review threads; their spend is included
+   in totals, and they are never picked as "your latest session").
+8. **Shared session loading**: `src/modules/agents/loadSessions.ts` runs discovery, the
+   `--here` filter (via a new `Agent.matchesCwd`), reading, parsing and `dedupeAcrossSessions`
+   once, for every period command and both agents.
+9. **Command and MCP changes**: `why`, `drift`, `receipt` and the MCP server move from direct
    Claude calls (`listAllSessions`, `parseTranscriptVerbose`) to the agent interface.
    A small `src/modules/agents/multi.ts` resolves "both installed" and renders the combined
    line and hint, so commands do not each reimplement it.
@@ -111,7 +116,7 @@ New and changed units. Each has one job and is testable alone.
 - A malformed line is skipped and counted (existing `E003` behaviour).
 - A rollout with no usable token data yields an empty session and is excluded like today's
   empty Claude sessions.
-- `.jsonl.zst` without zstd support in Node: counted as "skipped (needs Node ≥ 22.15)".
+- `.jsonl.zst` rollouts: counted as skipped and reported (not read in this piece).
 
 ## Testing and proof (release gate)
 
