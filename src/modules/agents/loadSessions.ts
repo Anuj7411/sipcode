@@ -89,15 +89,18 @@ export async function loadSessions(
   const { agent, deps, cwd } = input;
   const discovery = await agent.discoverSessions(deps);
   if (!discovery.ok) return discovery;
-  let metas = discovery.value;
+  const found = Array.isArray(discovery.value)
+    ? { sessions: discovery.value, unreadable: 0, issues: [] }
+    : discovery.value;
+  let metas = found.sessions;
   const discovered = metas.length;
   // --here before dedupe is safe: a resumed session stays in its project.
   if (input.here) metas = metas.filter((m) => agent.matchesCwd(m, cwd));
   const scan = agent.scanRequestKeys?.bind(agent);
   const since = input.windowSinceMs;
   const loaded: { meta: SessionMeta; parsed: ParsedSession; stub: boolean }[] = [];
-  const issues: SipcodeIssue[] = [];
-  let unreadable = 0;
+  const issues: SipcodeIssue[] = [...found.issues];
+  let unreadable = found.unreadable;
   let scannedOnly = 0;
   for (const meta of metas) {
     let content: string;

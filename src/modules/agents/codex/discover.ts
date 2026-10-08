@@ -76,6 +76,23 @@ async function readFirstLine(fs: FileSystem, file: string): Promise<string> {
   return fullNl >= 0 ? full.slice(0, fullNl) : full;
 }
 
+/** True as soon as one `rollout-*.jsonl` is found under `dir` (stops walking there). */
+export async function hasCodexRollout(fs: FileSystem, dir: string): Promise<boolean> {
+  let entries;
+  try {
+    entries = await fs.readDir(dir);
+  } catch {
+    return false;
+  }
+  for (const e of entries) {
+    if (e.isFile && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl")) return true;
+  }
+  for (const e of entries) {
+    if (e.isDirectory && (await hasCodexRollout(fs, path.join(dir, e.name)))) return true;
+  }
+  return false;
+}
+
 export async function listCodexSessions(fs: FileSystem, home: string): Promise<CodexDiscovery> {
   const counters: Counters = { compressed: [], unreadable: 0 };
   const byName = new Map<string, Found>();

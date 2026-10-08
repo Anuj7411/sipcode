@@ -24,10 +24,10 @@ import type {
 } from "./shared.js";
 
 /** Stable agent identifiers. New adapters reserve a new id (S044/S045/S046). */
-export type AgentId = "claude-code" | "cursor";
+export type AgentId = "claude-code" | "cursor" | "codex";
 
 /** All agent IDs we know about (for validation + auto-detect). */
-export const ALL_AGENT_IDS: ReadonlyArray<AgentId> = ["claude-code", "cursor"];
+export const ALL_AGENT_IDS: ReadonlyArray<AgentId> = ["claude-code", "cursor", "codex"];
 
 /** "auto" sentinel for CLI flag — resolved to a real AgentId by detect.ts. */
 export type AgentSelector = AgentId | "auto";
@@ -79,12 +79,24 @@ export interface AgentRulesRead {
 
 export type { KeyScan };
 
+/**
+ * Discovery with a report of what it could not use. Adapters with nothing to
+ * report return a bare SessionMeta[] instead.
+ */
+export interface SessionDiscovery {
+  readonly sessions: SessionMeta[];
+  /** Files or folders that could not be read; added to loadSessions' unreadable count. */
+  readonly unreadable: number;
+  /** One issue per file discovery skipped on purpose (e.g. compressed logs). */
+  readonly issues: readonly SipcodeIssue[];
+}
+
 /** Full agent interface — capabilities + I/O behaviors. */
 export interface Agent extends AgentCapabilities {
   /** Discover past sessions. Cursor returns E009 (no parsing in this milestone). */
   discoverSessions(
     deps: AgentDeps,
-  ): Promise<Result<SessionMeta[], SipcodeIssue[]>>;
+  ): Promise<Result<SessionMeta[] | SessionDiscovery, SipcodeIssue[]>>;
 
   /** Parse a transcript file. Cursor returns E009. */
   parseTranscript(content: string): Result<ParsedSession, SipcodeIssue[]>;

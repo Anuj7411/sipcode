@@ -279,6 +279,18 @@ async function computeUninstall(
   if (agent.id === "claude-code") {
     return uninstallRules(existing);
   }
+  if (agent.id !== "cursor") {
+    // Agents whose rules file Sipcode does not edit yet (Codex): the adapter
+    // reports why, and the cursor helper below must not touch their file.
+    const r = await agent.removeRulesBlock(
+      { fs: ctx.fs, env: ctx.env, clock: ctx.clock },
+      ctx.cwd,
+      OUTPUT_COMPRESSION_BLOCK_NAME,
+      async () => {},
+    );
+    if (!r.ok) return r;
+    return { ok: true, value: r.value?.content ?? existing };
+  }
   // Cursor route — but agent.removeRulesBlock reads from fs. We instead use
   // the pure helper on the stripped body.
   const { removeCursorBlock, splitFrontmatter } = await import(

@@ -212,6 +212,17 @@ export const MESSAGES = {
       `defaulting to claude-code.`,
     ].join("\n"),
 
+  codexNotSupportedYet: (command: string) =>
+    [
+      `[E009] sipcode ${command} doesn't read Codex sessions yet.`,
+      ``,
+      `why: Codex support is arriving command by command; this one still reads Claude Code logs only.`,
+      ``,
+      `fix: run it with --agent claude-code, or use stats / today / forecast / trend / impact with --agent codex.`,
+      ``,
+      `next: npx sipcode stats --agent codex`,
+    ].join("\n"),
+
   cursorTranscriptNotSupported: () =>
     [
       `[E009] cursor transcript parsing isn't supported yet.`,
@@ -333,9 +344,9 @@ export const MESSAGES = {
     [
       `unknown agent "${id}".`,
       ``,
-      `why: sipcode supports --agent claude-code and --agent cursor in this release. codex / gemini / aider are planned.`,
+      `why: sipcode supports --agent claude-code, --agent cursor and --agent codex in this release. gemini / aider are planned.`,
       ``,
-      `fix: pick one of: claude-code, cursor, auto.`,
+      `fix: pick one of: claude-code, cursor, codex, auto.`,
       ``,
       `next: npx sipcode init --agent auto`,
     ].join("\n"),

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runRules } from "../../src/commands/rules.js";
+import { InMemoryFs } from "../../src/lib/fs.js";
+import { FakeProcessEnv } from "../../src/lib/process.js";
 
 function setupFs(initial?: string) {
   const files = new Map<string, string>();
@@ -119,5 +121,25 @@ describe("runRules", () => {
     const r = await runRules({}, deps);
     expect(r.exitCode).toBe(0);
     expect(stdout.join("\n")).toContain("mode = verbose");
+  });
+
+  it("--agent codex never writes AGENTS.md yet (install or uninstall)", async () => {
+    // A sipcode block that someone pasted into AGENTS.md by hand.
+    const { files: seed, deps: seedDeps } = setupFs();
+    await runRules({ install: true }, seedDeps);
+    const agentsMd = "# agents\n\n" + seed.get("/proj/CLAUDE.md")!;
+
+    for (const opts of [{ install: true }, { uninstall: true }]) {
+      const { files, stderr, deps } = setupFs();
+      const fs = new InMemoryFs();
+      fs.writeFile("/proj/AGENTS.md", agentsMd, 1);
+      const r = await runRules(
+        { ...opts, agent: "codex" },
+        { ...deps, fs, env: new FakeProcessEnv({ homeDir: "/h" }) },
+      );
+      expect(r.exitCode).toBe(1);
+      expect(stderr.join("\n")).toContain("E009");
+      expect(files.has("/proj/AGENTS.md")).toBe(false);
+    }
   });
 });

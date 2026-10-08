@@ -129,6 +129,10 @@ export async function runReceipt(
       stderr(MESSAGES.cursorTranscriptNotSupported());
       return { exitCode: 1 };
     }
+    if (parsed.selector === "codex") {
+      stderr(MESSAGES.codexNotSupportedYet("receipt"));
+      return { exitCode: 1 };
+    }
   }
 
   // --- 1. discover ---

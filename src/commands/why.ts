@@ -106,6 +106,10 @@ export async function runWhy(
       stderr(MESSAGES.cursorTranscriptNotSupported());
       return { exitCode: 1 };
     }
+    if (parsed.selector === "codex") {
+      stderr(MESSAGES.codexNotSupportedYet("why"));
+      return { exitCode: 1 };
+    }
   }
 
   const projectsDir = resolveProjectsDir(env);
