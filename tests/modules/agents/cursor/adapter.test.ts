@@ -132,3 +132,10 @@ describe("cursorAgent", () => {
     expect(await cursorAgent.isInstalled(deps(fs), "/proj")).toBe(false);
   });
 });
+
+describe("cursorAgent.matchesCwd", () => {
+  it("never matches (no sessions)", () => {
+    const meta = { sessionId: "s", filePath: "/x", projectHash: "p", mtimeMs: 0, size: 0 };
+    expect(cursorAgent.matchesCwd(meta, "/anything")).toBe(false);
+  });
+});

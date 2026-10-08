@@ -86,6 +86,9 @@ export interface Agent extends AgentCapabilities {
   /** Parse a transcript file. Cursor returns E009. */
   parseTranscript(content: string): Result<ParsedSession, SipcodeIssue[]>;
 
+  /** --here: does this discovered session belong to the project at `cwd`? */
+  matchesCwd(meta: SessionMeta, cwd: string): boolean;
+
   /** Read the existing rules file content for inspection. null if none exists. */
   readRulesFile(deps: AgentDeps, cwd: string): Promise<AgentRulesRead | null>;
 

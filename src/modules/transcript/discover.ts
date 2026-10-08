@@ -19,6 +19,8 @@ export interface SessionMeta {
   readonly mtimeMs: number;
   /** File size in bytes. */
   readonly size: number;
+  /** Working directory recorded in the log, when the agent records one (Codex). */
+  readonly cwd?: string | undefined;
 }
 
 export function resolveProjectsDir(env: ProcessEnv): string {

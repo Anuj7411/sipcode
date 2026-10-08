@@ -7,6 +7,7 @@
  */
 import path from "node:path";
 import {
+  cwdToProjectHash,
   listAllSessions,
   resolveProjectsDir,
   type SessionMeta,
@@ -47,6 +48,11 @@ export const claudeCodeAgent: Agent = {
 
   parseTranscript(content: string) {
     return parseTranscript(content);
+  },
+
+  matchesCwd(meta: SessionMeta, cwd: string): boolean {
+    const h = cwdToProjectHash(cwd);
+    return meta.projectHash === h || h.endsWith(meta.projectHash);
   },
 
   async readRulesFile(
