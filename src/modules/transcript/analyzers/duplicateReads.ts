@@ -43,7 +43,7 @@ const READ_TOOL_FIELDS: Record<string, string> = {
   read_file: "path",
 };
 
-function extractReadPath(call: ToolCall): string | undefined {
+export function extractReadPath(call: ToolCall): string | undefined {
   const field = READ_TOOL_FIELDS[call.name];
   if (!field) return undefined;
   const input = call.input as Record<string, unknown> | undefined;
@@ -74,7 +74,22 @@ export function analyzeDuplicateReads(
   const duplicates: DuplicateRead[] = [];
   let totalDupCost = 0;
 
-  for (const { calls, displayPath } of readsByPath.values()) {
+  const prior = session.priorReads;
+  for (const [norm, { calls, displayPath }] of readsByPath) {
+    // The file was already read in copied history (requests dropped by
+    // cross-file dedupe) that the model still had in context, so every read
+    // in this session is a repeat.
+    if (prior?.has(norm)) {
+      const cost = calls.reduce((a, c) => a + c.resultTokens, 0);
+      totalDupCost += cost;
+      duplicates.push({
+        filePath: displayPath,
+        readCount: calls.length,
+        duplicateTokenCost: cost,
+        firstReadTokens: 0,
+      });
+      continue;
+    }
     if (calls.length < 2) continue;
     // Cost of a read = the tokens its result added to the context (the file
     // content). Before v1.6.21 this used the whole request's usage, which

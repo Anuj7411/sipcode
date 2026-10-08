@@ -6,10 +6,22 @@ function call(name: string, turn: number): ToolCall {
   return { name, input: {}, assistantTurnIndex: turn, timestamp: undefined, inputTokens: 0, outputTokens: 0,
     cacheReadTokens: 0, cacheCreationTokens: 0, totalTokens: 0, resultTokens: 10 };
 }
-function turn(index: number, key: string | undefined, tools: string[] = []): AssistantTurn {
+function turn(
+  index: number,
+  key: string | undefined,
+  tools: string[] = [],
+  extra: Partial<AssistantTurn> = {},
+): AssistantTurn {
   return { index, model: "claude-opus-5", timestamp: undefined, inputTokens: 1, outputTokens: 1,
     cacheReadTokens: 100, cacheCreationTokens: 0, cacheCreation1hTokens: 0,
-    toolCalls: tools.map((t) => call(t, index)), missingUsage: false, requestKey: key };
+    toolCalls: tools.map((t) => call(t, index)), missingUsage: false, requestKey: key, ...extra };
+}
+function readTurn(index: number, key: string, filePath: string): AssistantTurn {
+  const c: ToolCall = { ...call("Read", index), input: { file_path: filePath } };
+  return { ...turn(index, key), toolCalls: [c] };
+}
+function withTimes(s: ParsedSession, startedAt: string | undefined, endedAt: string | undefined): ParsedSession {
+  return { ...s, startedAt, endedAt };
 }
 function session(id: string, startedAt: string, turns: AssistantTurn[]): ParsedSession {
   return { sessionId: id, cwd: "/p", primaryModel: "claude-opus-5", models: new Set(["claude-opus-5"]),
@@ -73,8 +85,94 @@ describe("dedupeAcrossSessions", () => {
 
   it("does not mutate its input", () => {
     const s1 = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1")]);
-    const s2 = session("b", "2026-09-02T10:00:00Z", [turn(0, "k1"), turn(1, "k2")]);
+    const s2 = session("b", "2026-09-02T10:00:00Z", [turn(0, "k1", ["Read"]), turn(1, "k2", ["Bash"])]);
     dedupeAcrossSessions([s1, s2]);
     expect(s2.assistantTurns).toHaveLength(2);
+    expect(s2.assistantTurns.map((t) => t.index)).toEqual([0, 1]);
+    expect(s2.assistantTurns[1]!.toolCalls[0]!.assistantTurnIndex).toBe(1);
+    expect(s2.toolCalls).toHaveLength(2);
+    expect(s2.toolCalls[1]!.assistantTurnIndex).toBe(1);
+    expect(s2.priorReads).toBeUndefined();
+  });
+
+  it("with equal startedAt the earlier-ending parent keeps the shared requests even when the superset comes first", () => {
+    const a = withTimes(session("a", "x", [turn(0, "k1"), turn(1, "k2")]), "2026-09-01T10:00:00Z", "2026-09-01T10:30:00Z");
+    const b = withTimes(session("b", "x", [turn(0, "k1"), turn(1, "k2"), turn(2, "k3")]), "2026-09-01T10:00:00Z", "2026-09-01T12:00:00Z");
+    const r = dedupeAcrossSessions([b, a]);
+    expect(r.droppedRequests).toBe(2);
+    expect(r.sessions[1]!.assistantTurns.map((t) => t.requestKey)).toEqual(["k1", "k2"]);
+    expect(r.sessions[0]!.assistantTurns.map((t) => t.requestKey)).toEqual(["k3"]);
+  });
+
+  it("breaks startedAt and endedAt ties by fewer turns", () => {
+    const small = withTimes(session("s", "x", [turn(0, "k1")]), "2026-09-01T10:00:00Z", "2026-09-01T10:00:00Z");
+    const big = withTimes(session("g", "x", [turn(0, "k1"), turn(1, "k2")]), "2026-09-01T10:00:00Z", "2026-09-01T10:00:00Z");
+    const r = dedupeAcrossSessions([big, small]);
+    expect(r.sessions[1]!.assistantTurns.map((t) => t.requestKey)).toEqual(["k1"]);
+    expect(r.sessions[0]!.assistantTurns.map((t) => t.requestKey)).toEqual(["k2"]);
+  });
+
+  it("handles a three-file resume chain", () => {
+    const a = withTimes(session("a", "x", [turn(0, "k1")]), "2026-09-01T10:00:00Z", "2026-09-01T10:10:00Z");
+    const b = withTimes(session("b", "x", [turn(0, "k1"), turn(1, "k2")]), "2026-09-01T10:00:00Z", "2026-09-01T11:00:00Z");
+    const c = withTimes(session("c", "x", [turn(0, "k1"), turn(1, "k2"), turn(2, "k3")]), "2026-09-01T10:00:00Z", "2026-09-01T12:00:00Z");
+    const r = dedupeAcrossSessions([c, b, a]);
+    expect(r.droppedRequests).toBe(3);
+    const keys = (id: string) => r.sessions.find((s) => s.sessionId === id)!.assistantTurns.map((t) => t.requestKey);
+    expect(keys("a")).toEqual(["k1"]);
+    expect(keys("b")).toEqual(["k2"]);
+    expect(keys("c")).toEqual(["k3"]);
+  });
+
+  it("recomputes startedAt, endedAt and durationSec from the kept turns", () => {
+    const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1", [], { timestamp: "2026-09-01T10:00:00Z" })]);
+    const b: ParsedSession = {
+      ...session("b", "2026-09-01T10:00:00Z", [
+        turn(0, "k1", [], { timestamp: "2026-09-01T10:00:00Z" }),
+        turn(1, "k2", [], { timestamp: "2026-09-05T09:00:00Z" }),
+        turn(2, "k3", [], { timestamp: "2026-09-05T09:01:30Z" }),
+      ]),
+      endedAt: "2026-09-05T09:01:30Z",
+      durationSec: 999_999,
+    };
+    const out = dedupeAcrossSessions([a, b]).sessions[1]!;
+    expect(out.startedAt).toBe("2026-09-05T09:00:00Z");
+    expect(out.endedAt).toBe("2026-09-05T09:01:30Z");
+    expect(out.durationSec).toBe(90);
+  });
+
+  it("keeps the original times when no kept turn has a timestamp", () => {
+    const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1")]);
+    const b: ParsedSession = { ...session("b", "2026-09-02T10:00:00Z", [turn(0, "k1"), turn(1, "k2")]), durationSec: 42 };
+    const out = dedupeAcrossSessions([a, b]).sessions[1]!;
+    expect(out.startedAt).toBe("2026-09-02T10:00:00Z");
+    expect(out.durationSec).toBe(42);
+  });
+
+  it("records files read in dropped turns as priorReads (normalised)", () => {
+    const a = session("a", "2026-09-01T10:00:00Z", [readTurn(0, "k1", "C:\\p\\a.ts")]);
+    const b = session("b", "2026-09-02T10:00:00Z", [readTurn(0, "k1", "C:\\p\\a.ts"), turn(1, "k2", ["Bash"])]);
+    const out = dedupeAcrossSessions([a, b]).sessions[1]!;
+    expect([...out.priorReads!]).toEqual(["c:/p/a.ts"]);
+  });
+
+  it("recomputes models and primaryModel when dropped turns used another model", () => {
+    const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1", [], { model: "claude-sonnet-5" })]);
+    const b = session("b", "2026-09-02T10:00:00Z", [
+      turn(0, "k1", [], { model: "claude-sonnet-5" }),
+      turn(1, "k2", [], { model: "claude-opus-5" }),
+    ]);
+    const out = dedupeAcrossSessions([a, b]).sessions[1]!;
+    expect([...out.models]).toEqual(["claude-opus-5"]);
+    expect(out.primaryModel).toBe("claude-opus-5");
+  });
+
+  it("leaves a session with 0 turns when every turn is a repeat", () => {
+    const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1"), turn(1, "k2")]);
+    const b = session("b", "2026-09-02T10:00:00Z", [turn(0, "k1"), turn(1, "k2")]);
+    const out = dedupeAcrossSessions([a, b]).sessions[1]!;
+    expect(out.assistantTurns).toHaveLength(0);
+    expect(out.toolCalls).toHaveLength(0);
+    expect(out.primaryModel).toBeUndefined();
   });
 });

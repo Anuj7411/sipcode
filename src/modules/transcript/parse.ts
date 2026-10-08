@@ -76,7 +76,10 @@ export interface ParsedSession {
   readonly assistantTurns: ReadonlyArray<AssistantTurn>;
   /** Flat list of tool calls across the session. */
   readonly toolCalls: ReadonlyArray<ToolCall>;
-  /** Number of user turns (prompt or tool_result wrapper). */
+  /**
+   * Number of user turns (prompt or tool_result wrapper). After cross-file
+   * dedupe this still includes prompts copied from the parent session.
+   */
   readonly userTurnCount: number;
   /** Number of lines successfully parsed. */
   readonly linesParsed: number;
@@ -86,6 +89,11 @@ export interface ParsedSession {
   readonly agent?: "claude-code" | "codex" | "cursor" | undefined;
   /** True for subagent / helper threads (Codex subagent rollouts). */
   readonly isSubagent?: boolean | undefined;
+  /**
+   * Normalised paths read in requests dropped by cross-file dedupe (copied
+   * history the model still had in context).
+   */
+  readonly priorReads?: ReadonlySet<string> | undefined;
 }
 
 function usageNumbers(u: Usage | undefined): {

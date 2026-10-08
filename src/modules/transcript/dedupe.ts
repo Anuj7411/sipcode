@@ -8,6 +8,8 @@
  * copies are dropped. Undated sessions go last; ties keep input order.
  */
 import type { AssistantTurn, ParsedSession } from "./parse.js";
+import { extractReadPath } from "./analyzers/duplicateReads.js";
+import { normalizeFilePath } from "../../lib/path-normalize.js";
 
 export interface DedupeResult {
   /** Same order as the input. */
@@ -15,16 +17,31 @@ export interface DedupeResult {
   readonly droppedRequests: number;
 }
 
+/**
+ * Order: parsed startedAt ascending (undated last), then endedAt ascending
+ * (undated last), then fewer assistant turns first, then input index. A
+ * resumed file copies its parent's lines with their original timestamps, so
+ * equal startedAt is the normal case; the parent ends earlier / is shorter and
+ * therefore keeps the shared requests. Request keys repeated inside one
+ * session are also dropped (relevant for Codex).
+ */
 export function dedupeAcrossSessions(
   sessions: ReadonlyArray<ParsedSession>,
 ): DedupeResult {
-  const time = (s: ParsedSession): number => {
-    const v = s.startedAt ? Date.parse(s.startedAt) : NaN;
-    return Number.isFinite(v) ? v : Number.POSITIVE_INFINITY;
-  };
   const order = sessions
-    .map((s, i) => ({ s, i, t: time(s) }))
-    .sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.i - b.i));
+    .map((s, i) => ({
+      s,
+      i,
+      start: parseTime(s.startedAt) ?? Number.POSITIVE_INFINITY,
+      end: parseTime(s.endedAt) ?? Number.POSITIVE_INFINITY,
+    }))
+    .sort(
+      (a, b) =>
+        cmp(a.start, b.start) ||
+        cmp(a.end, b.end) ||
+        cmp(a.s.assistantTurns.length, b.s.assistantTurns.length) ||
+        a.i - b.i,
+    );
   const seen = new Set<string>();
   const out: ParsedSession[] = sessions.slice();
   let dropped = 0;
@@ -45,7 +62,26 @@ export function dedupeAcrossSessions(
   return { sessions: out, droppedRequests: dropped };
 }
 
+function cmp(a: number, b: number): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function parseTime(v: string | undefined): number | undefined {
+  if (!v) return undefined;
+  const n = Date.parse(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 function rebuild(s: ParsedSession, keep: number[]): ParsedSession {
+  const kept = new Set(keep);
+  const priorReads = new Set<string>(s.priorReads ?? []);
+  s.assistantTurns.forEach((t, idx) => {
+    if (kept.has(idx)) return;
+    for (const c of t.toolCalls) {
+      const p = extractReadPath(c);
+      if (p) priorReads.add(normalizeFilePath(p));
+    }
+  });
   const assistantTurns: AssistantTurn[] = keep.map((oldIdx, newIdx) => {
     const t = s.assistantTurns[oldIdx]!;
     return {
@@ -64,11 +100,37 @@ function rebuild(s: ParsedSession, keep: number[]): ParsedSession {
       primaryModel = m;
     }
   }
+  // Recompute the time span from the kept turns so a resumed file does not
+  // keep the (older) times of the copied history.
+  let startMs: number | undefined;
+  let endMs: number | undefined;
+  let startedAt = s.startedAt;
+  let endedAt = s.endedAt;
+  for (const t of assistantTurns) {
+    const ms = parseTime(t.timestamp);
+    if (ms === undefined) continue;
+    if (startMs === undefined || ms < startMs) {
+      startMs = ms;
+      startedAt = t.timestamp;
+    }
+    if (endMs === undefined || ms > endMs) {
+      endMs = ms;
+      endedAt = t.timestamp;
+    }
+  }
+  const durationSec =
+    startMs !== undefined && endMs !== undefined
+      ? Math.max(0, Math.floor((endMs - startMs) / 1000))
+      : s.durationSec;
   return {
     ...s,
     assistantTurns,
     toolCalls: assistantTurns.flatMap((t) => t.toolCalls),
     models: new Set(counts.keys()),
     primaryModel,
+    startedAt,
+    endedAt,
+    durationSec,
+    priorReads,
   };
 }
