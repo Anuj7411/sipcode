@@ -175,6 +175,13 @@ describe("parseCodexRollout: tools", () => {
     expect(names(s)).toEqual([["Read", "a.ts"]]);
   });
 
+  it("resolves against a UNC share, but never borrows the process drive for a bare \\\\server", () => {
+    const s = parse([meta({ cwd: "\\\\srv\\share" }), fc("exec_command", { cmd: "cat a.ts" }, "c1"), rec("u1", "r1", usage(10, 0, 0, 1))]);
+    expect(names(s)).toEqual([["Read", "\\\\srv\\share\\a.ts"]]);
+    const bare = parse([L("session_meta", { id: "t1", cwd: "\\\\srv" }), fc("exec_command", { cmd: "cat b.ts" }, "c1"), rec("u1", "r1", usage(10, 0, 0, 1))]);
+    expect(names(bare)).toEqual([["Read", "b.ts"]]);
+  });
+
   it("a read whose output shows a non-zero exit code stays a Bash call (no false duplicate on retry)", () => {
     const { session: s, stats } = parseCodexRolloutWithStats([meta(), ctx("u1", "gpt-6.1-sol"),
       fc("shell_command", { command: "Get-Content README.md", workdir: "C:\\p" }, "c1"),

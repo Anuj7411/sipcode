@@ -109,7 +109,9 @@ function outputText(o: unknown): string {
 // Paths
 // ---------------------------------------------------------------------------
 
-const WIN_ABS = /^(?:[A-Za-z]:[\\/]|\\\\)/; // C:\x, C:/x, \\server\share
+// C:\x, C:/x, \\server\share. A bare "\\server" is not absolute: win32.resolve
+// would borrow the process's drive for it.
+const WIN_ABS = /^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/])/;
 const looksWindows = (s: string): boolean => /^[A-Za-z]:/.test(s) || s.includes("\\");
 
 /**
