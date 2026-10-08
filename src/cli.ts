@@ -23,7 +23,7 @@ program
 
 program
   .command("why")
-  .description("Audit past Claude Code sessions and show where tokens died.")
+  .description("Audit past Claude Code or Codex sessions and show where tokens died.")
   .option("--session <id>", "audit a specific session")
   .option("--list", "list available sessions instead of auditing")
   .option("--here", "scope to sessions for the current working directory")
@@ -240,12 +240,18 @@ program
   .description("Detect context/cost drift — flags when recent sessions get more expensive or context-bloated vs your baseline. Silent unless something regressed.")
   .option("--json", "machine-readable output")
   .option("--no-cache", "bypass the persistent baseline cache (parses every transcript fresh)")
+  .option("--session <id>", "check a specific session (id prefix) instead of the latest")
+  .option("--here", "scope to sessions for the current working directory")
+  .option("--agent <id>", "which agent to read: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runDriftCommand } = await import("./commands/drift.js");
     // Commander maps `--no-cache` to `opts.cache: false`; translate to noCache.
     const r = await runDriftCommand({
       json: !!opts.json,
       noCache: opts.cache === false,
+      session: opts.session,
+      here: !!opts.here,
+      agent: opts.agent,
     });
     if (r?.exitCode) process.exit(r.exitCode);
   });

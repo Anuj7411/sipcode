@@ -1,13 +1,12 @@
 /**
  * Commands that do not read Codex sessions yet must say so for --agent codex,
- * never fall through to Claude Code data under a Codex flag.
+ * never fall through to Claude Code data under a Codex flag. (why and receipt
+ * read Codex now: see single-session-agents.integration.test.ts.)
  */
 import { describe, expect, it } from "vitest";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
-import { runWhy } from "../../src/commands/why.js";
-import { runReceipt } from "../../src/commands/receipt.js";
 import { runEstimate } from "../../src/commands/estimate.js";
 
 const claudeReq = JSON.stringify({
@@ -45,8 +44,6 @@ function deps() {
 
 describe("--agent codex on commands without Codex support yet", () => {
   const cases: Array<[string, (d: ReturnType<typeof deps>["deps"]) => Promise<{ exitCode: number }>]> = [
-    ["why", (d) => runWhy({ agent: "codex" }, d)],
-    ["receipt", (d) => runReceipt({ agent: "codex", htmlOnly: true }, d)],
     ["estimate", (d) => runEstimate({ agent: "codex", task: "refactor auth" }, d)],
   ];
   for (const [name, run] of cases) {
