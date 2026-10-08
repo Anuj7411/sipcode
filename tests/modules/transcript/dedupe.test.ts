@@ -215,6 +215,23 @@ describe("dedupeAcrossSessions", () => {
       expect(r.sessions[1]).toBe(b);
     });
 
+    it("keeps the parsed time span (user-line timestamps included) when usage is only raised", () => {
+      // Span 09:00:00..09:59:00 comes from user lines; the only assistant turn is at 09:00:30.
+      const a: ParsedSession = {
+        ...session("a", "2026-09-01T09:00:00Z", [
+          turn(0, "k1", [], { ...zeroed, timestamp: "2026-09-01T09:00:30Z" }),
+        ]),
+        endedAt: "2026-09-01T09:59:00Z",
+        durationSec: 3540,
+      };
+      const b = session("b", "2026-09-01T10:30:00Z", [turn(0, "k1", [], real)]);
+      const out = dedupeAcrossSessions([a, b]).sessions[0]!;
+      expect(out.assistantTurns[0]!.cacheReadTokens).toBe(900);
+      expect(out.startedAt).toBe("2026-09-01T09:00:00Z");
+      expect(out.endedAt).toBe("2026-09-01T09:59:00Z");
+      expect(out.durationSec).toBe(3540);
+    });
+
     it("keeps a copy that already holds the maximum as-is (same object)", () => {
       const a = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1", [], real)]);
       const b = session("b", "2026-09-02T10:00:00Z", [turn(0, "k1", [], zeroed), turn(1, "k2")]);

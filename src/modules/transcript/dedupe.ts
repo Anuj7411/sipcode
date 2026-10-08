@@ -5,7 +5,9 @@
  * resumed, and Codex copies a parent's history into fork / subagent rollouts.
  * Summing each file on its own counts those requests twice (11.4% on one real
  * machine). The session with the oldest start time keeps each request; later
- * copies are dropped. Ordering: see dedupeAcrossSessions.
+ * copies are dropped. The kept copy carries the largest usage per field across
+ * ALL copies, so the result does not depend on which copy wins the ordering.
+ * Ordering: see dedupeAcrossSessions.
  */
 import type { AssistantTurn, ParsedSession } from "./parse.js";
 import { extractReadPath } from "./readPaths.js";
@@ -45,6 +47,8 @@ export function dedupeAcrossSessions(
   // Resumed files re-log some copied requests with the top-level usage zeroed.
   // Whichever copy wins the ordering must carry the largest value per field
   // across all copies (same rule as the within-file merge in parseTranscript).
+  // cacheCreationTokens and cacheCreation1hTokens are raised independently;
+  // that is safe because pricing caps the 1h part at the total (tokens.ts).
   const maxUsage = new Map<string, Usage>();
   for (const s of sessions) {
     for (const t of s.assistantTurns) {
@@ -162,12 +166,15 @@ function rebuild(
     }
   }
   // Recompute the time span from the kept turns so a resumed file does not
-  // keep the (older) times of the copied history.
+  // keep the (older) times of the copied history. Only when turns were dropped:
+  // the parsed span also covers user-line timestamps, which a raise-only
+  // session (usage maxed, nothing dropped) must keep.
   let startMs: number | undefined;
   let endMs: number | undefined;
   let startedAt = s.startedAt;
   let endedAt = s.endedAt;
-  for (const t of assistantTurns) {
+  const droppedTurns = keep.length < s.assistantTurns.length;
+  for (const t of droppedTurns ? assistantTurns : []) {
     const ms = parseTime(t.timestamp);
     if (ms === undefined) continue;
     if (startMs === undefined || ms < startMs) {
@@ -180,7 +187,7 @@ function rebuild(
     }
   }
   const durationSec =
-    startMs !== undefined && endMs !== undefined
+    droppedTurns && startMs !== undefined && endMs !== undefined
       ? Math.max(0, Math.floor((endMs - startMs) / 1000))
       : s.durationSec;
   return {
