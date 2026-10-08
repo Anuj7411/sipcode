@@ -267,8 +267,15 @@ function patchCalls(patch: string, workdir: string | undefined, callId: string |
 const READ_CMD = "(?:get-content|gc|cat|head|tail|sed|type|more|less|bat)";
 const ERR_PHRASE =
   "(?:cannot find path|no such file or directory|cannot open|can't read|does not exist|is a directory|permission denied|access is denied|access to the path .* is denied)";
-// First line of a read command's error output (Windows PowerShell 5, coreutils, cmd).
-const READ_ERROR = new RegExp(`^(?:${READ_CMD}\\s*:.*${ERR_PHRASE}|the system cannot find the (?:file|path) specified)`, "i");
+const READ_ALIAS = "(?:cat|type|head|tail|sed|more|less|bat)";
+// First line of a read command's error output. Anchored to each tool's own
+// layout so a file whose first line merely mentions such a phrase stays a read:
+// PowerShell "Get-Content : <msg>" / "cat : <msg>" (alias), coreutils
+// "cat: <path>: <msg>", cmd.exe "The system cannot find the file specified."
+const READ_ERROR = new RegExp(
+  `^(?:(?:get-content|gc)\\s*:.*${ERR_PHRASE}|${READ_ALIAS} : .*${ERR_PHRASE}|${READ_ALIAS}: .*: ${ERR_PHRASE}|the system cannot find the (?:file|path) specified)`,
+  "i",
+);
 // PowerShell 7: "Get-Content:" alone on line 1, the message in a "     | ..." line below.
 const PWSH7_HEAD = new RegExp(`^${READ_CMD}\\s*:\\s*$`, "i");
 const PWSH7_MSG = new RegExp(`^\\s*\\|\\s*.*${ERR_PHRASE}`, "i");
@@ -299,11 +306,13 @@ function readErrorAtStart(body: string): boolean {
 
 /**
  * True when the logged output shows the command did not succeed. Formats seen
- * in real rollouts: "Exit code: N\nWall time: ...\nOutput:\n..." (shell_command,
- * exec_command), "Wall time: ...\naborted by user", JSON {output, metadata:
- * {exit_code}} (legacy shell), and for the JavaScript exec wrapper
+ * in real rollouts: "Exit code: N\nWall time: ...\nOutput:\n..." (shell_command),
+ * "Wall time: ...\naborted by user", JSON {output, metadata: {exit_code}}
+ * (legacy shell), and for the JavaScript exec wrapper
  * "Script completed|Script failed\nWall time ...\nOutput:\n<body>", where the
  * inner exit code is only visible when the script printed the raw result.
+ * Unified exec (exec_command, from the Codex binary's format strings):
+ * "[Chunk ID: ..\n]Wall time: ..\n[Process exited with code N\n]...Output:\n<body>".
  */
 export function shellOutputFailed(text: string): boolean {
   const code = /^Exit code: (-?\d+)/.exec(text);
@@ -312,6 +321,12 @@ export function shellOutputFailed(text: string): boolean {
   if (json !== undefined) return json !== 0;
   if (/^Script failed\b/.test(text)) return true;
   if (/^Wall time[^\n]*\naborted\b/.test(text)) return true;
+  if (/^(?:Chunk ID|Wall time):/.test(text)) {
+    const at = text.indexOf("\nOutput:\n");
+    const exited = /^Process exited with code (-?\d+)/m.exec(at >= 0 ? text.slice(0, at) : text);
+    if (exited) return Number(exited[1]) !== 0;
+    return at >= 0 && readErrorAtStart(text.slice(at + "\nOutput:\n".length));
+  }
   if (/^Script (?:completed|running)\b/.test(text)) {
     const at = text.indexOf("Output:\n");
     const body = at >= 0 ? text.slice(at + "Output:\n".length) : "";

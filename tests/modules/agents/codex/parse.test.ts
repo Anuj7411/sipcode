@@ -205,6 +205,22 @@ describe("parseCodexRollout: tools", () => {
     expect(shellOutputFailed("Script completed\nWall time 1.0 seconds\nOutput:\nGet-Content:\nnot an error block\n")).toBe(false);
   });
 
+  it("reads the exit code of unified exec output (exec_command)", () => {
+    expect(shellOutputFailed("Chunk ID: 3f2a\nWall time: 0.0123 seconds\nProcess exited with code 1\nOriginal token count: 12\nOutput:\ncat: a.ts: No such file or directory\n")).toBe(true);
+    expect(shellOutputFailed("Chunk ID: 3f2a\nWall time: 0.0123 seconds\nProcess exited with code 0\nOriginal token count: 9\nOutput:\nProcess exited with code 1\n")).toBe(false);
+    expect(shellOutputFailed("Wall time: 0.0100 seconds\nProcess exited with code 2\nOutput:\n")).toBe(true);
+    expect(shellOutputFailed("Wall time: 1.2 seconds\nOutput:\ncat: a.ts: No such file or directory\n")).toBe(true);
+    expect(shellOutputFailed("Chunk ID: 3f2a\nWall time: 10.0 seconds\nProcess running with session ID 7\nOutput:\nexport const a = 1;\n")).toBe(false);
+  });
+
+  it("only treats a first line laid out like a read error as a failure", () => {
+    expect(shellOutputFailed("cat: a.ts: No such file or directory")).toBe(true);
+    expect(shellOutputFailed("sed: can't read a.ts: No such file or directory")).toBe(true);
+    expect(shellOutputFailed("cat : Cannot find path 'C:\\p\\a.ts' because it does not exist.")).toBe(true);
+    expect(shellOutputFailed("type: the field does not exist on older servers\nname: x\n")).toBe(false);
+    expect(shellOutputFailed("Script completed\nWall time 1.0 seconds\nOutput:\nhead: this section is a directory overview\n")).toBe(false);
+  });
+
   it("extracts commands from the JavaScript exec wrapper and treats them like exec_command", () => {
     const code = 'const r = await tools.exec_command({"cmd":"Get-Content -Raw \'.agents\\\\plugins\\\\marketplace.json\'","workdir":"C:\\\\Projects\\\\Sipcode","yield_time_ms":10000});\ntext(r.output);\n';
     expect(execWrappedCommands(code)).toEqual([{ cmd: "Get-Content -Raw '.agents\\plugins\\marketplace.json'", workdir: "C:\\Projects\\Sipcode", yield_time_ms: 10000 }]);
