@@ -3,9 +3,16 @@ import v8 from "node:v8";
 import vm from "node:vm";
 import { scanClaudeRequestKeys, type KeyScan } from "../../../src/modules/transcript/parse.js";
 
-// gc() without launching node with --expose-gc.
-v8.setFlagsFromString("--expose-gc");
-const gc = vm.runInNewContext("gc") as () => void;
+// gc() without launching node with --expose-gc. If it cannot be obtained
+// the test is skipped rather than failing confusingly.
+let gc: (() => void) | undefined;
+try {
+  v8.setFlagsFromString("--expose-gc");
+  const g: unknown = vm.runInNewContext("gc");
+  if (typeof g === "function") gc = g as () => void;
+} catch {
+  gc = undefined;
+}
 
 function line(i: number, pad: string): string {
   return JSON.stringify({
@@ -29,12 +36,12 @@ function scanBigFile(): KeyScan {
 }
 
 describe("scanClaudeRequestKeys memory", () => {
-  it("does not retain the scanned text (keys and timestamps are copies, not slices)", () => {
-    gc();
+  it.skipIf(gc === undefined)("does not retain the scanned text (keys and timestamps are copies, not slices)", () => {
+    gc!();
     const before = process.memoryUsage().heapUsed;
     const scan = scanBigFile();
-    gc();
-    gc();
+    gc!();
+    gc!();
     const retainedMB = (process.memoryUsage().heapUsed - before) / 1048576;
     expect(scan.keys).toHaveLength(20);
     expect(scan.startedAt).toBe("2026-09-01T10:00:00Z");

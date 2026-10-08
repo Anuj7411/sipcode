@@ -156,6 +156,39 @@ const synthetic: Record<string, string> = {
       timestamp: "2026-09-01T10:00:00Z",
     }),
   ].join("\n"),
+  "assistant lines with neither a requestId nor a timestamp marker": [
+    JSON.stringify({
+      type: "assistant",
+      message: { id: "msg_nm", content: [{ type: "text", text: "." }], usage: { input_tokens: 1, output_tokens: 1 } },
+    }),
+    assistant({ msg: "msg_after", req: "req_after", ts: "2026-09-01T10:00:05Z" }),
+  ].join("\n"),
+  "assistant with a non-string top-level timestamp and a nested string timestamp": [
+    JSON.stringify({
+      type: "assistant",
+      requestId: "req_ns",
+      timestamp: 1767225600,
+      message: {
+        id: "msg_ns",
+        content: [
+          { type: "tool_use", id: "toolu_7", name: "Bash", input: { timestamp: "2099-12-31T00:00:00Z" } },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    }),
+    assistant({ msg: "msg_ok2", req: "req_ok2", ts: "2026-09-01T10:00:05Z" }),
+  ].join("\n"),
+  "user line with no top-level timestamp and two message objects": [
+    assistant({ msg: "msg_u0", req: "req_u0", ts: "2026-09-01T10:00:00Z" }),
+    JSON.stringify({
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: "ok" }] },
+      toolUseResult: {
+        message: { id: "msg_inner", content: [] },
+        timestamp: "2031-01-01T00:00:00Z",
+      },
+    }),
+  ].join("\n"),
   empty: "",
 };
 

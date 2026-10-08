@@ -407,6 +407,7 @@ export interface KeyScan {
 const M_ASSISTANT = '"type":"assistant"';
 const M_USER = '"type":"user"';
 const M_TS = '"timestamp":"';
+const M_TS_KEY = '"timestamp":';
 const M_MESSAGE = '"message":{';
 const M_REQ = '"requestId"';
 const M_CONTENT = '"content":';
@@ -426,6 +427,13 @@ function single(line: string, marker: string): number {
   const i = line.indexOf(marker);
   if (i < 0) return -1;
   return line.indexOf(marker, i + marker.length) < 0 ? i : -2;
+}
+
+/** Number of non-overlapping occurrences of `marker`. */
+function count(line: string, marker: string): number {
+  let n = 0;
+  for (let i = line.indexOf(marker); i >= 0; i = line.indexOf(marker, i + marker.length)) n++;
+  return n;
 }
 
 /** String value starting at `from` (just after an opening quote); undefined if it needs unescaping. */
@@ -482,6 +490,14 @@ function scanLineFast(line: string): ScannedLine | undefined | "skip" {
   if (ia === -2 || iu === -2 || (ia >= 0 && iu >= 0)) return undefined;
   const isAssistant = ia >= 0;
 
+  // A "timestamp" key that is not followed by a string means the real
+  // top-level timestamp is not a string (the exact path then skips the line),
+  // or a nested look-alike is being mistaken for it. Defer either way.
+  if (count(line, M_TS_KEY) !== count(line, M_TS)) return undefined;
+  // Real assistant lines always carry a top-level timestamp and requestId; a
+  // missing marker may just mean the only occurrence is nested in a tool input.
+  if (isAssistant && (!line.includes(M_TS) || !line.includes(M_REQ))) return undefined;
+
   let ts: string | undefined;
   const it = single(line, M_TS);
   if (it === -2) return undefined;
@@ -490,7 +506,11 @@ function scanLineFast(line: string): ScannedLine | undefined | "skip" {
     if (v === undefined) return undefined;
     ts = v.length > 0 ? v : undefined;
   }
-  if (!isAssistant) return { isAssistant: false, ts, key: undefined };
+  if (!isAssistant) {
+    // More than one message object on a user line: nested look-alikes, defer.
+    if (count(line, M_MESSAGE) > 1) return undefined;
+    return { isAssistant: false, ts, key: undefined };
+  }
 
   // The message id sits in the message object before its content array
   // (tool_use blocks carry their own ids). Anything else: exact path.
