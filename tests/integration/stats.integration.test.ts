@@ -452,6 +452,29 @@ describe("runStats: Claude Code and Codex sections", () => {
     expect(r.out).not.toContain("──");
   });
 
+  it("Cursor + Codex without Claude Code logs shows Codex alone (terminal and JSON)", async () => {
+    const fs = codexOnly();
+    fs.mkdir("/home/u/.cursor");
+    const r = await run({ since: "30d" }, fs);
+    expect(r.exitCode).toBe(0);
+    expect(r.outLines[0]).toBe("detected agent: codex (auto). pass --agent to override.");
+    expect(r.out).toContain("across 1 sessions you burned 1,100 tokens.");
+    expect(r.out).not.toContain("──");
+    expect(r.err).not.toContain("[E009]");
+    const json = await run({ since: "30d", json: true }, fs);
+    expect(json.exitCode).toBe(0);
+    expect(JSON.parse(json.out).agent).toBe("codex");
+    expect(json.err).toBe("");
+  });
+
+  it("Cursor alone keeps its E009 (unchanged)", async () => {
+    const fs = new InMemoryFs();
+    fs.mkdir("/home/u/.cursor");
+    const r = await run({ since: "30d" }, fs);
+    expect(r.exitCode).toBe(1);
+    expect(r.err).toContain("[E009]");
+  });
+
   it("--agent codex with no Codex logs names Codex in the empty state", async () => {
     const r = await run({ since: "30d", agent: "codex" }, new InMemoryFs());
     expect(r.exitCode).toBe(0);

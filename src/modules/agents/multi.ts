@@ -45,6 +45,10 @@ export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<Displ
     const claudeHasLogs = await i.fs.exists(resolveProjectsDir(i.env));
     if (claudeHasLogs) ids = codexInstalled ? ["claude-code", "codex"] : ["claude-code"];
     else ids = codexInstalled ? ["codex"] : ["claude-code"];
+  } else if (detect.agent !== "codex" && !getAgentById(detect.agent).transcriptParsingSupported) {
+    // A Cursor pick has no session logs Sipcode can read: next to Codex it
+    // would only add an E009 section, so Codex is shown alone.
+    ids = codexInstalled ? ["codex"] : [detect.agent];
   } else {
     ids = codexInstalled && detect.agent !== "codex" ? [detect.agent, "codex"] : [detect.agent];
   }

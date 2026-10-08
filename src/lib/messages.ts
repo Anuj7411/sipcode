@@ -6,6 +6,14 @@
  */
 import { formatNum } from "./format.js";
 
+/** The agent a message is about (structural, so this file imports no agent module). */
+export interface MessageAgent {
+  readonly id: string;
+  readonly displayName: string;
+}
+
+const CLAUDE_CODE: MessageAgent = { id: "claude-code", displayName: "Claude Code" };
+
 export const MESSAGES = {
   tagline: "sip your tokens. don't gulp them.",
 
@@ -291,8 +299,8 @@ export const MESSAGES = {
       `     https://github.com/Anuj7411/sipcode`,
     ].join("\n"),
 
-  statsNoSessionsYet: (agentName = "Claude Code") =>
-    agentName === "Claude Code"
+  statsNoSessionsYet: (agent: MessageAgent = CLAUDE_CODE) =>
+    agent.id === "claude-code"
       ? [
           `no Claude Code sessions found yet.`,
           ``,
@@ -301,20 +309,20 @@ export const MESSAGES = {
           `fix: open Claude Code, run any prompt, then come back and run this again.`,
         ].join("\n")
       : [
-          `no ${agentName} sessions found yet.`,
+          `no ${agent.displayName} sessions found yet.`,
           ``,
-          `why: sipcode reads the session logs ${agentName} writes, and none exist yet.`,
+          `why: sipcode reads the session logs ${agent.displayName} writes, and none exist yet.`,
           ``,
-          `fix: open ${agentName}, run any prompt, then come back and run this again.`,
+          `fix: open ${agent.displayName}, run any prompt, then come back and run this again.`,
         ].join("\n"),
 
-  statsNoSessionsInWindow: (raw: string, agentName = "Claude Code") =>
+  statsNoSessionsInWindow: (raw: string, agent: MessageAgent = CLAUDE_CODE) =>
     [
       `no sessions found in the last ${raw}.`,
       ``,
-      agentName === "Claude Code"
+      agent.id === "claude-code"
         ? `why: claude code transcripts exist, but none of them fall inside the window you asked for.`
-        : `why: ${agentName} session logs exist, but none of them fall inside the window you asked for.`,
+        : `why: ${agent.displayName} session logs exist, but none of them fall inside the window you asked for.`,
       ``,
       `fix: widen the window with --since all, or drop --here if you scoped to this cwd.`,
       ``,

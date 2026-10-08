@@ -293,10 +293,10 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
     }
     if (totalDiscovered === 0) {
       // Brand-new user: no transcripts exist anywhere. Don't claim they do.
-      stdout(MESSAGES.statsNoSessionsYet(agent.displayName));
+      stdout(MESSAGES.statsNoSessionsYet(agent));
       return o.result(0);
     }
-    stderr(MESSAGES.statsNoSessionsInWindow(window.raw, agent.displayName));
+    stderr(MESSAGES.statsNoSessionsInWindow(window.raw, agent));
     return o.result(1, { emptyWindow: true });
   }
 

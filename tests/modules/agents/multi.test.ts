@@ -66,10 +66,22 @@ describe("resolveDisplayAgents", () => {
     expect(await ids({ codex: true, cwdClaudeMd: true })).toEqual(["codex"]);
   });
 
-  it("keeps a cursor pick and adds a Codex section", async () => {
-    expect(await ids({ cwdCursor: true, codex: true })).toEqual(["cursor", "codex"]);
-    expect(await ids({ cursorGlobal: true, codex: true })).toEqual(["cursor", "codex"]);
+  it("a cursor pick (no transcript parsing) next to Codex shows Codex only", async () => {
+    expect(await ids({ cwdCursor: true, codex: true })).toEqual(["codex"]);
+    expect(await ids({ cursorGlobal: true, codex: true })).toEqual(["codex"]);
+  });
+
+  it("a cursor pick next to Codex shows Codex only in JSON too, with no note", async () => {
+    const err: string[] = [];
+    expect(await ids({ cursorGlobal: true, codex: true }, undefined, true, err)).toEqual(["codex"]);
+    expect(await ids({ cwdCursor: true, codex: true }, undefined, true, err)).toEqual(["codex"]);
+    expect(err).toEqual([]);
+  });
+
+  it("cursor alone (no Codex) keeps the cursor pick", async () => {
     expect(await ids({ cursorGlobal: true })).toEqual(["cursor"]);
+    expect(await ids({ cwdCursor: true })).toEqual(["cursor"]);
+    expect(await ids({ cursorGlobal: true }, undefined, true)).toEqual(["cursor"]);
   });
 
   it("JSON stays one agent (the first) and notes Codex on stderr", async () => {
@@ -222,7 +234,8 @@ describe("runSections", () => {
     ]);
     expect(r.exitCode).toBe(1);
     expect(r.err).toEqual(["Claude Code: [E009] unsupported"]);
-    expect(r.out).not.toContain("Both tools: 5 tokens · ~$2");
+    // Only one section has totals, so there is no combined line.
+    expect(r.out).toEqual(["── Claude Code ──", "", "── Codex ──", "codex report", ""]);
   });
 
   it("ends with the combined line when two sections have totals", async () => {

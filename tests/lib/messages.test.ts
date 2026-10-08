@@ -61,3 +61,33 @@ describe("MESSAGES — brand voice", () => {
     expect(MESSAGES.manifestExplainNotImplemented("src/x.ts")).toContain("v1.1");
   });
 });
+
+describe("MESSAGES — empty states key on the agent id", () => {
+  const claude = { id: "claude-code", displayName: "Claude Code" } as const;
+  const codex = { id: "codex", displayName: "Codex" } as const;
+
+  it("Claude Code wording is unchanged and does not depend on the display name", () => {
+    const yet = [
+      "no Claude Code sessions found yet.",
+      "",
+      "why: sipcode reads the transcripts Claude Code writes per session, and none exist yet.",
+      "",
+      "fix: open Claude Code, run any prompt, then come back and run this again.",
+    ].join("\n");
+    expect(MESSAGES.statsNoSessionsYet()).toBe(yet);
+    expect(MESSAGES.statsNoSessionsYet(claude)).toBe(yet);
+    expect(MESSAGES.statsNoSessionsYet({ ...claude, displayName: "Claude" })).toBe(yet);
+    const win = MESSAGES.statsNoSessionsInWindow("30d");
+    expect(win).toContain("why: claude code transcripts exist, but none of them fall inside the window you asked for.");
+    expect(MESSAGES.statsNoSessionsInWindow("30d", claude)).toBe(win);
+    expect(MESSAGES.statsNoSessionsInWindow("30d", { ...claude, displayName: "Claude" })).toBe(win);
+  });
+
+  it("other agents get their own name", () => {
+    expect(MESSAGES.statsNoSessionsYet(codex)).toContain("no Codex sessions found yet.");
+    expect(MESSAGES.statsNoSessionsYet(codex)).not.toContain("Claude");
+    expect(MESSAGES.statsNoSessionsInWindow("30d", codex)).toContain(
+      "why: Codex session logs exist, but none of them fall inside the window you asked for.",
+    );
+  });
+});
