@@ -1,4 +1,4 @@
-import type { SessionMetrics, Baseline, RegressionResult, DriftCause } from "./types.js";
+import type { SessionMetrics, Baseline, RegressionResult, DriftCause, DriftAgent } from "./types.js";
 
 export function median(xs: number[]): number {
   if (xs.length === 0) return 0;
@@ -33,10 +33,18 @@ function fmt(n: number): string {
   return Math.round(n).toLocaleString("en-US");
 }
 
+/** True for Claude Code (and for callers that name no agent). */
+export function isClaudeCode(agent: DriftAgent | undefined): boolean {
+  return agent === undefined || agent.id === "claude-code";
+}
+
 export function detectRegression(
   latest: SessionMetrics,
   baseline: Baseline,
+  agent?: DriftAgent,
 ): RegressionResult {
+  const claude = isClaudeCode(agent);
+  const name = agent?.displayName ?? "Claude";
   const causes: DriftCause[] = [];
   if (baseline.count < MIN_BASELINE) {
     return { hasRegression: false, causes };
@@ -49,8 +57,7 @@ export function detectRegression(
       changeDisplay: `up ${pctUp(latest.tokensPerTurn, baseline.medianTokensPerTurn)}%`,
       baselineDisplay: fmt(baseline.medianTokensPerTurn),
       latestDisplay: fmt(latest.tokensPerTurn),
-      meaning:
-        "Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail Claude needs — the heart of context rot.",
+      meaning: `Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail ${claude ? "Claude" : name} needs — the heart of context rot.`,
       fix: "Start a fresh chat for your next task to reset the context, and run `sipcode why` to see which turns and files are heaviest.",
     });
   }
@@ -68,8 +75,9 @@ export function detectRegression(
       changeDisplay: `down ${dropPts} points`,
       baselineDisplay: `${Math.round(baseline.medianCacheHitRate * 100)}%`,
       latestDisplay: `${Math.round(latest.cacheHitRate * 100)}%`,
-      meaning:
-        "Much less of your context is being reused from cache (cached tokens are ~10x cheaper). Usually from settings/MCP servers changing mid-session, or idle gaps longer than the ~5-minute cache window.",
+      meaning: claude
+        ? "Much less of your context is being reused from cache (cached tokens are ~10x cheaper). Usually from settings/MCP servers changing mid-session, or idle gaps longer than the ~5-minute cache window."
+        : "Much less of your context is being reused from cache (cached tokens cost far less). Usually from settings/MCP servers changing mid-session, or idle gaps long enough for the cache to expire.",
       fix: "Avoid changing MCP servers or config mid-task, and work in steady bursts so the cache stays warm.",
     });
   }
@@ -84,9 +92,10 @@ export function detectRegression(
       changeDisplay: `~${fmt(latest.duplicateReadTokens)} tokens wasted`,
       baselineDisplay: fmt(baseline.medianDuplicateReadTokens),
       latestDisplay: fmt(latest.duplicateReadTokens),
-      meaning:
-        "Claude re-read files it had already seen, paying again for content it already had in context.",
-      fix: "Install the Sipcode proxy (`sipcode proxy --install`) — it automatically skips redundant re-reads.",
+      meaning: `${claude ? "Claude" : name} re-read files it had already seen, paying again for content it already had in context.`,
+      fix: claude
+        ? "Install the Sipcode proxy (`sipcode proxy --install`) — it automatically skips redundant re-reads."
+        : `Sipcode cannot skip re-reads inside ${name} yet; point ${name} at the exact lines it needs instead of whole files.`,
     });
   }
 

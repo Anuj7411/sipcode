@@ -26,6 +26,12 @@ export interface DisplayAgentsInput {
   readonly cwd: string;
   readonly json: boolean;
   readonly stderr: (s: string) => void;
+  /**
+   * why / receipt / drift: auto-detect never shows an agent whose logs Sipcode
+   * cannot read (Cursor); Claude Code stands in, as these commands always read
+   * Claude Code logs before. An explicit --agent cursor is still honoured.
+   */
+  readonly singleSession?: boolean | undefined;
 }
 
 export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<DisplayAgents> {
@@ -39,18 +45,22 @@ export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<Displ
 
   const codex = getAgentById("codex");
   const codexInstalled = await codex.isInstalled({ fs: i.fs, env: i.env, clock: i.clock }, i.cwd);
+  const base: AgentId =
+    i.singleSession && !getAgentById(detect.agent).transcriptParsingSupported
+      ? "claude-code"
+      : detect.agent;
   let ids: AgentId[];
-  if (detect.agent === "claude-code") {
+  if (base === "claude-code") {
     // A Claude Code pick without a transcripts folder has nothing to show.
     const claudeHasLogs = await i.fs.exists(resolveProjectsDir(i.env));
     if (claudeHasLogs) ids = codexInstalled ? ["claude-code", "codex"] : ["claude-code"];
     else ids = codexInstalled ? ["codex"] : ["claude-code"];
-  } else if (detect.agent !== "codex" && !getAgentById(detect.agent).transcriptParsingSupported) {
+  } else if (base !== "codex" && !getAgentById(base).transcriptParsingSupported) {
     // A Cursor pick has no session logs Sipcode can read: next to Codex it
     // would only add an E009 section, so Codex is shown alone.
-    ids = codexInstalled ? ["codex"] : [detect.agent];
+    ids = codexInstalled ? ["codex"] : [base];
   } else {
-    ids = codexInstalled && detect.agent !== "codex" ? [detect.agent, "codex"] : [detect.agent];
+    ids = codexInstalled && base !== "codex" ? [base, "codex"] : [base];
   }
 
   if (i.json && ids.length > 1) {

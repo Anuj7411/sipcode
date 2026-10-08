@@ -42,11 +42,14 @@ export const MESSAGES = {
       `next: npx sipcode why --list`,
     ].join("\n"),
 
-  sessionNotFound: (id: string) =>
+  /** `agentNames` (Codex, or both tools) changes only the why: line; Claude Code alone is unchanged. */
+  sessionNotFound: (id: string, agentNames?: readonly string[]) =>
     [
       `[E003] no session matches "${id}"`,
       ``,
-      `why: sipcode couldn't find a .jsonl whose name starts with that id.`,
+      agentNames === undefined
+        ? `why: sipcode couldn't find a .jsonl whose name starts with that id.`
+        : `why: sipcode couldn't find a ${agentNames.join(" or ")} session whose id starts with that.`,
       ``,
       `fix: list available sessions and pick a real id.`,
       ``,
@@ -64,11 +67,11 @@ export const MESSAGES = {
       `next: sipcode why --list`,
     ].join("\n"),
 
-  pricingStale: (asOf: string, days: number) =>
+  pricingStale: (asOf: string, days: number, provider: "anthropic" | "openai" = "anthropic") =>
     [
       `[E004] pricing is ${days} days old (file dated ${asOf})`,
       ``,
-      `why: anthropic's pricing may have changed since this pricing file shipped. cost numbers below are an estimate, not a guarantee.`,
+      `why: ${provider}'s pricing may have changed since this pricing file shipped. cost numbers below are an estimate, not a guarantee.`,
       ``,
       `fix: update sipcode (npm i -g sipcode@latest) for the freshest pricing.`,
       ``,
@@ -228,9 +231,41 @@ export const MESSAGES = {
       ``,
       `why: Codex support is arriving command by command; this one still reads Claude Code logs only.`,
       ``,
-      `fix: run it with --agent claude-code, or use stats / today / forecast / trend / impact with --agent codex.`,
+      `fix: run it with --agent claude-code, or use stats / today / forecast / trend / impact / why / receipt / drift with --agent codex.`,
       ``,
       `next: npx sipcode stats --agent codex`,
+    ].join("\n"),
+
+  sessionAmbiguous: (
+    command: string,
+    prefix: string,
+    matches: ReadonlyArray<{ readonly agentId: string; readonly agentName: string; readonly sessionId: string }>,
+  ) =>
+    [
+      `[E003] "${prefix}" matches sessions in more than one tool:`,
+      ...matches.map((m) => `  ${m.agentName}: ${m.sessionId.slice(0, 8)}`),
+      ``,
+      `why: session ids from different tools can start the same way, and sipcode won't guess which one you meant.`,
+      ``,
+      `fix: pass --agent with the tool you meant, or a longer id.`,
+      ``,
+      `next: npx sipcode ${command} --agent ${matches[0]?.agentId ?? "claude-code"} --session ${matches[0]?.sessionId.slice(0, 8) ?? prefix}`,
+    ].join("\n"),
+
+  /** No session to report on for Codex (or both tools); Claude Code alone keeps noSessionsFound. */
+  noAgentSessions: (command: string, agentNames: readonly string[], here: boolean) =>
+    [
+      `[E003] no ${agentNames.join(" or ")} sessions found${here ? " for this folder" : ""}.`,
+      ``,
+      here
+        ? `why: none of the session logs sipcode can read ran in this folder.`
+        : `why: sipcode reads the session logs ${agentNames.join(" and ")} write${agentNames.length === 1 ? "s" : ""}, and none it can use exist yet.`,
+      ``,
+      here
+        ? `fix: drop --here to look across all folders.`
+        : `fix: open ${agentNames.join(" or ")}, run any prompt, then come back.`,
+      ``,
+      `next: npx sipcode ${command}${!here && command === "why" ? " --list" : ""}`,
     ].join("\n"),
 
   cursorTranscriptNotSupported: () =>

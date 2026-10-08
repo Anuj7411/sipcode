@@ -1,4 +1,5 @@
-import type { DriftReport, DriftCause } from "./types.js";
+import type { DriftReport, DriftCause, DriftAgent } from "./types.js";
+import { isClaudeCode } from "./baseline.js";
 
 function renderCause(c: DriftCause, normLabel: string): string {
   const arrow = c.direction === "up" ? "▲" : "▼";
@@ -12,7 +13,7 @@ function renderCause(c: DriftCause, normLabel: string): string {
   return lines.join("\n");
 }
 
-export function renderDriftTerminal(report: DriftReport): string {
+export function renderDriftTerminal(report: DriftReport, agent?: DriftAgent): string {
   // Calm path (stable / not-enough-data) — echo the summary, which already
   // carries the right keyword. A ✓ keeps it visually distinct from the alarm.
   if (!report.hasRegression) {
@@ -23,11 +24,12 @@ export function renderDriftTerminal(report: DriftReport): string {
     report.baselineScope === "project" ? "your norm for this project" : "your norm";
   const n = report.causes.length;
   const baselineN = report.baseline?.count ?? "your last few";
+  const claude = isClaudeCode(agent);
   const lines: string[] = [
-    "⚠  Context drift detected in your latest Claude Code session",
+    `⚠  Context drift detected in your latest ${claude ? "Claude Code" : agent!.displayName} session`,
     "",
     "What this means: your newest session is behaving differently from your",
-    "recent norm — in ways that waste tokens and can make Claude less reliable.",
+    `recent norm — in ways that waste tokens and can make ${claude ? "Claude" : agent!.displayName} less reliable.`,
     '(This is "context rot": answer quality drops as context gets bloated or stale.)',
     "",
     `Signal${n === 1 ? "" : "s"} that regressed (${n}):`,

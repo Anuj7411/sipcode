@@ -34,6 +34,7 @@ async function ids(
   agent?: string,
   json = false,
   err: string[] = [],
+  singleSession = false,
 ): Promise<string[] | false> {
   const r = await resolveDisplayAgents({
     agent,
@@ -41,6 +42,7 @@ async function ids(
     cwd: "/w",
     json,
     stderr: (s) => err.push(s),
+    ...(singleSession ? { singleSession } : {}),
   });
   return r.ok && r.agents.map((a) => a.id);
 }
@@ -96,6 +98,15 @@ describe("resolveDisplayAgents", () => {
     expect(await ids({ codex: true }, undefined, true, err)).toEqual(["codex"]);
     expect(await ids({ claude: true }, undefined, true, err)).toEqual(["claude-code"]);
     expect(err).toEqual([]);
+  });
+
+  it("single-session commands never auto-pick Cursor: Claude Code stands in, as before", async () => {
+    const one = (o: Parameters<typeof setup>[0], agent?: string) => ids(o, agent, false, [], true);
+    expect(await one({ cwdCursor: true, claude: true })).toEqual(["claude-code"]);
+    expect(await one({ cwdCursor: true, claude: true, codex: true })).toEqual(["claude-code", "codex"]);
+    expect(await one({ cursorGlobal: true, codex: true })).toEqual(["codex"]);
+    expect(await one({ cursorGlobal: true })).toEqual(["claude-code"]);
+    expect(await one({ cursorGlobal: true }, "cursor")).toEqual(["cursor"]);
   });
 
   it("honours an explicit --agent", async () => {

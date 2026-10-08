@@ -10,6 +10,7 @@ import type { IdleContextResult } from "../transcript/analyzers/idleContext.js";
 import type { ExpensiveCall } from "../transcript/analyzers/topExpensive.js";
 import type { CounterfactualSavings } from "../transcript/analyzers/counterfactual.js";
 import type { SipcodeIssue } from "../../lib/errors.js";
+import type { AgentId } from "../agents/types.js";
 
 export interface RenderedReport {
   readonly schemaVersion: "sipcode-why/1";
@@ -81,6 +82,15 @@ interface RenderInput {
   readonly issues: ReadonlyArray<SipcodeIssue>;
   readonly projectHash: string | undefined;
   readonly pricingMeta: { asOf: string; ageDays: number };
+  /** Which tool the session came from (wording only). Default claude-code. */
+  readonly agentId?: AgentId | undefined;
+}
+
+/** What to do next. Sipcode cannot set Codex up yet, so Codex gets a different step. */
+export function nextStepFor(agentId: AgentId | undefined): string {
+  return agentId === undefined || agentId === "claude-code"
+    ? "run `npx sipcode init` to start saving on your next session."
+    : "run `npx sipcode stats --agent codex` to track your Codex spend; setting Sipcode up for Codex arrives in a later release.";
 }
 
 function humanDuration(sec: number): string {
@@ -208,6 +218,6 @@ export function renderReport(input: RenderInput): RenderedReport {
     })),
     warnings: input.issues.map((i) => ({ code: i.code, message: i.message })),
     metaPricing: input.pricingMeta,
-    nextStep: "run `npx sipcode init` to start saving on your next session.",
+    nextStep: nextStepFor(input.agentId),
   };
 }

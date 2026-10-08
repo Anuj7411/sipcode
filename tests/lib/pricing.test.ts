@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
+  daysSinceAsOf,
   loadPricingForDate,
   pricingAgeDays,
+  pricingAsOf,
   priceForModel,
 } from "../../src/lib/pricing/load.js";
 
@@ -124,5 +127,22 @@ describe("snapshot-id matching", () => {
   it("still prefers exact rows over a shorter key with a digit-suffix", () => {
     expect(priceForModel(p, "gpt-5.5-pro")?.input_per_mtok).toBe(30);
     expect(priceForModel(p, "claude-opus-5-5")?.input_per_mtok).toBe(4);
+  });
+});
+
+describe("pricingAsOf (date shown next to a session's cost)", () => {
+  it("is the Anthropic table date for Claude Code and the OpenAI table date for Codex", () => {
+    const p = loadPricingForDate(new Date("2026-10-08T00:00:00Z"));
+    expect(pricingAsOf(p, "anthropic")).toBe(p.as_of);
+    const openai = JSON.parse(
+      readFileSync(new URL("../../src/lib/pricing/openai-2026-10-08.json", import.meta.url), "utf-8"),
+    ) as { as_of: string };
+    expect(pricingAsOf(p, "openai")).toBe(openai.as_of);
+    // An old Anthropic table does not change the OpenAI date.
+    expect(pricingAsOf(loadPricingForDate(new Date("2026-05-02T00:00:00Z")), "openai")).toBe(openai.as_of);
+  });
+
+  it("daysSinceAsOf counts whole UTC days", () => {
+    expect(daysSinceAsOf("2026-10-01", new Date("2026-10-08T23:00:00Z"))).toBe(7);
   });
 });

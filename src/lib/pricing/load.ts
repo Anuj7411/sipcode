@@ -91,11 +91,30 @@ export function loadPricingForDate(sessionDate: Date): PricingFile {
   return file;
 }
 
+/** Whose price table a session's cost comes from: Claude Code → anthropic, Codex → openai. */
+export type PriceProvider = "anthropic" | "openai";
+
+/**
+ * The date of the table a provider's prices come from. `pricing.as_of` is the
+ * Anthropic table's date; OpenAI rows come from the newest openai-*.json.
+ */
+export function pricingAsOf(pricing: PricingFile, provider: PriceProvider): string {
+  if (provider === "anthropic") return pricing.as_of;
+  const openai = listOpenAiPricingFiles().at(-1);
+  if (!openai) return pricing.as_of;
+  return PricingFileSchema.parse(JSON.parse(readFileSync(openai, "utf-8")) as unknown).as_of;
+}
+
 /**
  * Days between today and the pricing file. Negative if pricing is in future.
  */
 export function pricingAgeDays(pricing: PricingFile, now: Date): number {
-  const pricingDate = new Date(pricing.as_of + "T00:00:00Z").getTime();
+  return daysSinceAsOf(pricing.as_of, now);
+}
+
+/** Days between today and a yyyy-mm-dd table date. Negative if in the future. */
+export function daysSinceAsOf(asOf: string, now: Date): number {
+  const pricingDate = new Date(asOf + "T00:00:00Z").getTime();
   const today = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   ).getTime();

@@ -15,7 +15,9 @@
  *   - Inside one agent, a prefix matching several sessions picks the newest
  *     (unchanged). Matches in more than one agent are flagged `ambiguous`.
  */
-import { loadPricingForDate } from "../../lib/pricing/load.js";
+import { issue, type SipcodeIssue } from "../../lib/errors.js";
+import { MESSAGES } from "../../lib/messages.js";
+import { loadPricingForDate, type PriceProvider } from "../../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../transcript/analyzers/tokens.js";
 import { discoverAgentSessions } from "./loadSessions.js";
 import type { ParsedSession, SessionMeta } from "./shared.js";
@@ -133,4 +135,50 @@ export async function pickLatestSession(i: {
 
 export function otherAgentHint(o: PickedSession): string {
   return `${o.agent.displayName} also has a recent session (${o.meta.sessionId.slice(0, 8)}): run with --agent ${o.agent.id}.`;
+}
+
+/** Whose prices a session is costed with (and whose table date to show). */
+export function priceProvider(agent: Agent): PriceProvider {
+  return agent.id === "codex" ? "openai" : "anthropic";
+}
+
+/**
+ * Parser warnings for a non-Claude session: the lines the parser skipped.
+ * (Claude Code sessions use parseTranscriptVerbose, which lists each line.)
+ */
+export function parseIssues(session: ParsedSession): SipcodeIssue[] {
+  const n = session.linesSkipped;
+  return n > 0 ? [issue("E003", `${n} line(s) could not be read (skipped).`)] : [];
+}
+
+/**
+ * The error a single-session command prints when it has no session to show:
+ * an ambiguous or unknown --session, or nothing in scope. Claude Code alone
+ * keeps its original messages. `undefined` when `picked` is usable.
+ */
+export function sessionPickError(i: {
+  command: string;
+  picked: PickResult | undefined;
+  agents: ReadonlyArray<Agent>;
+  sessionIdPrefix: string | undefined;
+  here: boolean;
+  projectsDir: string;
+}): string | undefined {
+  const claudeOnly = i.agents.length === 1 && i.agents[0]!.id === "claude-code";
+  const names = i.agents.map((a) => a.displayName);
+  if (i.picked?.ambiguous) {
+    const matches = [i.picked.chosen, ...i.picked.others].map((p) => ({
+      agentId: p.agent.id,
+      agentName: p.agent.displayName,
+      sessionId: p.meta.sessionId,
+    }));
+    return MESSAGES.sessionAmbiguous(i.command, i.sessionIdPrefix ?? "", matches);
+  }
+  if (i.picked) return undefined;
+  if (i.sessionIdPrefix) {
+    return MESSAGES.sessionNotFound(i.sessionIdPrefix, claudeOnly ? undefined : names);
+  }
+  return claudeOnly
+    ? MESSAGES.noSessionsFound(i.projectsDir)
+    : MESSAGES.noAgentSessions(i.command, names, i.here);
 }

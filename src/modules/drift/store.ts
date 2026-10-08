@@ -1,7 +1,7 @@
 /**
  * Persistent drift cache. Stores parsed `SessionMetrics` as JSONL at
- * `~/.sipcode/drift/sessions.jsonl`. Survives Claude Code's transcript GC and
- * skips reparsing on repeat runs.
+ * `~/.sipcode/drift/sessions-v3.jsonl` (the file name is the caller's, see
+ * commands/drift.ts). Skips reparsing unchanged transcripts on repeat runs.
  *
  * Storage shape: one JSON object per line. Dedupe-on-read by `sessionId`
  * (last write wins). Pruned to KEEP_MAX entries once total exceeds PRUNE_AT.
