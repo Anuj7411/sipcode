@@ -153,3 +153,29 @@ describe("parseTranscript: one API request split across lines", () => {
     expect(r.value.assistantTurns[0]!.cacheCreationTokens).toBe(5_000);
   });
 });
+
+describe("parseTranscript: request keys", () => {
+  it("stamps each turn with message.id|requestId", () => {
+    const line = JSON.stringify({
+      type: "assistant", requestId: "req_9", timestamp: "2026-09-01T10:00:00.000Z",
+      message: { id: "msg_9", model: "claude-opus-5", role: "assistant",
+        content: [{ type: "text", text: "." }],
+        usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+    });
+    const r = parseTranscript(line);
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.assistantTurns[0]!.requestKey).toBe("msg_9|req_9");
+  });
+
+  it("marks sessions as claude-code", () => {
+    const line = JSON.stringify({
+      type: "assistant", requestId: "req_1", timestamp: "2026-09-01T10:00:00.000Z",
+      message: { id: "msg_1", model: "claude-opus-5", role: "assistant",
+        content: [{ type: "text", text: "." }],
+        usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+    });
+    const r = parseTranscript(line);
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.agent).toBe("claude-code");
+  });
+});

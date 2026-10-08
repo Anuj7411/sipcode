@@ -50,6 +50,9 @@ export interface AssistantTurn {
   readonly cacheCreationTokens: number;
   /** Part of cacheCreationTokens written with the 1-hour TTL (billed at 2x input). */
   readonly cacheCreation1hTokens: number;
+  /** Stable id of the API request (Claude: `message.id|requestId`; Codex: `response_id`).
+   *  Used to drop the same request when it is logged again in another file. */
+  readonly requestKey?: string | undefined;
   /** Tool calls emitted in this turn. */
   readonly toolCalls: ToolCall[];
   /** True if this turn had no usage block at all (older Claude Code). */
@@ -79,6 +82,10 @@ export interface ParsedSession {
   readonly linesParsed: number;
   /** Number of lines skipped due to malformed JSON or schema. */
   readonly linesSkipped: number;
+  /** Which agent produced the transcript. Absent means claude-code (older callers). */
+  readonly agent?: "claude-code" | "codex" | "cursor" | undefined;
+  /** True for subagent / helper threads (Codex subagent rollouts). */
+  readonly isSubagent?: boolean | undefined;
 }
 
 function usageNumbers(u: Usage | undefined): {
@@ -230,6 +237,7 @@ export function parseTranscript(
           cacheCreation1hTokens: u.cacheCreation1h,
           toolCalls: [],
           missingUsage: !usage,
+          requestKey,
         };
         assistantTurns.push(turn);
         if (requestKey) turnByRequest.set(requestKey, turn);
@@ -335,6 +343,7 @@ export function parseTranscript(
     userTurnCount,
     linesParsed,
     linesSkipped,
+    agent: "claude-code",
   };
 
   // Issues are non-fatal in this milestone — they ride along with a partial
