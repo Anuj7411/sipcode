@@ -274,6 +274,48 @@ describe("Codex wording in the reports", () => {
     expect(r.out).toBe("Sipcode drift: no sessions found yet. Use Codex, then re-run.");
   });
 
+  it("drift on Codex skips Claude Code's MCP attribution and never writes configs.jsonl", async () => {
+    const io = memStoreIO();
+    const configReads: string[] = [];
+    const c = capture();
+    const r = await runDriftCommand(
+      { cwd: "/w", agent: "codex", json: true },
+      {
+        fs: codexOnlyFs(),
+        ...c.io,
+        now: NOW,
+        homeDir: "/home/u",
+        stateDir: "/state",
+        storeIO: io,
+        configPaths: ["/home/u/.claude.json"],
+        configReader: async (p) => (configReads.push(p), '{"mcpServers":{"a":{}}}'),
+      },
+    );
+    expect(r.exitCode).toBe(0);
+    expect(configReads).toEqual([]);
+    expect(await io.read("/state/configs.jsonl")).toBeNull();
+    // The session cache is still written.
+    expect(await io.read(path.join("/state", "sessions-v3.jsonl"))).not.toBeNull();
+    // Same setup on Claude Code does read the config and snapshot it.
+    const io2 = memStoreIO();
+    const c2 = capture();
+    await runDriftCommand(
+      { cwd: "/w", agent: "claude-code", json: true },
+      {
+        fs: claudeFs(),
+        ...c2.io,
+        now: NOW,
+        homeDir: "/home/u",
+        stateDir: "/state",
+        storeIO: io2,
+        configPaths: ["/home/u/.claude.json"],
+        configReader: async (p) => (configReads.push(p), '{"mcpServers":{"a":{}}}'),
+      },
+    );
+    expect(configReads.length).toBeGreaterThan(0);
+    expect(await io2.read(path.join("/state", "configs.jsonl"))).not.toBeNull();
+  });
+
   it("why --list shows both tools under headers", async () => {
     const r = await why({ list: true } as never, bothFs());
     expect(r.exitCode).toBe(0);
