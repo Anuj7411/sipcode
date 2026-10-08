@@ -179,3 +179,43 @@ describe("parseTranscript: request keys", () => {
     expect(r.value.agent).toBe("claude-code");
   });
 });
+
+function assistantLine(
+  msgId: string | undefined,
+  requestId: string | undefined,
+  block: Record<string, unknown> = { type: "text", text: "." },
+): string {
+  const message: Record<string, unknown> = {
+    model: "claude-opus-5", role: "assistant", content: [block],
+    usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+  };
+  if (msgId !== undefined) message["id"] = msgId;
+  const line: Record<string, unknown> = { type: "assistant", timestamp: "2026-09-01T10:00:00.000Z", message };
+  if (requestId !== undefined) line["requestId"] = requestId;
+  return JSON.stringify(line);
+}
+
+describe("parseTranscript: request key derivation", () => {
+  it("uses an empty requestId segment when requestId is absent", () => {
+    const r = parseTranscript(assistantLine("msg_a", undefined));
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.assistantTurns[0]!.requestKey).toBe("msg_a|");
+  });
+
+  it("leaves requestKey undefined when message.id is absent", () => {
+    const r = parseTranscript(assistantLine(undefined, "req_x"));
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.assistantTurns[0]!.requestKey).toBeUndefined();
+  });
+
+  it("merges lines sharing message.id + requestId into one turn", () => {
+    const text = [
+      assistantLine("msg_b", "req_b", { type: "text", text: "a" }),
+      assistantLine("msg_b", "req_b", { type: "tool_use", id: "tu_1", name: "Read", input: { file_path: "/x" } }),
+    ].join("\n");
+    const r = parseTranscript(text);
+    if (!r.ok) throw new Error("parse failed");
+    expect(r.value.assistantTurns).toHaveLength(1);
+    expect(r.value.assistantTurns[0]!.requestKey).toBe("msg_b|req_b");
+  });
+});
