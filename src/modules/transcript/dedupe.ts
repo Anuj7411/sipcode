@@ -4,7 +4,8 @@
  * Claude Code copies earlier requests into the new file when a session is
  * resumed, and Codex copies a parent's history into fork / subagent rollouts.
  * Summing each file on its own counts those requests twice (11.4% on one real
- * machine). The oldest session keeps each request; later copies are dropped.
+ * machine). The session with the oldest start time keeps each request; later
+ * copies are dropped. Undated sessions go last; ties keep input order.
  */
 import type { AssistantTurn, ParsedSession } from "./parse.js";
 
@@ -17,9 +18,13 @@ export interface DedupeResult {
 export function dedupeAcrossSessions(
   sessions: ReadonlyArray<ParsedSession>,
 ): DedupeResult {
+  const time = (s: ParsedSession): number => {
+    const v = s.startedAt ? Date.parse(s.startedAt) : NaN;
+    return Number.isFinite(v) ? v : Number.POSITIVE_INFINITY;
+  };
   const order = sessions
-    .map((s, i) => ({ s, i }))
-    .sort((a, b) => (a.s.startedAt ?? "").localeCompare(b.s.startedAt ?? "") || a.i - b.i);
+    .map((s, i) => ({ s, i, t: time(s) }))
+    .sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.i - b.i));
   const seen = new Set<string>();
   const out: ParsedSession[] = sessions.slice();
   let dropped = 0;

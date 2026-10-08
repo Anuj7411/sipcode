@@ -20,11 +20,32 @@ function session(id: string, startedAt: string, turns: AssistantTurn[]): ParsedS
 describe("dedupeAcrossSessions", () => {
   it("drops requests repeated in a later file (resumed session) and keeps the original", () => {
     const original = session("a", "2026-09-01T10:00:00Z", [turn(0, "k1"), turn(1, "k2")]);
-    const resumed = session("b", "2026-09-01T10:00:00Z", [turn(0, "k1"), turn(1, "k2"), turn(2, "k3")]);
+    const resumed = session("b", "2026-09-01T12:00:00Z", [turn(0, "k1"), turn(1, "k2"), turn(2, "k3")]);
     const r = dedupeAcrossSessions([resumed, original]);
     expect(r.droppedRequests).toBe(2);
-    const total = r.sessions.reduce((n, s) => n + s.assistantTurns.length, 0);
-    expect(total).toBe(3);
+    const byId = new Map(r.sessions.map((s) => [s.sessionId, s]));
+    expect(byId.get("a")!.assistantTurns.map((t) => t.requestKey)).toEqual(["k1", "k2"]);
+    expect(byId.get("b")!.assistantTurns.map((t) => t.requestKey)).toEqual(["k3"]);
+  });
+
+  it("sorts undated sessions last so they never claim a dated session's requests", () => {
+    const undated = { ...session("u", "2026-09-01T10:00:00Z", [turn(0, "k1")]), startedAt: undefined };
+    const dated = session("d", "2026-09-03T10:00:00Z", [turn(0, "k1")]);
+    const r = dedupeAcrossSessions([undated, dated]);
+    expect(r.droppedRequests).toBe(1);
+    expect(r.sessions[0]!.assistantTurns).toHaveLength(0);
+    expect(r.sessions[1]!.assistantTurns).toHaveLength(1);
+  });
+
+  it("treats equivalent timestamp spellings as the same instant (tie keeps input order)", () => {
+    const first = session("x", "2026-09-01T10:00:00Z", [turn(0, "k1")]);
+    const second = session("y", "2026-09-01T10:00:00.000Z", [turn(0, "k1")]);
+    const r = dedupeAcrossSessions([first, second]);
+    expect(r.sessions[0]!.assistantTurns).toHaveLength(1);
+    expect(r.sessions[1]!.assistantTurns).toHaveLength(0);
+    const flipped = dedupeAcrossSessions([second, first]);
+    expect(flipped.sessions[0]!.assistantTurns).toHaveLength(1);
+    expect(flipped.sessions[1]!.assistantTurns).toHaveLength(0);
   });
 
   it("keeps turns that have no request key", () => {
