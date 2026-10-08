@@ -65,12 +65,17 @@ export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<Displ
 
   if (i.json && ids.length > 1) {
     const first = getAgentById(ids[0]!);
-    i.stderr(
-      `note: Codex logs found too. JSON covers ${first.displayName}; run with --agent codex for Codex.`,
-    );
+    i.stderr(`${OTHER_AGENT_NOTE} JSON covers ${first.displayName}; run with --agent codex for Codex.`);
     ids = [ids[0]!];
   }
   return { ok: true, agents: ids.map(getAgentById), detect };
+}
+
+const OTHER_AGENT_NOTE = "note: Codex logs found too.";
+
+/** Is this the stderr note --json prints when Codex logs were left out? (The MCP server swaps it for its own hint.) */
+export function isOtherAgentNote(line: string): boolean {
+  return line.startsWith(OTHER_AGENT_NOTE);
 }
 
 /** The command that starts an agent, for "run `x` in any project" hints. */

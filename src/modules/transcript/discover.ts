@@ -21,6 +21,11 @@ export interface SessionMeta {
   readonly size: number;
   /** Working directory recorded in the log, when the agent records one (Codex). */
   readonly cwd?: string | undefined;
+  /**
+   * A helper thread (Codex subagent or auto-review), when discovery can tell
+   * from line 1. Listings mark it; ParsedSession.isSubagent stays the rule.
+   */
+  readonly isSubagent?: boolean | undefined;
 }
 
 export function resolveProjectsDir(env: ProcessEnv): string {

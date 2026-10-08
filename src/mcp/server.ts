@@ -42,28 +42,16 @@ import {
 
 import { z } from "zod";
 
-import { RealFileSystem } from "../lib/fs.js";
-import { RealClock } from "../lib/clock.js";
-import { RealProcessEnv } from "../lib/process.js";
+import { RealFileSystem, type FileSystem } from "../lib/fs.js";
+import { RealClock, type Clock } from "../lib/clock.js";
+import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { RealGit } from "../lib/git.js";
-import { loadPricingForDate, pricingAgeDays } from "../lib/pricing/load.js";
-import {
-  listAllSessions,
-  findSessionById,
-  resolveProjectsDir,
-  type SessionMeta,
-} from "../modules/transcript/discover.js";
-import { parseTranscriptVerbose } from "../modules/transcript/parse.js";
-import {
-  analyzeTokens,
-  isEmptySession,
-} from "../modules/transcript/analyzers/tokens.js";
-import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
-import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
-import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
-import { analyzeCounterfactual } from "../modules/transcript/analyzers/counterfactual.js";
-import { renderReport } from "../modules/why/render.js";
-import { formatJson as formatWhyJson } from "../modules/why/format-json.js";
+import { MESSAGES } from "../lib/messages.js";
+import { resolveProjectsDir } from "../modules/transcript/discover.js";
+import { isOtherAgentNote, resolveDisplayAgents } from "../modules/agents/multi.js";
+import { listAgentSessions } from "../modules/agents/latest.js";
+import { discoverAgentSessions } from "../modules/agents/loadSessions.js";
+import type { DriftDeps } from "../commands/drift.js";
 
 import { runEstimate } from "../commands/estimate.js";
 
@@ -84,10 +72,6 @@ const SERVER_VERSION = (JSON.parse(
 
 // ---- Helpers ----
 
-async function readTranscript(fs: RealFileSystem, filePath: string): Promise<string> {
-  return fs.readFile(filePath);
-}
-
 function ok(text: string): CallToolResult {
   return { content: [{ type: "text", text }] };
 }
@@ -99,13 +83,93 @@ function fail(message: string): CallToolResult {
   };
 }
 
+/** The `agent` input of the tools that read session logs. */
+export type AgentArg = "claude-code" | "codex";
+
+const AGENT_IDS = ["claude-code", "codex"] as const;
+
+const AGENT_INPUT = {
+  type: "string",
+  enum: AGENT_IDS,
+  description: "Which coding agent's logs to read. Default: Claude Code if installed, else Codex.",
+} as const;
+
+/**
+ * Sent as a second text item, after the unchanged result, when the default
+ * (Claude Code) was used and Codex has logs too. The first item stays the
+ * exact JSON / text it always was, so clients that parse it keep working.
+ */
+const OTHER_AGENT_HINT =
+  'Codex logs found too. This result covers Claude Code; call again with agent: "codex" for Codex.';
+
+/**
+ * Seams for tests. Every field defaults to the real thing; the server itself
+ * never passes any.
+ */
+export interface McpToolDeps {
+  readonly fs?: FileSystem;
+  readonly env?: ProcessEnv;
+  readonly clock?: Clock;
+  /** The folder commands treat as current. Default: process.cwd(). */
+  readonly cwd?: string;
+  /** Drift's cache folder and config readers. */
+  readonly drift?: Pick<DriftDeps, "now" | "homeDir" | "stateDir" | "storeIO" | "configPaths" | "configReader">;
+}
+
+function resolveDeps(deps: McpToolDeps): { fs: FileSystem; env: ProcessEnv; clock: Clock; cwd: string } {
+  return {
+    fs: deps.fs ?? new RealFileSystem(),
+    env: deps.env ?? new RealProcessEnv(),
+    clock: deps.clock ?? new RealClock(),
+    cwd: deps.cwd ?? process.cwd(),
+  };
+}
+
+/** A command's stdout and stderr, kept instead of printed (stdout is the MCP transport). */
+class Captured {
+  readonly out: string[] = [];
+  readonly err: string[] = [];
+  readonly stdout = (s: string): void => {
+    this.out.push(s);
+  };
+  readonly stderr = (s: string): void => {
+    this.err.push(s);
+  };
+  /** The CLI's "Codex logs found too" note was printed. */
+  get otherAgent(): boolean {
+    return this.err.some(isOtherAgentNote);
+  }
+  /** stderr without that note. */
+  get errors(): string {
+    return this.err.filter((l) => !isOtherAgentNote(l)).join("\n").trim();
+  }
+}
+
+/** Adds the other-tool hint as its own text item when the command left Codex out. */
+function withHint(result: CallToolResult, c: Captured): CallToolResult {
+  if (result.isError || !c.otherAgent) return result;
+  return { ...result, content: [...result.content, { type: "text", text: OTHER_AGENT_HINT }] };
+}
+
+/**
+ * A command run with --json as a tool result: stdout on success (stderr notes
+ * dropped), stderr on failure. The CLI's other-tool note never reaches the text.
+ */
+function commandResult(exitCode: number, c: Captured, failMessage: string): CallToolResult {
+  if (exitCode !== 0) return fail(c.errors || c.out.join("\n").trim() || failMessage);
+  return withHint(ok(c.out.join("\n")), c);
+}
+
 // ---- Tool implementations ----
 
-async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): Promise<CallToolResult> {
+export async function toolVerifySipcodeImpact(
+  opts: { cwd?: string; since?: string; agent?: AgentArg },
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
   const { runImpactCommand } = await import("../commands/impact.js");
+  const d = resolveDeps(deps);
   const { existsSync, readdirSync } = await import("node:fs");
   const { join } = await import("node:path");
-  const { homedir } = await import("node:os");
 
   // Claude Desktop spawns sipcode-mcp with a cwd that is NOT the user's
   // project directory — typically the Claude install dir or %USERPROFILE%.
@@ -121,7 +185,7 @@ async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): 
   let resolvedCwd: string | undefined = opts.cwd;
   if (!resolvedCwd) {
     // 1. process.cwd() — the legacy default; still try it first.
-    const here = process.cwd();
+    const here = d.cwd;
     if (hasMarker(here)) {
       resolvedCwd = here;
     } else {
@@ -130,7 +194,7 @@ async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): 
       //    ("C--Projects-Sipcode" → "C:\Projects\Sipcode"). Pick the first
       //    decoded path that contains an install-state.json. Claude only
       //    sees one MCP server, but it's reasonable to scan all projects.
-      const projectsDir = join(homedir(), ".claude", "projects");
+      const projectsDir = join(d.env.homeDir(), ".claude", "projects");
       if (existsSync(projectsDir)) {
         let entries: string[] = [];
         try {
@@ -158,31 +222,35 @@ async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): 
   // Fall back to process.cwd() so we still produce a report (with
   // no-install-marker status), but include the tried paths in the
   // output so the user knows what we looked at.
-  const finalCwd = resolvedCwd ?? process.cwd();
+  const finalCwd = resolvedCwd ?? d.cwd;
 
-  let captured = "";
-  const cmdOpts: { since?: string; json: true; cwd: string } = {
+  const c = new Captured();
+  const cmdOpts: { since?: string; json: true; cwd: string; agent?: string } = {
     json: true,
     cwd: finalCwd,
   };
   if (opts.since !== undefined) cmdOpts.since = opts.since;
+  if (opts.agent !== undefined) cmdOpts.agent = opts.agent;
   const result = await runImpactCommand(cmdOpts, {
-    stdout: (s) => {
-      captured += s + "\n";
-    },
-    stderr: (s) => {
-      captured += s + "\n";
-    },
+    fs: d.fs,
+    env: d.env,
+    clock: d.clock,
+    stdout: c.stdout,
+    stderr: c.stderr,
   });
-  if (result.exitCode !== 0) return fail(captured.trim());
+  if (result.exitCode !== 0) {
+    // As before: everything the command printed explains the failure.
+    return fail([c.errors, c.out.join("\n")].filter(Boolean).join("\n").trim());
+  }
+  // Success: only the JSON (stderr notes stay out of it).
+  const captured = c.out.join("\n");
 
-  // If we couldn't find a marker even after walking known locations, append
+  // If we couldn't find a marker even after walking known locations, add
   // a friendly diagnostic so the user understands why and can pass `cwd:`
-  // explicitly or use `since:` as a workaround.
+  // explicitly or use `since:` as a workaround. It is its own text item, so
+  // the first item stays plain JSON.
   if (!resolvedCwd && !opts.since) {
     const diagnostic = [
-      "",
-      "---",
       "Could not auto-locate .sipcode/install-state.json. Tried:",
       ...triedPaths.map((p) => `  • ${p}`),
       "",
@@ -191,10 +259,11 @@ async function toolVerifySipcodeImpact(opts: { cwd?: string; since?: string }): 
       "  • Pass since: \"YYYY-MM-DD\" to set the pivot manually (e.g., when you started using Sipcode).",
       "  • Run `sipcode rules --install` in your project to create the marker going forward.",
     ].join("\n");
-    return ok(captured.trim() + diagnostic);
+    const r = withHint(ok(captured.trim()), c);
+    return { ...r, content: [...r.content, { type: "text", text: diagnostic }] };
   }
 
-  return ok(captured.trim());
+  return withHint(ok(captured.trim()), c);
 }
 
 async function toolGetSipcodeInfo(): Promise<CallToolResult> {
@@ -214,102 +283,99 @@ async function toolGetSipcodeInfo(): Promise<CallToolResult> {
   return ok(lines.join("\n"));
 }
 
-async function toolListRecentSessions(limit: number): Promise<CallToolResult> {
-  const fs = new RealFileSystem();
-  const env = new RealProcessEnv();
-  const projectsDir = resolveProjectsDir(env);
-  if (!(await fs.exists(projectsDir))) {
-    return fail(`No Claude Code transcripts found at ${projectsDir}.`);
+export async function toolListRecentSessions(
+  opts: { limit: number; agent?: AgentArg },
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  const c = new Captured();
+  const shown = await resolveDisplayAgents({
+    agent: opts.agent,
+    fs,
+    env,
+    clock,
+    cwd,
+    json: true,
+    stderr: c.stderr,
+    singleSession: true,
+  });
+  if (!shown.ok) return fail(c.errors);
+  const agent = shown.agents[0]!;
+  if (!agent.transcriptParsingSupported) return fail(MESSAGES.cursorTranscriptNotSupported());
+  if (agent.id === "claude-code") {
+    const projectsDir = resolveProjectsDir(env);
+    if (!(await fs.exists(projectsDir))) {
+      return fail(`No Claude Code transcripts found at ${projectsDir}.`);
+    }
   }
-  const sessions = await listAllSessions(fs, projectsDir);
-  const top = sessions.slice(0, limit);
-  if (top.length === 0) return ok("No sessions found.");
+  const found = await discoverAgentSessions(agent, { fs, env, clock });
+  if (!found.ok) return fail(found.error.map((i) => i.message).join("\n"));
+  const sessions = found.value.sessions;
+  const top = sessions.slice(0, opts.limit);
+  if (top.length === 0) return withHint(ok("No sessions found."), c);
   const lines = top.map((s) => {
     const when = new Date(s.mtimeMs).toISOString();
     const kb = (s.size / 1024).toFixed(1);
-    return `${s.sessionId.slice(0, 8)}  ${when}  ${s.projectHash}  ${kb}KB`;
+    // Codex helper threads are listed (their spend is real) but marked.
+    const mark = s.isSubagent ? "  (subagent)" : "";
+    return `${s.sessionId.slice(0, 8)}  ${when}  ${s.projectHash}  ${kb}KB${mark}`;
   });
-  return ok(
-    `Found ${sessions.length} session(s). Showing ${top.length} most recent:\n\n${lines.join("\n")}`,
+  return withHint(
+    ok(`Found ${sessions.length} session(s). Showing ${top.length} most recent:\n\n${lines.join("\n")}`),
+    c,
   );
 }
 
-async function toolAuditLatestSession(
-  opts: { sessionId?: string },
+/**
+ * `sipcode why --json`, so the pick follows the CLI rules: the newest
+ * non-empty session that is not a helper thread, counting only its own
+ * requests (a resumed session's copied history is left out).
+ */
+export async function toolAuditLatestSession(
+  opts: { sessionId?: string; agent?: AgentArg },
+  deps: McpToolDeps = {},
 ): Promise<CallToolResult> {
-  const fs = new RealFileSystem();
-  const clock = new RealClock();
-  const env = new RealProcessEnv();
-
-  const projectsDir = resolveProjectsDir(env);
-  if (!(await fs.exists(projectsDir))) {
-    return fail(`No Claude Code transcripts found at ${projectsDir}.`);
-  }
-
-  const sessions = await listAllSessions(fs, projectsDir);
-  if (sessions.length === 0) return fail("No sessions to audit.");
-
-  let chosen: SessionMeta | undefined;
-  if (opts.sessionId) {
-    const match = await findSessionById(fs, projectsDir, opts.sessionId);
-    if (!match) return fail(`No session matches "${opts.sessionId}".`);
-    chosen = match;
-  } else {
-    // Auto-pick the newest NON-empty session; an empty/in-flight latest
-    // session would otherwise return an all-zero audit. Falls back to newest.
-    for (const m of sessions) {
-      try {
-        const c = await readTranscript(fs, m.filePath);
-        const { session } = parseTranscriptVerbose(c);
-        const date = session.startedAt
-          ? new Date(session.startedAt)
-          : clock.now();
-        if (!isEmptySession(analyzeTokens(session, loadPricingForDate(date)))) {
-          chosen = m;
-          break;
-        }
-      } catch {
-        continue;
+  const { runWhy } = await import("../commands/why.js");
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  let agent: string | undefined = opts.agent;
+  const prefix = opts.sessionId;
+  if (prefix !== undefined && agent === undefined) {
+    // An id names one session: look in every tool with logs, not only the
+    // default one, and refuse to guess when both have a match.
+    const shown = await resolveDisplayAgents({
+      agent: undefined,
+      fs,
+      env,
+      clock,
+      cwd,
+      json: false,
+      stderr: () => {},
+      singleSession: true,
+    });
+    if (shown.ok) {
+      const lists = await listAgentSessions({ agents: shown.agents, deps: { fs, env, clock }, cwd });
+      const hits = lists
+        .map((l) => ({ agent: l.agent, meta: l.all.find((m) => m.sessionId.startsWith(prefix)) }))
+        .filter((h) => h.meta !== undefined);
+      if (hits.length > 1) {
+        return fail(
+          [
+            `session_id "${prefix}" matches sessions in more than one tool:`,
+            ...hits.map((h) => `  ${h.agent.displayName}: ${h.meta!.sessionId.slice(0, 8)}`),
+            "",
+            `Pass ${hits.map((h) => `agent: "${h.agent.id}"`).join(" or ")}, or a longer session_id.`,
+          ].join("\n"),
+        );
       }
+      if (hits.length === 1) agent = hits[0]!.agent.id;
     }
-    chosen = chosen ?? sessions[0];
   }
-  if (!chosen) return fail("No sessions to audit.");
-
-  let contents: string;
-  try {
-    contents = await readTranscript(fs, chosen.filePath);
-  } catch {
-    return fail(`Could not read session file ${chosen.filePath}.`);
-  }
-
-  const { session, issues } = parseTranscriptVerbose(contents);
-
-  const sessionDate = session.startedAt
-    ? new Date(session.startedAt)
-    : clock.now();
-  const pricing = loadPricingForDate(sessionDate);
-  const ageDays = pricingAgeDays(pricing, clock.now());
-
-  const totals = analyzeTokens(session, pricing);
-  const dups = analyzeDuplicateReads(session);
-  const idle = analyzeIdleContext(session);
-  const topEx = analyzeTopExpensive(session);
-  const counter = analyzeCounterfactual(session, dups);
-
-  const report = renderReport({
-    session,
-    totals,
-    duplicates: dups,
-    idle,
-    topExpensive: topEx,
-    counterfactual: counter,
-    issues,
-    projectHash: chosen.projectHash,
-    pricingMeta: { asOf: pricing.as_of, ageDays },
-  });
-
-  return ok(formatWhyJson(report));
+  const c = new Captured();
+  const whyOpts: { json: true; cwd: string; agent?: string; session?: string } = { json: true, cwd };
+  if (agent !== undefined) whyOpts.agent = agent;
+  if (prefix !== undefined) whyOpts.session = prefix;
+  const r = await runWhy(whyOpts, { fs, env, clock, stdout: c.stdout, stderr: c.stderr });
+  return commandResult(r.exitCode, c, "No sessions to audit.");
 }
 
 async function toolGetProjectManifest(opts: {
@@ -368,35 +434,46 @@ async function toolGetProxyStats(): Promise<CallToolResult> {
   return ok(JSON.stringify(report, null, 2));
 }
 
-async function toolGetDriftReport(): Promise<CallToolResult> {
+export async function toolGetDriftReport(
+  opts: { agent?: AgentArg } = {},
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
   const { runDriftCommand } = await import("../commands/drift.js");
-  const buf: string[] = [];
-  await runDriftCommand({ json: true }, { stdout: (s: string) => buf.push(s) });
-  return ok(buf.join("\n"));
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  const c = new Captured();
+  const r = await runDriftCommand(
+    { json: true, cwd, ...(opts.agent !== undefined ? { agent: opts.agent } : {}) },
+    { fs, env, clock, ...deps.drift, stdout: c.stdout, stderr: c.stderr },
+  );
+  return commandResult(r.exitCode, c, "drift failed");
 }
 
-async function toolGetTodaySummary(): Promise<CallToolResult> {
+export async function toolGetTodaySummary(
+  opts: { agent?: AgentArg } = {},
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
   const { runTodayCmd } = await import("../commands/today.js");
-  const buf: string[] = [];
-  const errs: string[] = [];
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  const c = new Captured();
   const r = await runTodayCmd(
-    { json: true },
-    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s) },
+    { json: true, cwd, ...(opts.agent !== undefined ? { agent: opts.agent } : {}) },
+    { fs, env, clock, stdout: c.stdout, stderr: c.stderr },
   );
-  if (r.exitCode !== 0) return fail(errs.join("\n") || "today failed");
-  return ok(buf.join("\n"));
+  return commandResult(r.exitCode, c, "today failed");
 }
 
-async function toolForecastMonthlySpend(): Promise<CallToolResult> {
+export async function toolForecastMonthlySpend(
+  opts: { agent?: AgentArg } = {},
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
   const { runForecastCmd } = await import("../commands/forecast.js");
-  const buf: string[] = [];
-  const errs: string[] = [];
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  const c = new Captured();
   const r = await runForecastCmd(
-    { json: true },
-    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s) },
+    { json: true, cwd, ...(opts.agent !== undefined ? { agent: opts.agent } : {}) },
+    { fs, env, clock, stdout: c.stdout, stderr: c.stderr },
   );
-  if (r.exitCode !== 0) return fail(errs.join("\n") || "forecast failed");
-  return ok(buf.join("\n"));
+  return commandResult(r.exitCode, c, "forecast failed");
 }
 
 async function toolGetAgentScore(cwd: string): Promise<CallToolResult> {
@@ -411,16 +488,18 @@ async function toolGetAgentScore(cwd: string): Promise<CallToolResult> {
   return ok(buf.join("\n"));
 }
 
-async function toolGetSessionStats(): Promise<CallToolResult> {
+export async function toolGetSessionStats(
+  opts: { agent?: AgentArg } = {},
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
   const { runStats } = await import("../commands/stats.js");
-  const buf: string[] = [];
-  const errs: string[] = [];
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  const c = new Captured();
   const r = await runStats(
-    { json: true },
-    { stdout: (s: string) => buf.push(s), stderr: (s: string) => errs.push(s), writeFile: async () => {} },
+    { json: true, cwd, ...(opts.agent !== undefined ? { agent: opts.agent } : {}) },
+    { fs, env, clock, stdout: c.stdout, stderr: c.stderr, writeFile: async () => {} },
   );
-  if (r.exitCode !== 0) return fail(errs.join("\n") || "stats failed");
-  return ok(buf.join("\n"));
+  return commandResult(r.exitCode, c, "stats failed");
 }
 
 async function toolInstallProxy(): Promise<CallToolResult> {
@@ -476,7 +555,7 @@ const TOOL_DEFS = [
   {
     name: "verify_sipcode_impact",
     description:
-      "Prove that Sipcode is actually saving the user tokens by A/B-comparing their token spend before vs after they installed Sipcode's optimizers. Reads the user's local Claude Code sessions and the install-state.json marker. Returns a JSON impact report with before/after totals + a delta block. Use this when the user asks 'is sipcode actually working?', 'is sipcode really saving me tokens?', or 'show me the impact'.",
+      "Prove that Sipcode is actually saving the user tokens by A/B-comparing their token spend before vs after they installed Sipcode's optimizers. Reads the user's local Claude Code or Codex sessions and the install-state.json marker. Returns a JSON impact report with before/after totals + a delta block. Use this when the user asks 'is sipcode actually working?', 'is sipcode really saving me tokens?', or 'show me the impact'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -490,17 +569,19 @@ const TOOL_DEFS = [
           description:
             "Optional override for the install date in YYYY-MM-DD form. Skips the install-state.json lookup.",
         },
+        agent: AGENT_INPUT,
       },
     },
     schema: z.object({
       cwd: z.string().min(1).optional(),
       since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      agent: z.enum(AGENT_IDS).optional(),
     }),
   },
   {
     name: "list_recent_sessions",
     description:
-      "List the user's most recent Claude Code sessions from ~/.claude/projects, sorted newest first. Returns session id, timestamp, project hash, and file size for each. Use this when the user wants to see what sessions they have available, OR before calling audit_latest_session with a specific id.",
+      "List the user's most recent Claude Code or Codex sessions, sorted newest first. Returns session id, timestamp, project hash, and file size for each; Codex helper threads are marked (subagent). Use this when the user wants to see what sessions they have available, OR before calling audit_latest_session with a specific id.",
     inputSchema: {
       type: "object",
       properties: {
@@ -508,28 +589,32 @@ const TOOL_DEFS = [
           type: "number",
           description: "Max sessions to return. Defaults to 10.",
         },
+        agent: AGENT_INPUT,
       },
     },
     schema: z.object({
       limit: z.number().int().positive().max(100).optional(),
+      agent: z.enum(AGENT_IDS).optional(),
     }),
   },
   {
     name: "audit_latest_session",
     description:
-      "Audit a Claude Code session and return a JSON report of where tokens went: total spend, output ratio, duplicate file reads, idle context, top expensive tool calls, and an estimate of what Sipcode COULD HAVE RECOVERED (potential, not realized — assumes optimizers were active). Defaults to the most recent session if no id is given. This is the equivalent of running `sipcode why` from the CLI. Note: 'estimatedSavings' fields are projections from the session data alone; they become measured-real numbers only after running `sipcode rules --install` and re-running impact.",
+      "Audit a Claude Code or Codex session and return a JSON report of where tokens went: total spend, output ratio, duplicate file reads, idle context, top expensive tool calls, and an estimate of what Sipcode COULD HAVE RECOVERED (potential, not realized — assumes optimizers were active). Defaults to the most recent session if no id is given. This is the equivalent of running `sipcode why` from the CLI. Note: 'estimatedSavings' fields are projections from the session data alone; they become measured-real numbers only after running `sipcode rules --install` and re-running impact.",
     inputSchema: {
       type: "object",
       properties: {
         session_id: {
           type: "string",
           description:
-            "Optional. Specific session id (or unique prefix) to audit. If omitted, picks the most recent session across all projects.",
+            "Optional. Specific session id (or unique prefix) to audit, from either tool. If omitted, picks the most recent session across all projects.",
         },
+        agent: AGENT_INPUT,
       },
     },
     schema: z.object({
       session_id: z.string().min(1).optional(),
+      agent: z.enum(AGENT_IDS).optional(),
     }),
   },
   {
@@ -605,9 +690,9 @@ const TOOL_DEFS = [
   {
     name: "get_session_stats",
     description:
-      "Return cross-session token analytics (totals, per-session breakdown, top expensive sessions) as JSON, read from the local Claude Code transcripts. Use when the user asks 'how many tokens have I used?' or 'what are my most expensive sessions?'.",
-    inputSchema: { type: "object", properties: {} },
-    schema: z.object({}),
+      "Return cross-session token analytics (totals, per-session breakdown, top expensive sessions) as JSON, read from the local Claude Code (or Codex) logs. Use when the user asks 'how many tokens have I used?' or 'what are my most expensive sessions?'.",
+    inputSchema: { type: "object", properties: { agent: AGENT_INPUT } },
+    schema: z.object({ agent: z.enum(AGENT_IDS).optional() }),
   },
   {
     name: "install_proxy",
@@ -633,29 +718,29 @@ const TOOL_DEFS = [
   {
     name: "get_today_summary",
     description:
-      "Daily dashboard — answers 'how am I doing today?' Returns spend so far today, sessions count, output ratio, and a comparison to the user's adaptive N-day median (cascades 30→14→7→3 based on available history). Includes a one-paragraph headline plus structured fields. Status field: ok | no-sessions-today | no-baseline | no-data. Use this when the user asks 'how am I doing today?', 'what have I spent today?', or 'how's my Claude usage looking?'.",
+      "Daily dashboard — answers 'how am I doing today?' Returns spend so far today, sessions count, output ratio, and a comparison to the user's adaptive N-day median (cascades 30→14→7→3 based on available history). Includes a one-paragraph headline plus structured fields. Status field: ok | no-sessions-today | no-baseline | no-data. Use this when the user asks 'how am I doing today?', 'what have I spent today?', or 'how's my Claude usage looking?'. Reads Claude Code or Codex logs.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: { agent: AGENT_INPUT },
     },
-    schema: z.object({}),
+    schema: z.object({ agent: z.enum(AGENT_IDS).optional() }),
   },
   {
     name: "forecast_monthly_spend",
     description:
-      "Projects month-end Claude spend at the user's current trajectory (last 14 or 7 days, adaptive). Returns avg + median daily spend, projected month-end total with an honest confidence band (±1σ daily-spend stdev, capped at ±20% of projection), spend-so-far this month, and an optional comparison to last month's actual spend. Status field: ok | insufficient-data | near-month-end | no-recent-activity | no-data. Use this when the user asks 'how much will I spend this month?', 'am I on track?', or 'how does this month compare to last?'.",
+      "Projects month-end Claude Code (or Codex) spend at the user's current trajectory (last 14 or 7 days, adaptive). Returns avg + median daily spend, projected month-end total with an honest confidence band (±1σ daily-spend stdev, capped at ±20% of projection), spend-so-far this month, and an optional comparison to last month's actual spend. Status field: ok | insufficient-data | near-month-end | no-recent-activity | no-data. Use this when the user asks 'how much will I spend this month?', 'am I on track?', or 'how does this month compare to last?'.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: { agent: AGENT_INPUT },
     },
-    schema: z.object({}),
+    schema: z.object({ agent: z.enum(AGENT_IDS).optional() }),
   },
   {
     name: "get_drift_report",
     description:
-      "Detect context/cost drift: whether the user's recent Claude Code sessions regressed (cost/turn up, cache-hit-rate down, re-read waste up) vs their own baseline. Returns JSON. Use when the user asks 'is my agent getting more expensive / sloppier?' or 'has anything regressed?'.",
-    inputSchema: { type: "object", properties: {} },
-    schema: z.object({}),
+      "Detect context/cost drift: whether the user's recent Claude Code or Codex sessions regressed (cost/turn up, cache-hit-rate down, re-read waste up) vs their own baseline. Returns JSON. Use when the user asks 'is my agent getting more expensive / sloppier?' or 'has anything regressed?'.",
+    inputSchema: { type: "object", properties: { agent: AGENT_INPUT } },
+    schema: z.object({ agent: z.enum(AGENT_IDS).optional() }),
   },
 ] as const;
 
@@ -674,17 +759,31 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: TOOL_DEFS.map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: t.inputSchema,
-    })),
-  };
+  return { tools: listToolDefinitions() };
 });
 
+/** Name, description and input schema of every registered tool (what tools/list returns). */
+export function listToolDefinitions(): Array<{ name: string; description: string; inputSchema: unknown }> {
+  return TOOL_DEFS.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: t.inputSchema,
+  }));
+}
+
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
-  const { name, arguments: rawArgs } = req.params;
+  return callTool(req.params.name, req.params.arguments);
+});
+
+/**
+ * Validate a tool call's arguments and run it. Exported for tests, which pass
+ * `deps` to keep every read off the real disk.
+ */
+export async function callTool(
+  name: string,
+  rawArgs: Record<string, unknown> | undefined,
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
   const def = TOOL_DEFS.find((t) => t.name === name);
   if (!def) {
     return fail(`Unknown tool: ${name}`);
@@ -698,6 +797,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     );
   }
   const args = parsed.data as Record<string, unknown>;
+  const agent = args["agent"] as AgentArg | undefined;
+  const agentOpt = agent !== undefined ? { agent } : {};
 
   try {
     // Each handler is wrapped in withTimeout so a single slow/hung
@@ -711,7 +812,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         return await withTimeout(name, 5_000, toolGetSipcodeInfo());
       }
       case "verify_sipcode_impact": {
-        const impactOpts: { cwd?: string; since?: string } = {};
+        const impactOpts: { cwd?: string; since?: string; agent?: AgentArg } = { ...agentOpt };
         const cwdArg = args["cwd"] as string | undefined;
         const sinceArg = args["since"] as string | undefined;
         if (cwdArg !== undefined) impactOpts.cwd = cwdArg;
@@ -719,22 +820,22 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         return await withTimeout(
           name,
           45_000,
-          toolVerifySipcodeImpact(impactOpts),
+          toolVerifySipcodeImpact(impactOpts, deps),
           "scan was too large or your session catalog has many files — pass `since: \"YYYY-MM-DD\"` (recent date) to narrow the window, or pass `cwd: \"<absolute-project-path>\"` to scope to one project",
         );
       }
       case "list_recent_sessions": {
         const limit = (args["limit"] as number | undefined) ?? 10;
-        return await withTimeout(name, 10_000, toolListRecentSessions(limit));
+        return await withTimeout(name, 10_000, toolListRecentSessions({ limit, ...agentOpt }, deps));
       }
       case "audit_latest_session": {
-        const opts: { sessionId?: string } = {};
+        const opts: { sessionId?: string; agent?: AgentArg } = { ...agentOpt };
         const sid = args["session_id"] as string | undefined;
         if (sid !== undefined) opts.sessionId = sid;
         return await withTimeout(
           name,
           20_000,
-          toolAuditLatestSession(opts),
+          toolAuditLatestSession(opts, deps),
           "the target session is unusually large — pass `session_id: \"<short-hash>\"` to pick a specific smaller one from list_recent_sessions",
         );
       }
@@ -771,7 +872,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         return await withTimeout(
           name,
           30_000,
-          toolGetSessionStats(),
+          toolGetSessionStats(agentOpt, deps),
           "your session catalog may be large — run `sipcode stats` in your terminal, or pass a recent `since` window via the CLI",
         );
       }
@@ -785,13 +886,13 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         return await withTimeout(name, 5_000, toolGetProxyStatus());
       }
       case "get_drift_report": {
-        return await withTimeout(name, 15_000, toolGetDriftReport());
+        return await withTimeout(name, 15_000, toolGetDriftReport(agentOpt, deps));
       }
       case "get_today_summary": {
-        return await withTimeout(name, 10_000, toolGetTodaySummary());
+        return await withTimeout(name, 10_000, toolGetTodaySummary(agentOpt, deps));
       }
       case "forecast_monthly_spend": {
-        return await withTimeout(name, 10_000, toolForecastMonthlySpend());
+        return await withTimeout(name, 10_000, toolForecastMonthlySpend(agentOpt, deps));
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);
@@ -805,7 +906,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const msg = e instanceof Error ? e.message : String(e);
     return fail(`Error executing ${name}: ${msg}`);
   }
-});
+}
 
 // ---- Boot ----
 //

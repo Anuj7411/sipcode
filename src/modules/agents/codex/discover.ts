@@ -127,7 +127,7 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
       counters.unreadable++;
       continue;
     }
-    // Subagent status also lives on line 1, but the parser owns it (ParsedSession.isSubagent).
+    // Subagent status: the parser owns it (ParsedSession.isSubagent); this copy marks listings.
     const m = parseCodexMeta(line1);
     const id = m.id ?? path.basename(f.file).replace(/\.jsonl$/, "");
     sessions.push({
@@ -137,6 +137,7 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
       mtimeMs: f.mtimeMs,
       size: f.size,
       cwd: m.cwd,
+      ...(m.isSubagent ? { isSubagent: true } : {}),
     });
   }
   sessions.sort((a, b) => b.mtimeMs - a.mtimeMs);
