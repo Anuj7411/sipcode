@@ -8,7 +8,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import { cwdToProjectHash } from "../modules/transcript/discover.js";
+import { loadSessions } from "../modules/agents/loadSessions.js";
 import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
@@ -63,31 +63,30 @@ export async function runForecastCmd(
   const now = clock.now();
   const pricing = loadPricingForDate(now);
 
-  const discovery = await agent.discoverSessions({ fs, env, clock });
-  if (!discovery.ok) {
-    stderr(discovery.error.map((e: { message: string }) => e.message).join("\n"));
+  // No windowSinceMs here on purpose: the runners derive "days of history"
+  // (baseline tier, forecast eligibility) from the EARLIEST session, so dropping
+  // old files would change the report status, not just speed it up.
+  const loaded = await loadSessions({
+    agent,
+    deps: { fs, env, clock },
+    cwd: opts.cwd ?? process.cwd(),
+    here: opts.here,
+  });
+  if (!loaded.ok) {
+    stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return { exitCode: 1 };
   }
-
-  let metas = discovery.value;
-  if (opts.here) {
-    const cwdHash = cwdToProjectHash(opts.cwd ?? process.cwd());
-    metas = metas.filter(
-      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
+  if (
+    !opts.json &&
+    (loaded.value.unreadable > 0 || loaded.value.issues.length > 0)
+  ) {
+    stderr(
+      `note: ${loaded.value.unreadable + loaded.value.issues.length} transcript file(s) could not be read or parsed; totals exclude them.`,
     );
   }
 
   const sessions: ForecastSession[] = [];
-  for (const meta of metas) {
-    let content: string;
-    try {
-      content = await fs.readFile(meta.filePath);
-    } catch {
-      continue;
-    }
-    const parseResult = agent.parseTranscript(content);
-    if (!parseResult.ok) continue;
-    const parsed = parseResult.value;
+  for (const { meta, parsed } of loaded.value.sessions) {
     const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
     const tokens = analyzeTokens(parsed, pricing);
     if (isEmptySession(tokens)) continue;

@@ -14,7 +14,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import { cwdToProjectHash } from "../modules/transcript/discover.js";
+import { loadSessions } from "../modules/agents/loadSessions.js";
 import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
@@ -104,35 +104,30 @@ export async function runTrend(
   // Pricing — keyed off the window upper bound.
   const pricing = loadPricingForDate(until);
 
-  // Discover transcripts via the agent layer (mirrors stats).
-  const metasResult = await agent.discoverSessions({ fs, env, clock });
-  if (!metasResult.ok) {
-    stderr(metasResult.error.map((e: { message: string }) => e.message).join("\n"));
+  // Discover, scope (--here), parse and de-duplicate resumed-session copies.
+  // Files last written before the window are key-scanned only (see loadSessions).
+  const loaded = await loadSessions({
+    agent,
+    deps: { fs, env, clock },
+    cwd: opts.cwd ?? process.cwd(),
+    here: opts.here,
+    windowSinceMs: Date.parse(sinceIso),
+  });
+  if (!loaded.ok) {
+    stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return { exitCode: 1 };
   }
-  let metas = metasResult.value;
-  if (opts.here) {
-    const cwdHash = cwdToProjectHash(opts.cwd ?? process.cwd());
-    metas = metas.filter(
-      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
+  if (
+    !opts.json &&
+    (loaded.value.unreadable > 0 || loaded.value.issues.length > 0)
+  ) {
+    stderr(
+      `note: ${loaded.value.unreadable + loaded.value.issues.length} transcript file(s) could not be read or parsed; totals exclude them.`,
     );
   }
 
-  // Pre-filter by mtime then parse and aggregate.
   const sessions: TrendSession[] = [];
-  for (const meta of metas) {
-    const mtimeIso = new Date(meta.mtimeMs).toISOString().slice(0, 10);
-    if (mtimeIso < sinceIso) continue;
-
-    let content: string;
-    try {
-      content = await fs.readFile(meta.filePath);
-    } catch {
-      continue;
-    }
-    const parseResult = agent.parseTranscript(content);
-    if (!parseResult.ok) continue;
-    const parsed = parseResult.value;
+  for (const { meta, parsed } of loaded.value.sessions) {
     const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
     const startedDay = startedAt.slice(0, 10);
     if (startedDay < sinceIso || startedDay > untilIso) continue;

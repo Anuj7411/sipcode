@@ -326,3 +326,81 @@ describe("runStats integration", () => {
     expect(out.join("\n")).toContain("per-project totals:");
   });
 });
+
+describe("runStats: resumed sessions are not double counted", () => {
+  it("counts a request repeated in a resumed file once", async () => {
+    const fs = new InMemoryFs();
+    const req = (id: string) =>
+      JSON.stringify({
+        type: "assistant",
+        requestId: `req_${id}`,
+        timestamp: "2026-05-10T10:00:00.000Z",
+        sessionId: "s",
+        message: {
+          id: `msg_${id}`,
+          model: "claude-opus-4-8",
+          role: "assistant",
+          content: [{ type: "text", text: "." }],
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_input_tokens: 1_000_000,
+            cache_creation_input_tokens: 0,
+          },
+        },
+      });
+    const t = new Date("2026-05-10T10:05:00Z").getTime();
+    fs.writeFile("/home/u/.claude/projects/C--p/orig.jsonl", req("1"), t);
+    fs.writeFile("/home/u/.claude/projects/C--p/resumed.jsonl", [req("1"), req("2")].join("\n"), t);
+    const out: string[] = [];
+    const r = await runStats(
+      { json: true, since: "30d" },
+      { fs, env: makeEnv(), clock: new FakeClock(NOW), stdout: (s) => out.push(s), stderr: () => {} },
+    );
+    expect(r.exitCode).toBe(0);
+    const j = JSON.parse(out.join("\n"));
+    expect(j.totals.totalTokens).toBe(2_000_000);
+  });
+
+  it("an out-of-window original still removes its copy from a newer resumed file", async () => {
+    const fs = new InMemoryFs();
+    const req = (id: string, ts: string) =>
+      JSON.stringify({
+        type: "assistant",
+        requestId: `req_${id}`,
+        timestamp: ts,
+        sessionId: "s",
+        message: {
+          id: `msg_${id}`,
+          model: "claude-opus-4-8",
+          role: "assistant",
+          content: [{ type: "text", text: "." }],
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_input_tokens: 1_000_000,
+            cache_creation_input_tokens: 0,
+          },
+        },
+      });
+    // Original last written 100 days before NOW: outside --since 30d, key-scanned only.
+    fs.writeFile(
+      "/home/u/.claude/projects/C--p/orig.jsonl",
+      req("1", "2026-02-01T10:00:00.000Z"),
+      new Date("2026-02-01T10:05:00Z").getTime(),
+    );
+    fs.writeFile(
+      "/home/u/.claude/projects/C--p/resumed.jsonl",
+      [req("1", "2026-02-01T10:00:00.000Z"), req("2", "2026-05-10T10:00:00.000Z")].join("\n"),
+      new Date("2026-05-10T10:05:00Z").getTime(),
+    );
+    const out: string[] = [];
+    const r = await runStats(
+      { json: true, since: "30d" },
+      { fs, env: makeEnv(), clock: new FakeClock(NOW), stdout: (s) => out.push(s), stderr: () => {} },
+    );
+    expect(r.exitCode).toBe(0);
+    const j = JSON.parse(out.join("\n"));
+    expect(j.totals.totalTokens).toBe(1_000_000);
+  });
+});

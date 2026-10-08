@@ -14,10 +14,8 @@ import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import {
-  resolveProjectsDir,
-  cwdToProjectHash,
-} from "../modules/transcript/discover.js";
+import { loadSessions } from "../modules/agents/loadSessions.js";
+import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
@@ -141,57 +139,43 @@ export async function runStats(
     return { exitCode: 1 };
   }
 
-  // Discover.
-  const discovery = await agent.discoverSessions({ fs, env, clock });
-  if (!discovery.ok) {
-    for (const i of discovery.error) stderr(i.message);
+  // Discover, scope (--here), parse and de-duplicate requests that a resumed
+  // session file repeats from its original.
+  const loaded = await loadSessions({
+    agent,
+    deps: { fs, env, clock },
+    cwd,
+    here: opts.here,
+    // Files last modified before the window are only key-scanned: they still
+    // remove their copies from newer resumed files, but are not parsed.
+    windowSinceMs: Date.parse(window.sinceIso),
+  });
+  if (!loaded.ok) {
+    for (const i of loaded.error) stderr(i.message);
     return { exitCode: 1 };
   }
-  let metas = discovery.value;
   // Raw count before any --here scoping — lets us tell a brand-new user
   // (zero transcripts anywhere) from "none in this window/cwd".
-  const totalDiscovered = discovery.value.length;
-
-  // --here filter: scope to the cwd's projectHash.
-  if (opts.here) {
-    const cwdHash = cwdToProjectHash(cwd);
-    metas = metas.filter(
-      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
-    );
-  }
+  const totalDiscovered = loaded.value.discovered;
 
   // Pricing — keyed off the window's upper-bound (best snapshot of "today").
   const pricing = loadPricingForDate(new Date(window.untilIso));
   const ageDays = pricingAgeDays(pricing, clock.now());
 
-  // Walk each session: read → parse → analyze → aggregate. Skip out-of-window
-  // entries early via mtime, then refine after parse with the assistant ts.
+  // Walk each session: analyze → aggregate, keeping those inside the window.
   const aggregated: AggregatedSession[] = [];
   const warnings: { code: string; message: string }[] = [];
+  if (loaded.value.unreadable > 0) {
+    warnings.push({
+      code: "E003",
+      message: `couldn't read ${loaded.value.unreadable} transcript file(s); totals exclude them.`,
+    });
+  }
+  // Parse problems must surface (a Codex parse error would otherwise vanish).
+  for (const i of loaded.value.issues) warnings.push({ code: i.code, message: i.message });
 
-  for (const meta of metas) {
-    // Pre-filter by file mtime — cheap. If the file's mtime is before the
-    // window's lower bound by more than a day, skip outright.
-    const mtimeIso = new Date(meta.mtimeMs).toISOString();
-    if (mtimeIso < window.sinceIso) continue;
-
-    let content: string;
-    try {
-      content = await fs.readFile(meta.filePath);
-    } catch {
-      warnings.push({
-        code: "E003",
-        message: `couldn't read ${path.basename(meta.filePath)}.`,
-      });
-      continue;
-    }
-    const parseResult = agent.parseTranscript(content);
-    if (!parseResult.ok) {
-      for (const i of parseResult.error) warnings.push({ code: i.code, message: i.message });
-      continue;
-    }
-    const parsed = parseResult.value;
-    const startedAt = parsed.startedAt ?? mtimeIso;
+  for (const { meta, parsed } of loaded.value.sessions) {
+    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
     if (!isInWindow(window, startedAt)) continue;
 
     const totals = analyzeTokens(parsed, pricing);

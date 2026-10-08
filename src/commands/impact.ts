@@ -16,10 +16,8 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import {
-  resolveProjectsDir,
-  cwdToProjectHash,
-} from "../modules/transcript/discover.js";
+import { loadSessions } from "../modules/agents/loadSessions.js";
+import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import {
   analyzeTokens,
   isEmptySession,
@@ -107,29 +105,19 @@ export async function runImpactCommand(
 
   const aggregated: AggregatedSession[] = [];
   if (projectsExists) {
-    const discovery = await agent.discoverSessions({ fs: fileSys, env, clock });
-    if (!discovery.ok) {
-      for (const i of discovery.error) stderr(i.message);
+    // No windowSinceMs: impact compares before/after install and needs all history.
+    const loaded = await loadSessions({
+      agent,
+      deps: { fs: fileSys, env, clock },
+      cwd,
+      here: opts.here,
+    });
+    if (!loaded.ok) {
+      for (const i of loaded.error) stderr(i.message);
       return { exitCode: 1 };
     }
-    let metas = discovery.value;
-    if (opts.here) {
-      const cwdHash = cwdToProjectHash(cwd);
-      metas = metas.filter(
-        (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
-      );
-    }
     const pricing = loadPricingForDate(clock.now());
-    for (const meta of metas) {
-      let content: string;
-      try {
-        content = await fileSys.readFile(meta.filePath);
-      } catch {
-        continue;
-      }
-      const parseResult = agent.parseTranscript(content);
-      if (!parseResult.ok) continue;
-      const parsed = parseResult.value;
+    for (const { meta, parsed } of loaded.value.sessions) {
       const totals = analyzeTokens(parsed, pricing);
       if (isEmptySession(totals)) continue;
       const dups = analyzeDuplicateReads(parsed);
