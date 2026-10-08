@@ -258,6 +258,22 @@ describe("Codex wording in the reports", () => {
     expect(r.out).toContain("Keep using Codex and re-run.");
   });
 
+  it("drift --here with nothing in this folder says so (sessions exist elsewhere)", async () => {
+    const r = await drift({ here: true, agent: "claude-code" }, claudeFs());
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toBe(
+      "Sipcode drift: no Claude Code sessions found for this folder. Drop --here to look across all folders.",
+    );
+    const j = JSON.parse((await drift({ here: true, json: true }, bothFs())).out);
+    expect(j.status).toBe("no-data");
+    expect(j.summary).toBe("no Claude Code sessions found for this folder. Drop --here to look across all folders.");
+  });
+
+  it("drift --here on a machine with no sessions at all keeps the first-run message", async () => {
+    const r = await drift({ here: true, agent: "codex" }, new InMemoryFs());
+    expect(r.out).toBe("Sipcode drift: no sessions found yet. Use Codex, then re-run.");
+  });
+
   it("why --list shows both tools under headers", async () => {
     const r = await why({ list: true } as never, bothFs());
     expect(r.exitCode).toBe(0);

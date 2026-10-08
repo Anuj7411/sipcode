@@ -159,7 +159,12 @@ export async function runDriftCommand(
     );
     return { exitCode: 1 };
   }
-  if (!picked) return noData(opts, agents.map((a) => a.displayName), stdout);
+  if (!picked) {
+    const names = agents.map((a) => a.displayName);
+    // --here with sessions elsewhere: say it is this folder that has none.
+    const elsewhere = opts.here && lists.some((l) => l.all.length > 0);
+    return noData(opts, names, stdout, elsewhere ? MESSAGES.driftNothingHere(names) : undefined);
+  }
   const agent = picked.chosen.agent;
   const list = lists.find((l) => l.agent === agent)!;
   const base = list.scoped.includes(picked.chosen.meta) ? list.scoped : list.all;
@@ -282,8 +287,9 @@ function noData(
   opts: DriftOptions,
   agentNames: readonly string[],
   stdout: (s: string) => void,
+  message?: string,
 ): DriftResult {
-  const msg = `no sessions found yet. Use ${agentNames.join(" or ")}, then re-run.`;
+  const msg = message ?? `no sessions found yet. Use ${agentNames.join(" or ")}, then re-run.`;
   stdout(
     opts.json
       ? JSON.stringify(

@@ -252,6 +252,10 @@ export const MESSAGES = {
       `next: npx sipcode ${command} --agent ${matches[0]?.agentId ?? "claude-code"} --session ${matches[0]?.sessionId.slice(0, 8) ?? prefix}`,
     ].join("\n"),
 
+  /** drift --here: nothing in this folder, though sessions exist elsewhere (a calm one-liner, exit 0). */
+  driftNothingHere: (agentNames: readonly string[]) =>
+    `no ${agentNames.join(" or ")} sessions found for this folder. Drop --here to look across all folders.`,
+
   /** No session to report on for Codex (or both tools); Claude Code alone keeps noSessionsFound. */
   noAgentSessions: (command: string, agentNames: readonly string[], here: boolean) =>
     [
