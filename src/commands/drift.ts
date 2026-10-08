@@ -13,9 +13,10 @@
  *     concrete attribution line if servers changed inside the baseline window.
  *
  * Across agents: the latest session is the newest across Claude Code and
- * Codex (pickFrom); the baseline is that agent's earlier sessions, loaded
- * with loadSessions so a request repeated in a resumed / forked file counts
- * once (dedupe covers the PARSE_CAP-session window).
+ * Codex (pickFrom, or the cache alone when it can tell); the baseline is that
+ * agent's earlier sessions. Each session parsed counts only its own requests
+ * (dropCopiedRequests), so a request repeated in a resumed / forked file
+ * counts once, even when the file that keeps it is outside the window.
  */
 import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
 void ASSERT_NO_NETWORK;
@@ -27,10 +28,12 @@ import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import type { ParsedSession, SessionMeta } from "../modules/agents/shared.js";
-import { loadSessions } from "../modules/agents/loadSessions.js";
+import { dropCopiedRequests, type LoadedSession } from "../modules/agents/loadSessions.js";
+import type { Agent } from "../modules/agents/types.js";
 import { resolveDisplayAgents, sectionHeader } from "../modules/agents/multi.js";
 import {
   listAgentSessions,
+  type AgentSessions,
   otherAgentHint,
   pickFrom,
   sessionPickError,
@@ -141,39 +144,8 @@ export async function runDriftCommand(
     return { exitCode: 1 };
   }
 
-  // 2. The session to check: --session <prefix>, else the newest non-empty
-  // session across the shown tools (never a subagent thread).
-  const agentDeps = { fs, env, clock };
-  const lists = await listAgentSessions({ agents, deps: agentDeps, cwd, here: opts.here });
-  const picked = await pickFrom(lists, agentDeps, { sessionIdPrefix: opts.session });
-  if (picked?.ambiguous || (!picked && opts.session)) {
-    stderr(
-      sessionPickError({
-        command: "drift",
-        picked,
-        agents,
-        sessionIdPrefix: opts.session,
-        here: opts.here ?? false,
-        projectsDir: resolveProjectsDir(env),
-      }) ?? "",
-    );
-    return { exitCode: 1 };
-  }
-  if (!picked) {
-    const names = agents.map((a) => a.displayName);
-    // --here with sessions elsewhere: say it is this folder that has none.
-    const elsewhere = opts.here && lists.some((l) => l.all.length > 0);
-    return noData(opts, names, stdout, elsewhere ? MESSAGES.driftNothingHere(names) : undefined);
-  }
-  const agent = picked.chosen.agent;
-  const list = lists.find((l) => l.agent === agent)!;
-  const base = list.scoped.includes(picked.chosen.meta) ? list.scoped : list.all;
-  const at = base.indexOf(picked.chosen.meta);
-  // Newest first: the chosen session, then the older ones the baseline uses.
-  const window = base.slice(at, at + PARSE_CAP);
-
-  // 3. Hydrate cache. An entry is reused only while its file is unchanged
-  // (an in-flight session keeps growing, so its metrics are recomputed).
+  // 2. Cache. An entry is reused only while its file is unchanged (an
+  // in-flight session keeps growing, so its metrics are recomputed).
   const cached = opts.noCache ? [] : await loadCachedSessions(sessionsPath, io);
   const cachedById = new Map(cached.map((m) => [m.sessionId, m]));
   const fresh = (m: SessionMeta): SessionMetrics | undefined => {
@@ -181,43 +153,150 @@ export async function runDriftCommand(
     return c && c.endedAtMs === m.mtimeMs ? c : undefined;
   };
 
-  // 4. Parse what is not cached. Cached sessions still claim their request
-  // keys, so a newer resumed file does not count its copies of them.
-  const parsed = new Map<SessionMeta, ParsedSession>();
-  if (window.some((m) => !fresh(m))) {
-    const r = await loadSessions({
-      agent,
-      deps: agentDeps,
-      cwd,
-      sessions: window,
-      scanOnly: (m) => fresh(m) !== undefined,
-    });
-    if (r.ok) for (const s of r.value.sessions) parsed.set(s.meta, s.parsed);
+  // 3. The session to check: --session <prefix>, else the newest session
+  // across the shown tools that has requests of its own (never a subagent
+  // thread). When the cache already answers that, nothing is parsed.
+  const agentDeps = { fs, env, clock };
+  const lists = await listAgentSessions({ agents, deps: agentDeps, cwd, here: opts.here });
+  let picked: DriftPick | undefined = opts.session ? undefined : pickFromCache(lists, fresh);
+  /** The chosen session's own requests, when the pick parsed it. */
+  let chosenParsed: ParsedSession | undefined;
+  if (!picked) {
+    const r = await pickFrom(lists, agentDeps, { sessionIdPrefix: opts.session, ownRequests: true });
+    if (r?.ambiguous || (!r && opts.session)) {
+      stderr(
+        sessionPickError({
+          command: "drift",
+          picked: r,
+          agents,
+          sessionIdPrefix: opts.session,
+          here: opts.here ?? false,
+          projectsDir: resolveProjectsDir(env),
+        }) ?? "",
+      );
+      return { exitCode: 1 };
+    }
+    if (!r) {
+      const names = agents.map((a) => a.displayName);
+      // --here with sessions elsewhere: say it is this folder that has none.
+      const elsewhere = opts.here && lists.some((l) => l.all.length > 0);
+      return noData(opts, names, stdout, elsewhere ? MESSAGES.driftNothingHere(names) : undefined);
+    }
+    picked = r;
+    chosenParsed = r.chosen.parsed;
   }
+  const chosen = picked.chosen.meta;
+  const agent = picked.chosen.agent;
+  const list = lists.find((l) => l.agent === agent)!;
+  const base = list.scoped.includes(chosen) ? list.scoped : list.all;
+  const at = base.indexOf(chosen);
+  // Newest first: the chosen session, then the older ones the baseline uses.
+  const window = base.slice(at, at + PARSE_CAP);
+
+  // 4. Metrics, only for the sessions the report uses: the latest, then up to
+  // WINDOW earlier ones of its project and WINDOW of any project. A cached
+  // entry is reused while its file is unchanged; the rest are parsed, each
+  // keeping only its own requests: a request another file also holds (a
+  // resumed session's copied history, a Codex fork's parent) counts in the
+  // file that keeps it, wherever that file is (dropCopiedRequests reads only
+  // the files that can hold a copy, and only their request keys). The chosen
+  // session was already parsed this way by the pick.
+  /** Sessions looked at so far: their metrics, or null when unusable (unreadable, a helper thread). */
+  const metrics = new Map<SessionMeta, SessionMetrics | null>();
+  const newlyComputed: SessionMetrics[] = [];
+  const record = (s: SessionMeta, p: ParsedSession): void => {
+    const m = computeSessionMetrics(
+      { sessionId: s.sessionId, endedAtMs: s.mtimeMs, projectHash: s.projectHash },
+      p,
+      pricing,
+    );
+    metrics.set(s, m);
+    if (!p.isSubagent) newlyComputed.push(m);
+  };
+  const evaluate = async (metas: ReadonlyArray<SessionMeta>): Promise<void> => {
+    const targets: LoadedSession[] = [];
+    for (const s of metas) {
+      const c = fresh(s);
+      if (c && !c.projectHash) {
+        // Older cache entry missing projectHash; retag from current meta.
+        const m = { ...c, projectHash: s.projectHash };
+        metrics.set(s, m);
+        newlyComputed.push(m);
+        continue;
+      }
+      if (c) {
+        metrics.set(s, c);
+        continue;
+      }
+      if (s === chosen && chosenParsed) {
+        record(s, chosenParsed);
+        continue;
+      }
+      // Helper threads are not your sessions: not in the baseline (an explicit
+      // --session may still check one). Discovery can tell for Codex.
+      if (s.isSubagent && s !== chosen) {
+        metrics.set(s, null);
+        continue;
+      }
+      let content: string;
+      try {
+        content = await fs.readFile(s.filePath);
+      } catch {
+        metrics.set(s, null);
+        continue;
+      }
+      const p = agent.parseTranscript(content);
+      if (!p.ok || (p.value.isSubagent && s !== chosen)) {
+        metrics.set(s, null);
+        continue;
+      }
+      targets.push({ meta: s, parsed: p.value });
+    }
+    if (targets.length === 0) return;
+    const own = await dropCopiedRequests({ agent, deps: agentDeps, targets, all: list.all });
+    targets.forEach((t, k) => record(t.meta, own.sessions[k]!));
+  };
+  /**
+   * The sessions still to look at before the latest and its history are
+   * known, by the rules of steps 6 and 7. One not yet looked at counts as
+   * usable, so the common case needs a single batch.
+   */
+  const pending = (): SessionMeta[] => {
+    const need: SessionMeta[] = [];
+    let latestAt = -1;
+    for (let i = 0; i < window.length && latestAt < 0; i++) {
+      const s = window[i]!;
+      const known = metrics.has(s);
+      if (!known) need.push(s);
+      const m = metrics.get(s);
+      if (opts.session || !known || (m && m.assistantTurns > 0)) latestAt = i;
+    }
+    if (latestAt < 0) return need;
+    const hash = window[latestAt]!.projectHash;
+    let any = 0;
+    let inProject = 0;
+    for (let i = latestAt + 1; i < window.length && (any < WINDOW || inProject < WINDOW); i++) {
+      const s = window[i]!;
+      const same = s.projectHash === hash;
+      if (any >= WINDOW && !same) continue;
+      const known = metrics.has(s);
+      if (!known) need.push(s);
+      const m = metrics.get(s);
+      if (!known || (m && m.assistantTurns > 0)) {
+        any++;
+        if (same) inProject++;
+      }
+    }
+    return need;
+  };
+  for (let need = pending(); need.length > 0; need = pending()) await evaluate(need);
 
   const pool: SessionMetrics[] = [];
-  const newlyComputed: SessionMetrics[] = [];
   let latestIdx = -1;
   for (const s of window) {
-    let m = fresh(s);
-    if (m && !m.projectHash) {
-      // Older cache entry missing projectHash; retag from current meta.
-      m = { ...m, projectHash: s.projectHash };
-      newlyComputed.push(m);
-    } else if (!m) {
-      const p = parsed.get(s);
-      if (!p) continue;
-      // Helper threads are not your sessions: not in the baseline (an explicit
-      // --session may still check one).
-      if (p.isSubagent && s !== picked.chosen.meta) continue;
-      m = computeSessionMetrics(
-        { sessionId: s.sessionId, endedAtMs: s.mtimeMs, projectHash: s.projectHash },
-        p,
-        pricing,
-      );
-      if (!p.isSubagent) newlyComputed.push(m);
-    }
-    if (s === picked.chosen.meta) latestIdx = pool.length;
+    const m = metrics.get(s);
+    if (!m) continue;
+    if (s === chosen) latestIdx = pool.length;
     pool.push(m);
   }
 
@@ -300,4 +379,37 @@ function noData(
       : `Sipcode drift: ${msg}`,
   );
   return { exitCode: 0 };
+}
+
+/** Drift's pick: the session to check, and each other tool's newest (for the hint). */
+interface DriftPick {
+  readonly chosen: { readonly agent: Agent; readonly meta: SessionMeta };
+  readonly others: ReadonlyArray<{ readonly agent: Agent; readonly meta: SessionMeta }>;
+}
+
+/**
+ * The pick from the cache alone, when it can tell: each tool's newest session
+ * in scope (helper threads skipped) is cached, unchanged, and has requests of
+ * its own (an entry with none is passed over, as pickFrom passes over an empty
+ * or all-copied session). Undefined when any tool's answer needs a parse.
+ */
+function pickFromCache(
+  lists: ReadonlyArray<AgentSessions>,
+  fresh: (m: SessionMeta) => SessionMetrics | undefined,
+): DriftPick | undefined {
+  const found: { agent: Agent; meta: SessionMeta }[] = [];
+  for (const { agent, scoped } of lists) {
+    for (const meta of scoped) {
+      if (meta.isSubagent) continue;
+      const c = fresh(meta);
+      if (!c) return undefined;
+      if (c.assistantTurns > 0) {
+        found.push({ agent, meta });
+        break;
+      }
+    }
+  }
+  if (found.length === 0) return undefined;
+  found.sort((a, b) => b.meta.mtimeMs - a.meta.mtimeMs);
+  return { chosen: found[0]!, others: found.slice(1) };
 }

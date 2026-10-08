@@ -286,6 +286,45 @@ describe("runDriftCommand", () => {
     expect(JSON.parse(out.join("\n")).baseline.medianTokensPerTurn).toBe(110);
   });
 
+  it("a warm run with nothing changed reads no transcript (the pick comes from the cache)", async () => {
+    const files = { A: transcript("A", 100), B: transcript("B", 100), C: transcript("C", 100), D: transcript("D", 100) };
+    const fs = new InMemoryFs();
+    const storeIO = memStoreIO();
+    writeSessions(fs, files, ["A", "B", "C", "D"]);
+    const first: string[] = [];
+    await runDriftCommand({ json: true }, baseDeps(fs, first, "/tmp/test-drift-pick", storeIO));
+    const reads: string[] = [];
+    const spy = Object.create(fs, {
+      readFile: { value: async (p: string) => (reads.push(p), fs.readFile(p)) },
+    }) as InMemoryFs;
+    const second: string[] = [];
+    await runDriftCommand({ json: true }, baseDeps(spy, second, "/tmp/test-drift-pick", storeIO));
+    expect(reads.filter((p) => p.endsWith(".jsonl"))).toEqual([]);
+    expect(second).toEqual(first);
+    // A changed file is read again (and only that one).
+    fs.writeFile("/home/u/.claude/projects/p/A.jsonl", transcript("A", 100), 10_001);
+    reads.length = 0;
+    await runDriftCommand({ json: true }, baseDeps(spy, [], "/tmp/test-drift-pick", storeIO));
+    expect(reads.filter((p) => p.endsWith(".jsonl")).map((p) => path.basename(p))).toEqual(["A.jsonl"]);
+  });
+
+  it("a cold run reads only the sessions the report uses (latest + 6 of its project)", async () => {
+    const ids = Array.from({ length: 20 }, (_, i) => `S${i}`);
+    const files = Object.fromEntries(ids.map((id) => [id, transcript(id, 100)]));
+    const fs = new InMemoryFs();
+    writeSessions(fs, files, ids);
+    const reads: string[] = [];
+    const spy = Object.create(fs, {
+      readFile: { value: async (p: string) => (reads.push(p), fs.readFile(p)) },
+    }) as InMemoryFs;
+    const out: string[] = [];
+    await runDriftCommand({ json: true }, baseDeps(spy, out, "/tmp/test-drift-cold"));
+    const report = JSON.parse(out.join("\n"));
+    expect(report.latest.sessionId).toBe("S0");
+    expect(report.baseline.count).toBe(6);
+    expect(reads.filter((p) => p.endsWith(".jsonl")).map((p) => path.basename(p, ".jsonl"))).toEqual(ids.slice(0, 7));
+  });
+
   it("skips a 0-turn (in-flight/empty) newest session — no false alarm", async () => {
     // A parses fine but has NO assistant turns (only a user entry), so its
     // cacheHitRate=0/tokensPerTurn=0 must NOT be treated as 'latest'.
@@ -311,15 +350,26 @@ describe("runDriftCommand", () => {
     expect(out.join("\n")).not.toContain("⚠");
   });
 
-  it("counts a request repeated in a resumed file once (baseline via loadSessions)", async () => {
-    const req = (id: string, input: number) =>
-      JSON.stringify({
-        type: "assistant",
-        requestId: `req_${id}`,
-        timestamp: "2026-06-01T00:00:00.000Z",
-        sessionId: "s",
-        message: { id: `msg_${id}`, model: "claude-sonnet-4-5", role: "assistant", content: [], usage: { input_tokens: input, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
-      });
+  const req = (id: string, input: number) =>
+    JSON.stringify({
+      type: "assistant",
+      requestId: `req_${id}`,
+      timestamp: "2026-06-01T00:00:00.000Z",
+      sessionId: "s",
+      message: { id: `msg_${id}`, model: "claude-sonnet-4-5", role: "assistant", content: [], usage: { input_tokens: input, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } },
+    });
+
+  /** Like writeSessions, but each file was last written after the requests it holds (as on disk). */
+  function writeRealistic(files: Record<string, string>, order: string[]): { deps: DriftDeps; out: string[] } {
+    const fs = new InMemoryFs();
+    order.forEach((id, i) => {
+      fs.writeFile(`/home/u/.claude/projects/p/${id}.jsonl`, files[id]!, Date.parse("2026-06-01T01:00:00Z") - i * 1_000);
+    });
+    const out: string[] = [];
+    return { out, deps: baseDeps(fs, out, "/tmp/test-drift") };
+  }
+
+  it("counts a request repeated in a resumed file once (own requests only)", async () => {
     // R resumes B: it repeats B's huge request and adds one normal request.
     const files = {
       R: [req("big", 10_000), req("r1", 100)].join("\n"),
@@ -328,7 +378,19 @@ describe("runDriftCommand", () => {
       D: req("d1", 100),
       E: req("e1", 100),
     };
-    const { deps: d, out } = deps(files, ["R", "B", "C", "D", "E"]);
+    const { deps: d, out } = writeRealistic(files, ["R", "B", "C", "D", "E"]);
+    await runDriftCommand({ json: true }, d);
+    const report = JSON.parse(out.join("\n"));
+    expect(report.latest.sessionId).toBe("R");
+    expect(report.latest.assistantTurns).toBe(1);
+    expect(report.latest.tokensPerTurn).toBe(110);
+  });
+
+  it("drops the copy even when the original is older than the 30 sessions drift reads", async () => {
+    const files: Record<string, string> = { R: [req("big", 10_000), req("r1", 100)].join("\n"), B: req("big", 10_000) };
+    const fillers = Array.from({ length: 30 }, (_, i) => `F${i}`);
+    for (const f of fillers) files[f] = req(f, 100);
+    const { deps: d, out } = writeRealistic(files, ["R", ...fillers, "B"]);
     await runDriftCommand({ json: true }, d);
     const report = JSON.parse(out.join("\n"));
     expect(report.latest.sessionId).toBe("R");
