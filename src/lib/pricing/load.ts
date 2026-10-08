@@ -44,6 +44,14 @@ function listBundledPricingFiles(): { date: string; absPath: string }[] {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** OpenAI (Codex) tables: openai-<YYYY-MM-DD>.json, sorted by date asc. */
+function listOpenAiPricingFiles(): string[] {
+  return readdirSync(__dirname)
+    .filter((f) => /^openai-\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .sort()
+    .map((f) => path.join(__dirname, f));
+}
+
 /**
  * Returns the latest pricing file dated ≤ sessionDate. Falls back to oldest
  * available file if session predates all bundled prices.
@@ -68,6 +76,14 @@ export function loadPricingForDate(sessionDate: Date): PricingFile {
       JSON.parse(readFileSync(newest.absPath, "utf-8")) as unknown,
     );
     for (const [model, row] of Object.entries(latest.models)) {
+      if (!file.models[model]) file.models[model] = row;
+    }
+  }
+  // OpenAI (Codex) models live in their own table; ids never collide with claude-*.
+  const openai = listOpenAiPricingFiles().at(-1);
+  if (openai) {
+    const table = PricingFileSchema.parse(JSON.parse(readFileSync(openai, "utf-8")) as unknown);
+    for (const [model, row] of Object.entries(table.models)) {
       if (!file.models[model]) file.models[model] = row;
     }
   }

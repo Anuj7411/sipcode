@@ -28,7 +28,7 @@ describe("pricing loader", () => {
     expect(priceForModel(p, "claude-opus-4-7")).toBeDefined();
     expect(priceForModel(p, "claude-sonnet-4-5")).toBeDefined();
     expect(priceForModel(p, "claude-haiku-4")).toBeDefined();
-    expect(priceForModel(p, "gpt-5")).toBeUndefined();
+    expect(priceForModel(p, "mistral-large")).toBeUndefined();
   });
 });
 
@@ -67,5 +67,35 @@ describe("pricing v1.6.21 corrections", () => {
     expect(h?.input_per_mtok).toBe(0.1);
     expect(h?.long_prompt?.over_tokens).toBe(100000);
     expect(h?.long_prompt?.input_per_mtok).toBe(0.5);
+  });
+});
+
+describe("OpenAI models (Codex)", () => {
+  const p = loadPricingForDate(new Date("2026-10-08"));
+  it("prices gpt-6.1-sol with its long-context tier", () => {
+    const r = priceForModel(p, "gpt-6.1-sol");
+    expect(r?.input_per_mtok).toBe(2);
+    expect(r?.cache_read_per_mtok).toBe(0.1);
+    expect(r?.long_prompt?.over_tokens).toBe(272000);
+    expect(r?.long_prompt?.output_per_mtok).toBe(15);
+  });
+  it("is available for older session dates too", () => {
+    expect(priceForModel(loadPricingForDate(new Date("2026-04-01")), "gpt-5.4")?.input_per_mtok).toBe(2.5);
+  });
+  it("leaves unknown models unpriced", () => {
+    expect(priceForModel(p, "codex-auto-review")).toBeUndefined();
+  });
+  it("never prices a pro or nano variant at its base model's rate", () => {
+    expect(priceForModel(p, "gpt-5.5-pro")?.input_per_mtok).toBe(30);
+    expect(priceForModel(p, "gpt-5.4-pro")?.output_per_mtok).toBe(180);
+    expect(priceForModel(p, "gpt-5.4-nano")?.input_per_mtok).toBe(0.2);
+    expect(priceForModel(p, "gpt-5-nano")?.input_per_mtok).toBe(0.05);
+  });
+  it("resolves dated ids and keeps mini on its own row", () => {
+    expect(priceForModel(p, "gpt-5.4-2026-03-01")?.input_per_mtok).toBe(2.5);
+    expect(priceForModel(p, "gpt-5.4-mini")?.input_per_mtok).toBe(0.75);
+  });
+  it("keeps Claude models intact after the merge", () => {
+    expect(priceForModel(p, "claude-opus-4-8")).toBeDefined();
   });
 });
