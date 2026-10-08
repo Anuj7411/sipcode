@@ -339,10 +339,13 @@ describe("loadSessions", () => {
     expect(r.value.sessions.map((s) => s.meta.sessionId)).toEqual(["c"]);
   });
 
-  it("skips files older than sinceMs by mtime", async () => {
-    const r = await loadSessions({ agent: claudeCodeAgent, deps: deps(), cwd: "/", sinceMs: Date.parse("2026-09-02T00:00:00Z") });
+  it("dedupes across ALL discovered sessions (no time pre-filter), so windows stay consistent", async () => {
+    // Commands filter by window AFTER loading; an old original still removes its copies from a resumed file.
+    const r = await loadSessions({ agent: claudeCodeAgent, deps: deps(), cwd: "/" });
     if (!r.ok) throw new Error("load failed");
-    expect(r.value.sessions.map((s) => s.meta.sessionId).sort()).toEqual(["b", "c"]);
+    const b = r.value.sessions.find((s) => s.meta.sessionId === "b")!;
+    expect(b.parsed.assistantTurns.map((t) => t.requestKey)).toEqual(["msg_2|req_2"]);
+    expect(b.parsed.startedAt).toBe("2026-09-02T10:00:00Z");
   });
 });
 ```
@@ -354,7 +357,7 @@ describe("loadSessions", () => {
 ```ts
 /**
  * Shared session loading for every period command and every agent:
- * discover → --here → mtime pre-filter → read → parse → cross-file dedupe.
+ * discover → --here → read → parse → cross-file dedupe (commands window afterwards).
  * Unreadable files are counted, never silently dropped.
  */
 import { ok, type Result } from "../../lib/result.js";
@@ -373,8 +376,6 @@ export interface LoadSessionsInput {
   readonly deps: AgentDeps;
   readonly cwd: string;
   readonly here?: boolean | undefined;
-  /** Skip files whose mtime is older than this (cheap pre-filter). */
-  readonly sinceMs?: number | undefined;
 }
 
 export interface LoadSessionsOutput {
@@ -394,11 +395,10 @@ export async function loadSessions(
   if (!discovery.ok) return discovery;
   let metas = discovery.value;
   const discovered = metas.length;
+  // --here before dedupe is safe: a resumed session stays in its project.
+  // No time pre-filter: an old original must still remove its copies from a
+  // newer resumed file. Commands apply their window after loading.
   if (input.here) metas = metas.filter((m) => agent.matchesCwd(m, cwd));
-  if (input.sinceMs !== undefined) {
-    const since = input.sinceMs;
-    metas = metas.filter((m) => m.mtimeMs >= since);
-  }
   const loaded: { meta: SessionMeta; parsed: ParsedSession }[] = [];
   const issues: SipcodeIssue[] = [];
   let unreadable = 0;
@@ -472,7 +472,6 @@ describe("runStats: resumed sessions are not double counted", () => {
     deps: { fs, env, clock },
     cwd,
     here: opts.here,
-    sinceMs: Date.parse(window.sinceIso),
   });
   if (!loaded.ok) {
     for (const i of loaded.error) stderr(i.message);
@@ -487,8 +486,7 @@ describe("runStats: resumed sessions are not double counted", () => {
     warnings.push({ code: "E003", message: `couldn't read ${loaded.value.unreadable} transcript file(s).` });
   }
   for (const { meta, parsed } of loaded.value.sessions) {
-    const mtimeIso = new Date(meta.mtimeMs).toISOString();
-    const startedAt = parsed.startedAt ?? mtimeIso;
+    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
     if (!isInWindow(window, startedAt)) continue;
     // ...unchanged from here: analyzeTokens, isEmptySession, analyzeDuplicateReads, analyzeIdleContext, aggregateSession...
 ```
@@ -506,7 +504,7 @@ describe("runStats: resumed sessions are not double counted", () => {
     // ...unchanged analysis from here...
 ```
 
-  **trend.ts**: same, with `sinceMs: Date.parse(sinceIso)`; keep the `startedDay` window check.
+  **trend.ts**: same; keep the `startedDay` window check (it now sees recomputed start times for resumed sessions).
 
   **impact.ts**: inside `if (projectsExists)`, replace discovery + `--here` + read/parse with the same `loadSessions` call (`cwd`, `here: opts.here`, `deps: { fs: fileSys, env, clock }`).
 
@@ -890,7 +888,7 @@ describe("parseCodexRollout: token_count fallback (older Codex)", () => {
   it("keys legacy turns by root session + cumulative total, so fork copies dedupe", () => {
     const a = usage(100, 0, 0, 10);
     const s = parse([meta(), ctx("u1", "gpt-5.4"), tc(a, a)]);
-    expect(s.assistantTurns[0]!.requestKey).toBe("codex:t1:110");
+    expect(s.assistantTurns[0]!.requestKey).toBe("codex:t1:110:100:0:10");
   });
 });
 
@@ -1080,13 +1078,13 @@ export function parseCodexRollout(content: string): Result<ParsedSession, Sipcod
   const outputs = new Map<string, number>();
   const hasRecords = content.includes('"token_usage_record"');
 
-  type RawTurn = { usage: Usage; model: string | undefined; ts: string | undefined; key: string; calls: PendingCall[] };
+  type RawTurn = { usage: Usage; model: string | undefined; ts: string | undefined; key: string | undefined; calls: PendingCall[] };
   const turns: RawTurn[] = [];
   let pending: PendingCall[] = [];
   const seenResponses = new Set<string>();
   let prevTotal: Usage | undefined;
 
-  const push = (usage: Usage, model: string | undefined, ts: string | undefined, key: string) => {
+  const push = (usage: Usage, model: string | undefined, ts: string | undefined, key: string | undefined) => {
     turns.push({ usage, model, ts, key, calls: pending });
     pending = [];
   };
@@ -1144,7 +1142,12 @@ export function parseCodexRollout(content: string): Result<ParsedSession, Sipcod
       }
       prevTotal = T;
       if (n(delta.input_tokens) === 0 && n(delta.output_tokens) === 0 && n(delta.cached_input_tokens) === 0) continue;
-      push(delta, currentModel, ts, `codex:${meta.rootSessionId ?? meta.id ?? "?"}:${n(T.total_tokens)}`);
+      // Key = root session + the FULL cumulative vector: fork copies (same root, same totals)
+      // dedupe, while a subagent's own counter (restarting at 0) cannot realistically collide.
+      const root = meta.rootSessionId ?? meta.id;
+      push(delta, currentModel, ts, root
+        ? `codex:${root}:${n(T.total_tokens)}:${n(T.input_tokens)}:${n(T.cached_input_tokens)}:${n(T.output_tokens)}`
+        : undefined);
     }
   }
   if (pending.length && turns.length) turns[turns.length - 1]!.calls.push(...pending);
