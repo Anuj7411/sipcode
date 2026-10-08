@@ -14,7 +14,7 @@ import type { SipcodeIssue } from "../../lib/errors.js";
 import { dedupeAcrossSessions } from "../transcript/dedupe.js";
 import type { AssistantTurn } from "../transcript/parse.js";
 import type { ParsedSession, SessionMeta } from "./shared.js";
-import type { Agent, AgentDeps, KeyScan } from "./types.js";
+import type { Agent, AgentDeps, KeyScan, SessionDiscovery } from "./types.js";
 
 export interface LoadedSession {
   readonly meta: SessionMeta;
@@ -83,15 +83,30 @@ function stubSession(agent: Agent, meta: SessionMeta, scan: KeyScan): ParsedSess
   };
 }
 
+/**
+ * The one way to run an agent's discovery: adapters may return a bare
+ * SessionMeta[] or a full SessionDiscovery; callers always get the full shape.
+ */
+export async function discoverAgentSessions(
+  agent: Agent,
+  deps: AgentDeps,
+): Promise<Result<SessionDiscovery, SipcodeIssue[]>> {
+  const discovery = await agent.discoverSessions(deps);
+  if (!discovery.ok) return discovery;
+  return ok(
+    Array.isArray(discovery.value)
+      ? { sessions: discovery.value, unreadable: 0, issues: [] }
+      : discovery.value,
+  );
+}
+
 export async function loadSessions(
   input: LoadSessionsInput,
 ): Promise<Result<LoadSessionsOutput, SipcodeIssue[]>> {
   const { agent, deps, cwd } = input;
-  const discovery = await agent.discoverSessions(deps);
+  const discovery = await discoverAgentSessions(agent, deps);
   if (!discovery.ok) return discovery;
-  const found = Array.isArray(discovery.value)
-    ? { sessions: discovery.value, unreadable: 0, issues: [] }
-    : discovery.value;
+  const found = discovery.value;
   let metas = found.sessions;
   const discovered = metas.length;
   // --here before dedupe is safe: a resumed session stays in its project.
