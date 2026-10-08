@@ -5,6 +5,7 @@
  */
 import { ok, type Result } from "../../lib/result.js";
 import { issue, type SipcodeIssue } from "../../lib/errors.js";
+import type { KeyScan } from "../agents/types.js";
 import {
   TranscriptEntrySchema,
   type AssistantEntry,
@@ -389,4 +390,67 @@ export function parseTranscriptVerbose(
     }
   }
   return { session, issues };
+}
+
+const SCAN_MSG_ID = /"id":"([^"]+)"/g;
+const SCAN_REQ_ID = /"requestId":"([^"]*)"/;
+const SCAN_TS = /"timestamp":"([^"]+)"/;
+
+/**
+ * message.id of an assistant line: the first `"id"` string inside the message
+ * object and before its content array (tool_use blocks carry their own ids).
+ */
+function scanMessageId(line: string): string | undefined {
+  const m = line.indexOf("\"message\":{");
+  if (m < 0) return undefined;
+  const c = line.indexOf("\"content\":", m);
+  SCAN_MSG_ID.lastIndex = m;
+  const hit = SCAN_MSG_ID.exec(line);
+  if (!hit || (c >= 0 && hit.index > c)) return undefined;
+  return hit[1];
+}
+
+/**
+ * Fast dedupe-only scan of a Claude Code transcript: no JSON.parse. Produces
+ * what parseTranscript would for cross-file dedupe (request keys in first-seen
+ * order, keyless turn count, first/last timestamp). Used for files older than
+ * a command's window, which can only claim request keys, never contribute turns.
+ * Equivalence with parseTranscript is pinned by tests/modules/transcript/scanKeys.test.ts.
+ */
+export function scanClaudeRequestKeys(content: string): KeyScan {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  let keylessTurns = 0;
+  let firstTs: string | undefined;
+  let lastTs: string | undefined;
+  let pos = 0;
+  const n = content.length;
+  while (pos <= n) {
+    let end = content.indexOf("\n", pos);
+    if (end === -1) end = n;
+    let line = content.slice(pos, end);
+    pos = end + 1;
+    // A truncated final write is not valid JSON, so parseTranscript skips it.
+    line = line.trimEnd();
+    if (line.length === 0 || line.charCodeAt(line.length - 1) !== 125 /* } */) continue;
+    const isAssistant = line.includes('"type":"assistant"');
+    if (!isAssistant && !line.includes('"type":"user"')) continue;
+    const ts = SCAN_TS.exec(line)?.[1];
+    if (ts) {
+      if (!firstTs || ts < firstTs) firstTs = ts;
+      if (!lastTs || ts > lastTs) lastTs = ts;
+    }
+    if (!isAssistant) continue;
+    const msgId = scanMessageId(line);
+    if (!msgId) {
+      keylessTurns++;
+      continue;
+    }
+    const key = `${msgId}|${SCAN_REQ_ID.exec(line)?.[1] ?? ""}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      keys.push(key);
+    }
+  }
+  return { keys, keylessTurns, startedAt: firstTs, endedAt: lastTs };
 }

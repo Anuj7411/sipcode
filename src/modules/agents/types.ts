@@ -76,6 +76,19 @@ export interface AgentRulesRead {
   readonly content: string;
 }
 
+/**
+ * Result of a fast, parse-free scan of one transcript: just what cross-file
+ * dedupe needs (request keys, keyless turn count, time span).
+ */
+export interface KeyScan {
+  /** Unique request keys in first-seen order. */
+  readonly keys: string[];
+  /** Assistant turns with no request key (each counts as its own turn). */
+  readonly keylessTurns: number;
+  readonly startedAt?: string | undefined;
+  readonly endedAt?: string | undefined;
+}
+
 /** Full agent interface — capabilities + I/O behaviors. */
 export interface Agent extends AgentCapabilities {
   /** Discover past sessions. Cursor returns E009 (no parsing in this milestone). */
@@ -85,6 +98,12 @@ export interface Agent extends AgentCapabilities {
 
   /** Parse a transcript file. Cursor returns E009. */
   parseTranscript(content: string): Result<ParsedSession, SipcodeIssue[]>;
+
+  /**
+   * Optional fast path: scan request keys + time span without a full parse.
+   * Lets loadSessions dedupe against files outside a command window cheaply.
+   */
+  scanRequestKeys?(content: string): KeyScan;
 
   /** --here: does this discovered session belong to the project at `cwd`? */
   matchesCwd(meta: SessionMeta, cwd: string): boolean;

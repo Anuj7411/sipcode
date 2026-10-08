@@ -12,7 +12,7 @@ import {
   resolveProjectsDir,
   type SessionMeta,
 } from "../../transcript/discover.js";
-import { parseTranscript } from "../../transcript/parse.js";
+import { parseTranscript, scanClaudeRequestKeys } from "../../transcript/parse.js";
 import { ok, type Result } from "../../../lib/result.js";
 import type { SipcodeIssue } from "../../../lib/errors.js";
 import {
@@ -48,6 +48,10 @@ export const claudeCodeAgent: Agent = {
 
   parseTranscript(content: string) {
     return parseTranscript(content);
+  },
+
+  scanRequestKeys(content: string) {
+    return scanClaudeRequestKeys(content);
   },
 
   matchesCwd(meta: SessionMeta, cwd: string): boolean {
