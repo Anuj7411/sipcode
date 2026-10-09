@@ -60,6 +60,9 @@ export function defaultUsageCaches(fs: FileSystem, env: ProcessEnv): UsageCaches
     : () => null;
 }
 
+/** Distinguishes temp files of writes in flight in one process (MCP tools run in parallel). */
+let tmpSeq = 0;
+
 /** The cache on disk. Writes go to a temp file renamed into place. */
 export function fileUsageCacheIO(file: string): UsageCacheIO {
   return {
@@ -71,7 +74,7 @@ export function fileUsageCacheIO(file: string): UsageCacheIO {
       }
     },
     async write(content) {
-      const tmp = `${file}.${process.pid}.tmp`;
+      const tmp = `${file}.${process.pid}.${tmpSeq++}.tmp`;
       try {
         await nodeFs.mkdir(path.dirname(file), { recursive: true });
         await nodeFs.writeFile(tmp, content, "utf-8");
@@ -279,7 +282,13 @@ export async function loadUsageSessions(
 
   if (input.cache && changed) {
     const file: CacheFile = { schema: CACHE_SCHEMA, version: sipcodeVersion(), entries: next };
-    await input.cache.write(JSON.stringify(file));
+    let text: string | undefined;
+    try {
+      text = JSON.stringify(file);
+    } catch {
+      // Past the maximum string length: run without the cache rather than fail.
+    }
+    if (text !== undefined) await input.cache.write(text);
   }
 
   return ok({

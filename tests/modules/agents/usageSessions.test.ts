@@ -214,3 +214,27 @@ describe("loadUsageSessions", () => {
     expect(files).toEqual(["b.jsonl", "c.jsonl"]);
   });
 });
+
+describe("fileUsageCacheIO", () => {
+  it("concurrent writes in one process (MCP tools in parallel) leave a whole file", async () => {
+    const { mkdtempSync, readFileSync: read, readdirSync, rmSync } = await import("node:fs");
+    const os = await import("node:os");
+    const { fileUsageCacheIO } = await import("../../../src/modules/agents/usageSessions.js");
+    const dir = mkdtempSync(path.join(os.tmpdir(), "sipcode-usage-cache-"));
+    try {
+      const file = path.join(dir, "claude-code.json");
+      const io = fileUsageCacheIO(file);
+      const big = (tag: string, n: number) => JSON.stringify({ tag, pad: tag.repeat(n) });
+      const contents = [big("a", 3_000_000), big("b", 1_000_000), big("c", 2_000_000), big("d", 500_000)];
+      for (let round = 0; round < 3; round++) {
+        await Promise.all(contents.map((c) => io.write(c)));
+        const text = read(file, "utf-8");
+        expect(contents).toContain(text);
+      }
+      // No temp files left behind.
+      expect(readdirSync(dir)).toEqual(["claude-code.json"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
