@@ -22,6 +22,13 @@ export interface MessageAgent {
 
 const CLAUDE_CODE: MessageAgent = { id: "claude-code", displayName: "Claude Code" };
 
+const UNPRICED_TAIL = "not included in the cost above.";
+
+/** Is this the unpriced-tokens note (MESSAGES.unpricedTokens)? --json prints it on stderr; MCP returns it as its own text item. */
+export function isUnpricedNote(line: string): boolean {
+  return line.includes(" tokens on models without a known price (") && line.endsWith(UNPRICED_TAIL);
+}
+
 export const MESSAGES = {
   tagline: "sip your tokens. don't gulp them.",
 
@@ -379,7 +386,7 @@ export const MESSAGES = {
   statsHtmlWrote: (path: string) => `wrote ${path}`,
 
   unpricedTokens: (u: { tokens: number; models: readonly string[] }) =>
-    `${formatNum(u.tokens)} tokens on models without a known price (${u.models.join(", ")}): not included in the cost above.`,
+    `${formatNum(u.tokens)} tokens on models without a known price (${u.models.join(", ")}): ${UNPRICED_TAIL}`,
 
   // ---- score milestone (v0.2.0-alpha.5, S060) ----
 

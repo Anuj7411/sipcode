@@ -189,6 +189,8 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
 
   if (opts.json) {
     stdout(formatJson(report));
+    // JSON has no field for it: say on stderr that the costs leave tokens out.
+    if (unpriced.requests > 0) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
     stdout(
       formatTerminal(report, {

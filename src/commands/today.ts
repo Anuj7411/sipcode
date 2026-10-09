@@ -154,6 +154,8 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
   const hasUnpriced = unpriced.requests > 0;
   if (opts.json) {
     stdout(formatTodayJson(report));
+    // JSON has no field for it: say on stderr that the spend leaves tokens out.
+    if (hasUnpriced) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
     stdout(
       formatTodayTerminal(report, {

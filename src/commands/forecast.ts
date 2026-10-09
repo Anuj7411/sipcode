@@ -157,6 +157,8 @@ async function forecastForAgent(agent: Agent, ctx: ForecastContext): Promise<Sec
   const hasUnpriced = unpriced.requests > 0;
   if (opts.json) {
     stdout(formatForecastJson(report));
+    // JSON has no field for it: say on stderr that the projection leaves tokens out.
+    if (hasUnpriced) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
     stdout(
       formatForecastTerminal(report, {

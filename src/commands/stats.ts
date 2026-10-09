@@ -320,6 +320,8 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
   // Emit chosen format. JSON is exclusive (machine output); HTML is additive.
   if (opts.json) {
     stdout(formatJson(report));
+    // JSON has no field for it: say on stderr that the cost leaves tokens out.
+    if (unpricedNote) stderr(unpricedNote);
   } else {
     const useColor =
       env.get("NO_COLOR") === undefined && (process.stdout?.isTTY ?? false);

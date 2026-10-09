@@ -194,6 +194,8 @@ async function trendForAgent(agent: Agent, ctx: TrendContext): Promise<SectionRe
   const result = computeTrend(sessions, metric, sinceIso, untilIso);
   if (opts.json) {
     stdout(formatTrendJson(result));
+    // JSON has no field for it: say on stderr that the costs leave tokens out.
+    if (unpriced.requests > 0) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
     stdout(
       formatTrendTerminal(result, {

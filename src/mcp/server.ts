@@ -46,7 +46,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { RealGit } from "../lib/git.js";
-import { MESSAGES } from "../lib/messages.js";
+import { isUnpricedNote, MESSAGES } from "../lib/messages.js";
 import { shortSessionId } from "../lib/session-id.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { isOtherAgentNote, resolveDisplayAgents } from "../modules/agents/multi.js";
@@ -140,16 +140,26 @@ class Captured {
   get otherAgent(): boolean {
     return this.err.some(isOtherAgentNote);
   }
-  /** stderr without that note. */
+  /** The unpriced-tokens note the command printed on stderr (--json has no field for it). */
+  get unpriced(): string[] {
+    return this.err.filter(isUnpricedNote);
+  }
+  /** stderr without those notes. */
   get errors(): string {
-    return this.err.filter((l) => !isOtherAgentNote(l)).join("\n").trim();
+    return this.err.filter((l) => !isOtherAgentNote(l) && !isUnpricedNote(l)).join("\n").trim();
   }
 }
 
-/** Adds the other-tool hint as its own text item when the command left Codex out. */
+/**
+ * Adds, each as its own text item after the result, the unpriced-tokens note
+ * (the cost leaves those tokens out) and the other-tool hint when the
+ * command left Codex out. Never inside the JSON item.
+ */
 function withHint(result: CallToolResult, c: Captured): CallToolResult {
-  if (result.isError || !c.otherAgent) return result;
-  return { ...result, content: [...result.content, { type: "text", text: OTHER_AGENT_HINT }] };
+  if (result.isError) return result;
+  const extra = [...c.unpriced, ...(c.otherAgent ? [OTHER_AGENT_HINT] : [])];
+  if (extra.length === 0) return result;
+  return { ...result, content: [...result.content, ...extra.map((text) => ({ type: "text" as const, text }))] };
 }
 
 /**
