@@ -171,7 +171,8 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
       for (const i of loaded.error) stderr(i.message);
       return o.result(1);
     }
-    if (!opts.json) for (const n of discoveryNotes(loaded.value)) stderr(n);
+    // JSON too (on stderr, as stats does): the totals leave these logs out.
+    for (const n of discoveryNotes(loaded.value)) stderr(n);
     for (const { value } of loaded.value.sessions) {
       if (!value) continue;
       unpriced = addUnpriced(unpriced, value.unpriced);

@@ -181,7 +181,8 @@ async function trendForAgent(agent: Agent, ctx: TrendContext): Promise<SectionRe
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return o.result(1);
   }
-  if (!opts.json) for (const n of discoveryNotes(loaded.value)) stderr(n);
+  // JSON too (on stderr, as stats does): the totals leave these logs out.
+  for (const n of discoveryNotes(loaded.value)) stderr(n);
 
   const sessions: TrendSession[] = [];
   let unpriced = NO_UNPRICED;

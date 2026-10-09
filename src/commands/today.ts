@@ -139,7 +139,8 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return o.result(1);
   }
-  if (!opts.json) for (const n of discoveryNotes(loaded.value)) stderr(n);
+  // JSON too (on stderr, as stats does): the totals leave these logs out.
+  for (const n of discoveryNotes(loaded.value)) stderr(n);
 
   const sessions: TodaySession[] = [];
   // Unpriced tokens behind "spend so far": today's sessions only.

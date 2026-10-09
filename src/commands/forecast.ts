@@ -134,7 +134,8 @@ async function forecastForAgent(agent: Agent, ctx: ForecastContext): Promise<Sec
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return o.result(1);
   }
-  if (!opts.json) for (const n of discoveryNotes(loaded.value)) stderr(n);
+  // JSON too (on stderr, as stats does): the totals leave these logs out.
+  for (const n of discoveryNotes(loaded.value)) stderr(n);
 
   const sessions: ForecastSession[] = [];
   const unpricedBySession: { startedAt: string; unpriced: UnpricedUsage }[] = [];
