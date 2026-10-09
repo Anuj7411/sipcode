@@ -60,10 +60,10 @@ the guarantee covers **sipcode's own code paths**. it does not extend to third-p
 
 ## Future telemetry
 
-when (if) hosted analytics ship in a future version, they will be:
+if a cloud feature ever ships, it will be:
 
-- **explicit opt-in** — via `sipcode link` or similar. never default-on.
-- **quarantined** — all network IO will live in a separate `src/modules/cloud/` directory, clearly excluded from this privacy guarantee.
-- **announced** — you'll see a clear notification on first install of the version that introduces it.
+- **opt-in**: you turn it on yourself.
+- **off by default**: nothing leaves your machine unless you do.
+- **announced**: you will see a clear notice in the version that introduces it.
 
-the privacy guard test is the gate. weakening it requires updating this document and shipping a major version. that is not security theater; that is a contract.
+the privacy guard test is the gate: weakening it requires updating this document.
