@@ -121,3 +121,13 @@ describe("runImpactCommand: Claude Code and Codex sections", () => {
     );
   });
 });
+
+describe("runImpactCommand --agent cursor", () => {
+  it("prints the same coded E009 as the other commands", async () => {
+    const { MESSAGES } = await import("../../src/lib/messages.js");
+    const r = await run({ agent: "cursor" }, claudeFs());
+    expect(r.exitCode).toBe(1);
+    expect(r.err).toBe(MESSAGES.cursorTranscriptNotSupported());
+  });
+});
+

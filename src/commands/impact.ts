@@ -121,7 +121,7 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
   const stdout = o.out;
   const stderr = o.err;
   if (!agent.transcriptParsingSupported) {
-    stderr("Impact requires Claude Code transcripts. Cursor adapter doesn't yet parse transcripts.");
+    stderr(MESSAGES.cursorTranscriptNotSupported());
     return o.result(1);
   }
   // Only Claude Code's logs live under the projects dir; other agents always load.
