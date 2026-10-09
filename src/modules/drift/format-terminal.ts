@@ -29,7 +29,7 @@ export function renderDriftTerminal(report: DriftReport, agent?: DriftAgent): st
     `⚠  Context drift detected in your latest ${claude ? "Claude Code" : agent!.displayName} session`,
     "",
     "What this means: your newest session is behaving differently from your",
-    `recent norm — in ways that waste tokens and can make ${claude ? "Claude" : agent!.displayName} less reliable.`,
+    `recent norm, in ways that waste tokens and can make ${claude ? "Claude" : agent!.displayName} less reliable.`,
     '(This is "context rot": answer quality drops as context gets bloated or stale.)',
     "",
     `Signal${n === 1 ? "" : "s"} that regressed (${n}):`,

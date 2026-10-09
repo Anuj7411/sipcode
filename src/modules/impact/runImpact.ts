@@ -187,7 +187,7 @@ function fmtTokensCompact(n: number): string {
 
 function renderHeadlineNoMarker(allTime: ImpactBucket, agent: AgentLabel): string {
   if (allTime.sessionCount === 0) {
-    return `no install marker found AND no sessions on disk yet — run \`${agent.command}\` in a project to create some, then \`sipcode rules --install\` to start measuring.`;
+    return `no install marker found AND no sessions on disk yet: run \`${agent.command}\` in a project to create some, then \`sipcode rules --install\` to start measuring.`;
   }
   const tokens = fmtTokensCompact(allTime.totalTokens);
   const dollars = allTime.estCostUSD.toFixed(2);

@@ -54,7 +54,7 @@ export function formatTerminal(
   const saved = report.estimatedSavings.totalTokens;
   lines.push(
     c.bold(
-      `sipcode estimates ~${formatNum(saved)} tokens were RECOVERABLE this session — potential, not yet realized. ${captureHint(opts.agentId)}`,
+      `sipcode estimates ~${formatNum(saved)} tokens were RECOVERABLE this session (potential, not yet realized). ${captureHint(opts.agentId)}`,
     ),
   );
   const b = report.estimatedSavings.breakdown;

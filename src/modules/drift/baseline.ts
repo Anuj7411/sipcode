@@ -57,7 +57,7 @@ export function detectRegression(
       changeDisplay: `up ${pctUp(latest.tokensPerTurn, baseline.medianTokensPerTurn)}%`,
       baselineDisplay: fmt(baseline.medianTokensPerTurn),
       latestDisplay: fmt(latest.tokensPerTurn),
-      meaning: `Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail ${claude ? "Claude" : name} needs — the heart of context rot.`,
+      meaning: `Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail ${claude ? "Claude" : name} needs, which is the heart of context rot.`,
       fix: "Start a fresh chat for your next task to reset the context, and run `sipcode why` to see which turns and files are heaviest.",
     });
   }
@@ -94,7 +94,7 @@ export function detectRegression(
       latestDisplay: fmt(latest.duplicateReadTokens),
       meaning: `${claude ? "Claude" : name} re-read files it had already seen, paying again for content it already had in context.`,
       fix: claude
-        ? "Install the Sipcode proxy (`sipcode proxy --install`) — it automatically skips redundant re-reads."
+        ? "Install the Sipcode proxy (`sipcode proxy --install`). It automatically skips redundant re-reads."
         : `Sipcode cannot skip re-reads inside ${name} yet; point ${name} at the exact lines it needs instead of whole files.`,
     });
   }

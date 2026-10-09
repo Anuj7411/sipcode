@@ -601,7 +601,7 @@ const TOOL_DEFS = [
   {
     name: "audit_latest_session",
     description:
-      "Audit a Claude Code or Codex session and return a JSON report of where tokens went: total spend, output ratio, duplicate file reads, idle context, top expensive tool calls, and an estimate of what Sipcode COULD HAVE RECOVERED (potential, not realized — assumes optimizers were active). Defaults to the most recent session if no id is given. This is the equivalent of running `sipcode why` from the CLI. Note: 'estimatedSavings' fields are projections from the session data alone; they become measured-real numbers only after running `sipcode rules --install` and re-running impact.",
+      "Audit a Claude Code or Codex session and return a JSON report of where tokens went: total spend, output ratio, duplicate file reads, idle context, top expensive tool calls, and an estimate of what Sipcode COULD HAVE RECOVERED (potential, not realized; assumes optimizers were active). Defaults to the most recent session if no id is given. This is the equivalent of running `sipcode why` from the CLI. Note: 'estimatedSavings' fields are projections from the session data alone; they become measured-real numbers only after running `sipcode rules --install` and re-running impact.",
     inputSchema: {
       type: "object",
       properties: {
@@ -719,7 +719,7 @@ const TOOL_DEFS = [
   {
     name: "get_today_summary",
     description:
-      "Daily dashboard — answers 'how am I doing today?' Returns spend so far today, sessions count, output ratio, and a comparison to the user's adaptive N-day median (cascades 30→14→7→3 based on available history). Includes a one-paragraph headline plus structured fields. Status field: ok | no-sessions-today | no-baseline | no-data. Use this when the user asks 'how am I doing today?', 'what have I spent today?', or 'how's my Claude usage looking?'. Reads Claude Code or Codex logs.",
+      "Daily dashboard: answers 'how am I doing today?' Returns spend so far today, sessions count, output ratio, and a comparison to the user's adaptive N-day median (cascades 30→14→7→3 based on available history). Includes a one-paragraph headline plus structured fields. Status field: ok | no-sessions-today | no-baseline | no-data. Use this when the user asks 'how am I doing today?', 'what have I spent today?', or 'how's my Claude usage looking?'. Reads Claude Code or Codex logs.",
     inputSchema: {
       type: "object",
       properties: { agent: AGENT_INPUT },

@@ -83,9 +83,9 @@ describe("runImpactCommand: Claude Code and Codex sections", () => {
 
   it("an agent with no logs names its own start command", async () => {
     const r = await run({ agent: "codex" }, new InMemoryFs());
-    expect(r.out).toContain("no sessions on disk yet — run `codex` in a project");
+    expect(r.out).toContain("no sessions on disk yet: run `codex` in a project");
     const claude = await run({}, new InMemoryFs());
-    expect(claude.out).toContain("no sessions on disk yet — run `claude` in a project");
+    expect(claude.out).toContain("no sessions on disk yet: run `claude` in a project");
   });
 
   it("JSON with both installed is the unchanged Claude Code JSON plus a stderr note", async () => {
