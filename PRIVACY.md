@@ -20,7 +20,7 @@ local files only:
 - **`~/.codex/sessions/` and `~/.codex/archived_sessions/`** (or the folder `CODEX_HOME` points to): OpenAI Codex's own session logs, read-only, by `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` (and the MCP session tools) when Codex is installed.
 - **your repo's source files** — for `manifest`, `score`, `init`. tree-sitter does the parsing in-process.
 - **git history (via local `git`)** — for hot-files and change-frequency. invokes the `git` binary on disk via the standard child-process API.
-- **the pricing file shipped in the npm package** — `src/lib/pricing/*.json`. ships with each release. never fetched.
+- **the pricing files shipped in the npm package**: `dist/lib/pricing/*.json` (Anthropic and OpenAI tables). ships with each release. never fetched.
 
 ## What sipcode writes
 
@@ -38,7 +38,7 @@ every write is triggered by a command you ran. no background writes, no opportun
 
 ## What sipcode never does without you running a command
 
-touches nothing on disk. there is no daemon, no installed service, no startup item. `npm install -g @sipcode/cli` puts a binary on your path and that is it.
+touches nothing on disk. there is no daemon, no installed service, no startup item. `npm install -g sipcode` puts a binary on your path and that is it.
 
 ## The asserted property
 
