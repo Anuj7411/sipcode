@@ -78,8 +78,16 @@ export const codexAgent: Agent = {
     return notYet();
   },
 
-  /** Installed = $CODEX_HOME/sessions holds at least one rollout-*.jsonl. */
+  /**
+   * Installed = $CODEX_HOME/sessions or archived_sessions holds at least one
+   * rollout-*.jsonl (the folders discovery reads), so a user whose rollouts
+   * are all archived is still shown Codex.
+   */
   async isInstalled(deps: AgentDeps): Promise<boolean> {
-    return hasCodexRollout(deps.fs, path.join(resolveCodexHome(deps.env), "sessions"));
+    const home = resolveCodexHome(deps.env);
+    return (
+      (await hasCodexRollout(deps.fs, path.join(home, "sessions"))) ||
+      hasCodexRollout(deps.fs, path.join(home, "archived_sessions"))
+    );
   },
 };

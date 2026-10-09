@@ -60,10 +60,13 @@ describe("codex agent", () => {
       fs.writeFile("/c/sessions/2026/10/01/rollout-x.jsonl", "", 1);
       expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(true);
     });
-    it("ignores archived_sessions (installed means a live sessions folder)", async () => {
+    it("counts archived_sessions too: a user whose rollouts are all archived still has Codex logs", async () => {
       const fs = new InMemoryFs();
       fs.writeFile("/c/archived_sessions/rollout-x.jsonl", "", 1);
-      expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(false);
+      expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(true);
+      const zstOnly = new InMemoryFs();
+      zstOnly.writeFile("/c/archived_sessions/rollout-x.jsonl.zst", "z", 1);
+      expect(await codexAgent.isInstalled(deps(zstOnly), "/")).toBe(false);
     });
   });
 
