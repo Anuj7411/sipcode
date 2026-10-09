@@ -13,7 +13,7 @@ import { parseCodexRollout } from "./parse.js";
 const RULES_FILE_NAME = "AGENTS.md";
 
 const notYet = (): Result<never, SipcodeIssue[]> =>
-  err([issue("E009", "writing Codex rules (AGENTS.md) arrives in a later Sipcode release.")]);
+  err([issue("E009", "writing rules to AGENTS.md is not supported for Codex yet.")]);
 
 /** Drive letter (`C:`) or UNC (`\\server`): Codex ran on Windows. */
 const WINDOWS_PATH = /^(?:[A-Za-z]:|[\\/]{2}[^\\/])/;

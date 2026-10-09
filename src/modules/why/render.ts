@@ -91,7 +91,7 @@ interface RenderInput {
 export function nextStepFor(agentId: AgentId | undefined): string {
   return agentId === undefined || agentId === "claude-code"
     ? "run `npx sipcode init` to start saving on your next session."
-    : "run `npx sipcode stats --agent codex` to track your Codex spend; setting Sipcode up for Codex arrives in a later release.";
+    : "run `npx sipcode stats --agent codex` to track your Codex spend; setting Sipcode up inside Codex (rules, MCP, proxy) is not supported for Codex yet.";
 }
 
 function humanDuration(sec: number): string {

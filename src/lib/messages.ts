@@ -235,9 +235,9 @@ export const MESSAGES = {
 
   codexNotSupportedYet: (command: string) =>
     [
-      `[E009] sipcode ${command} doesn't read Codex sessions yet.`,
+      `[E009] sipcode ${command} is not supported for Codex yet.`,
       ``,
-      `why: Codex support is arriving command by command; this one still reads Claude Code logs only.`,
+      `why: this command reads Claude Code logs only.`,
       ``,
       `fix: run it with --agent claude-code, or use stats / today / forecast / trend / impact / why / receipt / drift with --agent codex.`,
       ``,
@@ -414,7 +414,7 @@ export const MESSAGES = {
     [
       `unknown agent "${id}".`,
       ``,
-      `why: sipcode supports --agent claude-code, --agent cursor and --agent codex in this release. gemini / aider are planned.`,
+      `why: sipcode supports --agent claude-code, --agent cursor and --agent codex.`,
       ``,
       `fix: pick one of: claude-code, cursor, codex, auto.`,
       ``,

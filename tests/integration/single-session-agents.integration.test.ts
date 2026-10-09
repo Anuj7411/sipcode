@@ -245,6 +245,8 @@ describe("Codex wording in the reports", () => {
     expect(r.out).not.toContain("rules --install");
     expect(r.out).not.toContain("npx sipcode init");
     expect(r.out).toContain("run `npx sipcode stats --agent codex` to track your Codex spend");
+    expect(r.out).toContain("not supported for Codex yet");
+    expect(r.out).not.toContain("later release");
     const openaiAsOf = (
       JSON.parse(readFileSync(path.resolve(__dirname, "../../src/lib/pricing/openai-2026-10-08.json"), "utf-8")) as { as_of: string }
     ).as_of;
