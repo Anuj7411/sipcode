@@ -3,7 +3,7 @@ import { MESSAGES } from "../../src/lib/messages.js";
 
 /**
  * Brand-voice contract for new error/warning messages:
- *   - starts with [Exxx] / [Rxxx] / [planned]
+ *   - starts with [Exxx] / [Rxxx]
  *   - lowercase voice (the [Exxx] tag itself uses uppercase)
  *   - contains "why:", "fix:", and "next:" sections
  */
@@ -51,14 +51,12 @@ describe("MESSAGES — brand voice", () => {
     assertBrandVoice(MESSAGES.claudeMdBloated(5000), "[R007]");
   });
 
-  it("delta-not-implemented stub mentions v1.1+", () => {
-    expect(MESSAGES.manifestDeltaNotImplemented).toContain("[planned]");
-    expect(MESSAGES.manifestDeltaNotImplemented).toContain("v1.1");
-  });
-
-  it("explain-not-implemented stub mentions v1.1+", () => {
-    expect(MESSAGES.manifestExplainNotImplemented("src/x.ts")).toContain("[planned]");
-    expect(MESSAGES.manifestExplainNotImplemented("src/x.ts")).toContain("v1.1");
+  it("--delta / --explain say they are not supported, with no version promise", () => {
+    for (const m of [MESSAGES.manifestDeltaNotImplemented, MESSAGES.manifestExplainNotImplemented("src/x.ts")]) {
+      expect(m).toContain("is not supported.");
+      expect(m).not.toMatch(/planned|v1\.1|lands in|stubbed/);
+      expect(m).not.toContain("\u2014");
+    }
   });
 });
 

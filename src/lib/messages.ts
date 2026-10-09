@@ -203,10 +203,10 @@ export const MESSAGES = {
   receiptClipboardSkipped: (reason: string) => `clipboard: ${reason}`,
 
   manifestDeltaNotImplemented:
-    "[planned] --delta is stubbed for v1.1+. for now, re-run `sipcode manifest` to regenerate from scratch — it's idempotent on unchanged trees, so diffs against the prior version are easy to read.",
+    "--delta is not supported. re-run `sipcode manifest` to regenerate from scratch: it is idempotent on unchanged trees, so diffs against the prior version are easy to read.",
 
   manifestExplainNotImplemented: (file: string) =>
-    `[planned] --explain ${file} lands in v1.1+. for now, the [E002] line printed during generation tells you why a file was skipped.`,
+    `--explain ${file} is not supported. the [E002] line printed during generation tells you why a file was skipped.`,
 
   // ---- output compression milestone (v0.2.0) ----
 

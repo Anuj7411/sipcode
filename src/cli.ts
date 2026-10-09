@@ -73,8 +73,8 @@ program
   .description("Generate or refresh the project manifest.")
   .option("--no-budget", "skip the 2k-token budget check")
   .option("--tighten", "drop low-signal sections to fit the budget")
-  .option("--delta", "emit only changes since last manifest (v1.1+, stubbed)")
-  .option("--explain <file>", "show parse error for a specific file (v1.1+, stubbed)")
+  .option("--delta", "not supported (regenerate with `sipcode manifest` instead)")
+  .option("--explain <file>", "not supported (the [E002] line during generation names skipped files)")
   .option("--agent <id>", "which agent to target: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runManifest } = await import("./commands/manifest.js");
