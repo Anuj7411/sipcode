@@ -64,6 +64,32 @@ export function isObserverProjectDir(name: string): boolean {
 }
 
 /**
+ * Does Claude Code have a transcript Sipcode can read (a `.jsonl` in a
+ * project folder that is not an observer's)? The one rule every command uses
+ * for "Claude Code has logs": an existing but empty projects folder does not
+ * count. Stops at the first transcript.
+ */
+export async function hasClaudeTranscripts(fs: FileSystem, projectsDir: string): Promise<boolean> {
+  let projectDirs;
+  try {
+    projectDirs = await fs.readDir(projectsDir);
+  } catch {
+    return false;
+  }
+  for (const proj of projectDirs) {
+    if (!proj.isDirectory || isObserverProjectDir(proj.name)) continue;
+    let entries;
+    try {
+      entries = await fs.readDir(path.join(projectsDir, proj.name));
+    } catch {
+      continue;
+    }
+    if (entries.some((e) => e.isFile && e.name.endsWith(".jsonl"))) return true;
+  }
+  return false;
+}
+
+/**
  * List all sessions across all project directories.
  * Sorted by mtime descending (most recent first).
  * Observer/telemetry project dirs (see {@link isObserverProjectDir}) are skipped.

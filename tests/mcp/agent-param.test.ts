@@ -259,3 +259,14 @@ describe("period tools", () => {
     expect(d.texts.join("\n")).not.toContain("note:");
   });
 });
+
+describe("an empty Claude Code projects folder next to Codex logs", () => {
+  it("audit_latest_session answers for Codex instead of failing", async () => {
+    const fs = codexOnlyFs();
+    fs.mkdir("/home/u/.claude/projects/test-proj");
+    const r = await call("audit_latest_session", {}, fs);
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("cx1");
+  });
+});
+

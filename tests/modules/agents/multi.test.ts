@@ -15,9 +15,15 @@ import {
 } from "../../../src/modules/agents/multi.js";
 import type { Agent } from "../../../src/modules/agents/types.js";
 
-function setup(o: { claude?: boolean; codex?: boolean; cursorGlobal?: boolean; cwdClaudeMd?: boolean; cwdCursor?: boolean }) {
+function setup(o: { claude?: boolean; claudeEmpty?: boolean; codex?: boolean; cursorGlobal?: boolean; cwdClaudeMd?: boolean; cwdCursor?: boolean }) {
   const fs = new InMemoryFs();
   if (o.claude) fs.writeFile("/h/.claude/projects/p/a.jsonl", "", 1);
+  // The folder exists (Claude Code installed) but holds no transcript yet.
+  if (o.claudeEmpty) {
+    fs.mkdir("/h/.claude/projects/p");
+    fs.writeFile("/h/.claude/projects/p/notes.txt", "x", 1);
+    fs.writeFile("/h/.claude/projects/x-claude-mem-observer/o.jsonl", "", 1);
+  }
   if (o.codex) fs.writeFile("/h/.codex/sessions/2026/10/01/rollout-a.jsonl", "", 1);
   if (o.cursorGlobal) fs.mkdir("/h/.cursor");
   if (o.cwdClaudeMd) fs.writeFile("/w/CLAUDE.md", "x", 1);
@@ -107,6 +113,25 @@ describe("resolveDisplayAgents", () => {
     expect(await one({ cursorGlobal: true, codex: true })).toEqual(["codex"]);
     expect(await one({ cursorGlobal: true })).toEqual(["claude-code"]);
     expect(await one({ cursorGlobal: true }, "cursor")).toEqual(["cursor"]);
+  });
+
+  it("Claude Code counts as having logs only with a transcript: an empty projects folder does not hide Codex", async () => {
+    expect(await ids({ claudeEmpty: true, codex: true })).toEqual(["codex"]);
+    const err: string[] = [];
+    // why --json / receipt --json / MCP audit_latest_session: Codex, not a failing Claude Code section.
+    expect(await ids({ claudeEmpty: true, codex: true }, undefined, true, err, true)).toEqual(["codex"]);
+    expect(err).toEqual([]);
+    expect(await ids({ claudeEmpty: true, codex: true, cwdClaudeMd: true }, undefined, false, [], true)).toEqual(["codex"]);
+    // Nothing anywhere: Claude Code stays the fallback (its own "no sessions" message).
+    expect(await ids({ claudeEmpty: true })).toEqual(["claude-code"]);
+  });
+
+  it("a Cursor folder still shows Claude Code logs in period commands", async () => {
+    expect(await ids({ cwdCursor: true, claude: true })).toEqual(["claude-code"]);
+    expect(await ids({ cwdCursor: true, claude: true, codex: true })).toEqual(["claude-code", "codex"]);
+    expect(await ids({ cursorGlobal: true, claude: true, codex: true }, undefined, true)).toEqual(["claude-code"]);
+    // No readable logs at all: the Cursor pick (and its E009) stays.
+    expect(await ids({ cwdCursor: true, claudeEmpty: true })).toEqual(["cursor"]);
   });
 
   it("honours an explicit --agent", async () => {

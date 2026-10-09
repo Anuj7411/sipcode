@@ -391,3 +391,23 @@ describe("Codex wording in the reports", () => {
     expect(r.out).toContain("cx1");
   });
 });
+
+describe("an empty Claude Code projects folder next to Codex logs", () => {
+  const emptyClaudeFs = (): InMemoryFs => {
+    const fs = codexOnlyFs();
+    fs.mkdir("/home/u/.claude/projects/test-proj");
+    return fs;
+  };
+  for (const [name, run] of [
+    ["why", why],
+    ["receipt", receipt],
+  ] as Array<[string, Run]>) {
+    it(`${name} --json reports the Codex session instead of failing on Claude Code`, async () => {
+      const r = await run({ json: true }, emptyClaudeFs());
+      expect(r.exitCode).toBe(0);
+      expect(r.err).not.toMatch(/E003/);
+      expect(r.out).toContain("cx1");
+    });
+  }
+});
+

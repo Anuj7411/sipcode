@@ -8,7 +8,7 @@ import type { FileSystem } from "../../lib/fs.js";
 import { formatNum, formatTokensShort } from "../../lib/format.js";
 import { MESSAGES } from "../../lib/messages.js";
 import type { ProcessEnv } from "../../lib/process.js";
-import { resolveProjectsDir } from "../transcript/discover.js";
+import { hasClaudeTranscripts, resolveProjectsDir } from "../transcript/discover.js";
 import { parseAgentFlag } from "./cli.js";
 import { detectAgent, type AgentDetectResult } from "./detect.js";
 import { getAgentById } from "./registry.js";
@@ -55,16 +55,21 @@ export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<Displ
     i.singleSession && !getAgentById(detect.agent).transcriptParsingSupported
       ? "claude-code"
       : detect.agent;
+  // Claude Code has logs only with a transcript (an empty projects folder has none).
+  const claudeHasLogs = await hasClaudeTranscripts(i.fs, resolveProjectsDir(i.env));
   let ids: AgentId[];
   if (base === "claude-code") {
-    // A Claude Code pick without a transcripts folder has nothing to show.
-    const claudeHasLogs = await i.fs.exists(resolveProjectsDir(i.env));
+    // A Claude Code pick without transcripts has nothing to show.
     if (claudeHasLogs) ids = codexInstalled ? ["claude-code", "codex"] : ["claude-code"];
     else ids = codexInstalled ? ["codex"] : ["claude-code"];
   } else if (base !== "codex" && !getAgentById(base).transcriptParsingSupported) {
-    // A Cursor pick has no session logs Sipcode can read: next to Codex it
-    // would only add an E009 section, so Codex is shown alone.
-    ids = codexInstalled ? ["codex"] : [base];
+    // A Cursor pick has no session logs Sipcode can read: the tools that do
+    // have logs are shown instead (an E009 section would only add noise).
+    // Nothing to show at all: the Cursor pick stays, with its E009.
+    const withLogs: AgentId[] = [];
+    if (claudeHasLogs) withLogs.push("claude-code");
+    if (codexInstalled) withLogs.push("codex");
+    ids = withLogs.length > 0 ? withLogs : [base];
   } else {
     ids = codexInstalled && base !== "codex" ? [base, "codex"] : [base];
   }
