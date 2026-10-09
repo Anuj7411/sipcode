@@ -133,6 +133,7 @@ export async function runReceipt(
     json: opts.json ?? false,
     stderr,
     singleSession: true,
+    sessionLookup: opts.session !== undefined,
   });
   if (!shown.ok) return { exitCode: 1 };
   const agents = shown.agents;

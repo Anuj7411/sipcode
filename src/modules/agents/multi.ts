@@ -32,6 +32,12 @@ export interface DisplayAgentsInput {
    * Claude Code logs before. An explicit --agent cursor is still honoured.
    */
   readonly singleSession?: boolean | undefined;
+  /**
+   * An explicit --session <prefix>: it names one session, so JSON keeps every
+   * tool for the lookup (as the terminal does) and the pick decides which tool
+   * the one JSON report is about. No "Codex logs found too" note then.
+   */
+  readonly sessionLookup?: boolean | undefined;
 }
 
 export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<DisplayAgents> {
@@ -63,7 +69,7 @@ export async function resolveDisplayAgents(i: DisplayAgentsInput): Promise<Displ
     ids = codexInstalled && base !== "codex" ? [base, "codex"] : [base];
   }
 
-  if (i.json && ids.length > 1) {
+  if (i.json && ids.length > 1 && !i.sessionLookup) {
     const first = getAgentById(ids[0]!);
     i.stderr(`${OTHER_AGENT_NOTE} JSON covers ${first.displayName}; run with --agent codex for Codex.`);
     ids = [ids[0]!];

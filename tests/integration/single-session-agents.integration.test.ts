@@ -192,6 +192,29 @@ for (const [name, run] of commands) {
       expect(codex.err).toBe("");
     });
 
+    it("JSON --session searches both tools: a Codex-only id is found, a Claude id is unchanged", async () => {
+      const codex = await run({ json: true, session: "cx1" }, bothFs());
+      expect(codex.exitCode).toBe(0);
+      expect(codex.out).toBe((await run({ json: true, agent: "codex", session: "cx1" }, bothFs())).out);
+      expect(codex.err).toBe("");
+      const claude = await run({ json: true, session: "readheavy" }, bothFs());
+      expect(claude.exitCode).toBe(0);
+      expect(claude.out).toBe((await run({ json: true, session: "readheavy" }, claudeFs())).out);
+      // The id named one session: no "Codex logs found too" note.
+      expect(claude.err).not.toMatch(/--agent codex/);
+    });
+
+    it("JSON --session matching both tools: the terminal's error, exit 1", async () => {
+      const fs = bothFs();
+      fs.writeFile("/home/u/.claude/projects/test-proj/cx-claude.jsonl", loadFixture("minimal-2turn.jsonl"), 1_000);
+      const json = await run({ json: true, session: "cx" }, fs);
+      const terminal = await run({ session: "cx" }, fs);
+      expect(json.exitCode).toBe(1);
+      expect(json.out).toBe("");
+      expect(json.err).toBe(terminal.err);
+      expect(json.err).toContain(`[E003] "cx" matches sessions in more than one tool:`);
+    });
+
     it("with --here, the other-tool hint keeps --here", async () => {
       const fs = new InMemoryFs();
       fs.writeFile("/home/u/.claude/projects/-w/readheavy1.jsonl", loadFixture("read-heavy.jsonl"), Date.parse("2026-05-02T09:00:30Z"));
