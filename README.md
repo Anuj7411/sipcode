@@ -350,7 +350,7 @@ npm uninstall -g sipcode
 | `sipcode benchmark` | Run the locked 20-task corpus for a verifiable savings number |
 | `sipcode estimate` | Predict what a task will cost across models before you run it |
 | `sipcode today` | Today's spend summary vs your 30-day median |
-| `sipcode stats` | Cumulative token savings across all sessions |
+| `sipcode stats` | Cumulative token savings across all sessions (`--html` writes `.sipcode/stats.html` for Claude Code and `.sipcode/stats-codex.html` for Codex) |
 | `sipcode forecast` | Month-end spend projection from your last 14 days |
 | `sipcode trend` | Track one metric over time, to see if it's getting better |
 | `sipcode why` | Per-session forensics: where your tokens died |

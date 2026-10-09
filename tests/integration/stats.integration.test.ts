@@ -425,6 +425,21 @@ describe("runStats: Claude Code and Codex sections", () => {
   };
   const codexOnly = () => withCodex(new InMemoryFs());
 
+  it("--html names the file by tool: stats.html for Claude Code, stats-codex.html for Codex", async () => {
+    const html = async (opts: Parameters<typeof runStats>[0], fs: InMemoryFs): Promise<string[]> => {
+      const paths: string[] = [];
+      await runStats(
+        { since: "30d", html: true, cwd: "/work/proj", ...opts },
+        { fs, env: makeEnv(), clock: new FakeClock(NOW), stdout: () => {}, stderr: () => {}, writeFile: async (p) => void paths.push(p.replace(/\\/g, "/")) },
+      );
+      return paths;
+    };
+    expect(await html({ agent: "codex" }, withCodex())).toEqual(["/work/proj/.sipcode/stats-codex.html"]);
+    expect(await html({}, codexOnly())).toEqual(["/work/proj/.sipcode/stats-codex.html"]);
+    expect(await html({}, withCodex())).toEqual(["/work/proj/.sipcode/stats.html", "/work/proj/.sipcode/stats-codex.html"]);
+    expect(await html({ agent: "claude-code" }, withCodex())).toEqual(["/work/proj/.sipcode/stats.html"]);
+  });
+
   it("shows a Claude Code section and a Codex section, then the combined line", async () => {
     const r = await run({ since: "30d" }, withCodex());
     expect(r.exitCode).toBe(0);

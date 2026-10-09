@@ -150,7 +150,7 @@ export async function runStats(
     combined: true,
     stdout,
     stderr,
-    run: (agent, index) =>
+    run: (agent) =>
       statsForAgent(agent, {
         opts,
         fs,
@@ -161,8 +161,8 @@ export async function runStats(
         topN,
         groupBy,
         writeFile,
-        // A second section writes its own HTML file instead of overwriting the first.
-        htmlName: index === 0 ? "stats.html" : `stats-${agent.id}.html`,
+        // One file per tool, whatever else is shown: stats.html (Claude Code), stats-codex.html.
+        htmlName: agent.id === "codex" ? "stats-codex.html" : "stats.html",
       }),
   });
   return { exitCode };
