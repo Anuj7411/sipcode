@@ -1,8 +1,9 @@
 /**
- * Filesystem seam — the ONLY place in src/ that imports node:fs.
+ * Filesystem seam for reading session logs and project files.
  *
- * Everything else takes a `FileSystem` instance so InMemoryFs can replace
- * the real disk in tests.
+ * The transcript pipeline and the commands built on it take a `FileSystem`
+ * instance, so InMemoryFs can replace the real disk in tests. Some modules
+ * still use node:fs directly (writers, caches, the CLI's own files).
  */
 import * as nodeFs from "node:fs";
 import { promises as fs } from "node:fs";

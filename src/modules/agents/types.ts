@@ -1,12 +1,13 @@
 /**
  * Agent abstraction — the multi-agent moat.
  *
- * S043 milestone scope-limited surface: rules injection + manifest target
- * are agent-aware; transcript parsing is claude-code-only (cursor stubs E009).
+ * Rules injection and the manifest target are agent-aware for Claude Code
+ * and Cursor; session logs are parsed for Claude Code and Codex (Cursor
+ * returns E009, and so does writing rules for Codex).
  *
  * Each agent has its own quirks:
- *   - where its rules live (CLAUDE.md vs .cursor/rules/*.mdc vs .cursorrules)
- *   - whether it produces a parseable transcript (cc=yes, cursor=not yet)
+ *   - where its rules live (CLAUDE.md, .cursor/rules/*.mdc or .cursorrules, AGENTS.md)
+ *   - whether its session logs can be parsed (Claude Code and Codex yes, Cursor no)
  *   - how it's detected as "installed" in a given cwd
  *
  * Adapters wrap those quirks behind a single Agent interface so commands

@@ -16,15 +16,15 @@
  *     }
  *   }
  *
- * Tools exposed:
- *   - audit_latest_session      → wraps `sipcode why` (forensic spend audit)
- *   - list_recent_sessions      → wraps `sipcode why --list`
- *   - get_project_manifest      → wraps `sipcode manifest` (generates on demand)
- *   - estimate_task_cost        → wraps `sipcode estimate "<task>"`
+ * Tools exposed: the 15 in TOOL_DEFS below (session audits and lists,
+ * stats, today, forecast, drift, impact, manifest, estimate, score, proxy
+ * status / install / uninstall, server info). The seven that read session
+ * logs take an optional `agent` ("claude-code" | "codex").
  *
  * Privacy contract: this server runs entirely on the user's machine. It
- * reads the same local files the CLI reads (~/.claude/projects/*.jsonl,
- * the cwd's source files, the pricing data shipped with Sipcode). It
+ * reads the same local files the CLI reads (Claude Code logs under
+ * ~/.claude/projects, Codex logs under $CODEX_HOME (default ~/.codex), the
+ * cwd's source files, the pricing data shipped with Sipcode). It
  * makes zero network calls itself. The privacy guard test
  * (tests/privacy/no-network.test.ts) covers this file too.
  */
