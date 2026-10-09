@@ -60,7 +60,7 @@ Sipcode now reads OpenAI Codex CLI session logs for spend analytics, and Claude 
 - Compressed Codex logs (`.jsonl.zst`) are skipped, and a note says how many.
 
 ### Internal
-- `scripts/verify-counts.mjs` (dev only, not shipped): an independent token counter that imports nothing from Sipcode and cross-checks every period command, cold and warm cache, against the same Claude Code and Codex logs. On the maintainer's real logs: 213 checks match, 0 mismatches (Claude Code: 181 files, 26,747 requests, 3,182 copied requests dropped across 8 files; Codex: 15 files, 930 requests).
+- `scripts/verify-counts.mjs` (dev only, not shipped): an independent token counter that imports nothing from Sipcode and cross-checks every period command, cold and warm cache, against the same Claude Code and Codex logs. On the maintainer's real logs: 210 checks match, 0 mismatches (Claude Code: 188 files, 26,782 requests, 3,182 copied requests dropped across 8 files; Codex: 15 files, 930 requests).
 - Three slow tests got their own timeouts after measuring past or near vitest's 5s default under full-suite load. Snapshot files are pinned to LF line endings (`.gitattributes`), so a test run on Windows no longer leaves them modified.
 - Test count: 1,404 to 2,014 (`npx vitest run`, which includes the 19 e2e tests).
 
