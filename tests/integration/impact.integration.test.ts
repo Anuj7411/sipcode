@@ -131,3 +131,22 @@ describe("runImpactCommand --agent cursor", () => {
   });
 });
 
+describe("runImpactCommand: Codex with no install marker", () => {
+  it("never tells Codex users to run rules --install (it returns E009 for Codex)", async () => {
+    for (const fs of [withCodex(new InMemoryFs()), new InMemoryFs()]) {
+      const r = await run({ agent: "codex" }, fs);
+      expect(r.out).not.toContain("rules --install");
+      expect(r.out).toContain("not supported for Codex yet");
+      expect(r.out).toContain("--since YYYY-MM-DD");
+      const j = JSON.parse((await run({ agent: "codex", json: true }, fs)).out);
+      expect(JSON.stringify(j)).not.toContain("rules --install");
+      expect(j.headline).toContain("not supported for Codex yet");
+    }
+  });
+
+  it("Claude Code keeps its rules --install advice", async () => {
+    const r = await run({}, claudeFs());
+    expect(r.out).toContain("sipcode rules --install");
+  });
+});
+

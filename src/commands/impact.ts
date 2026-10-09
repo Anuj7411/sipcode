@@ -185,6 +185,8 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
     markerSource,
     nowIso: clock.now().toISOString(),
     agent: agentLabel(agent),
+    // rules --install returns E009 for Codex: never suggest it there.
+    setupSupported: agent.id !== "codex",
   });
 
   if (opts.json) {
