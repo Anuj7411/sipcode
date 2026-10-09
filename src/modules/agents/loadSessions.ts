@@ -175,14 +175,21 @@ type Read =
   | {
       readonly ok: true;
       readonly session: ParsedSession;
-      /** Characters and UTF-8 bytes read (the text itself is not kept: a log can be hundreds of MB). */
+      /** Characters read (the text itself is not kept: a log can be hundreds of MB). */
       readonly chars: number;
-      readonly bytes: number;
+      /** UTF-8 bytes read, when asked for (it costs a pass over the text). */
+      readonly bytes: number | undefined;
     }
   | { readonly ok: false; readonly unreadable: boolean; readonly issues: SipcodeIssue[] };
 
 /** Read and parse one file; `maxChars` cuts text appended since an earlier read of it. */
-async function readParse(agent: Agent, deps: AgentDeps, meta: SessionMeta, maxChars?: number): Promise<Read> {
+async function readParse(
+  agent: Agent,
+  deps: AgentDeps,
+  meta: SessionMeta,
+  maxChars?: number,
+  wantBytes = false,
+): Promise<Read> {
   let text: string;
   try {
     text = await deps.fs.readFile(meta.filePath);
@@ -192,7 +199,7 @@ async function readParse(agent: Agent, deps: AgentDeps, meta: SessionMeta, maxCh
   if (maxChars !== undefined && text.length > maxChars) text = text.slice(0, maxChars);
   const parsed = agent.parseTranscript(text);
   return parsed.ok
-    ? { ok: true, session: parsed.value, chars: text.length, bytes: Buffer.byteLength(text, "utf8") }
+    ? { ok: true, session: parsed.value, chars: text.length, bytes: wantBytes ? Buffer.byteLength(text, "utf8") : undefined }
     : { ok: false, unreadable: false, issues: parsed.error };
 }
 
@@ -330,7 +337,7 @@ export async function loadSessions<R>(
   // next read).
   const parseOne = async (i: number): Promise<void> => {
     const meta = all[i]!;
-    const r = await readParse(agent, deps, meta);
+    const r = await readParse(agent, deps, meta, undefined, cache !== null);
     if (cache) {
       parsedNow[i] = 1;
       cacheDirty = true;
