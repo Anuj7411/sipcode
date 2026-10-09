@@ -13,7 +13,7 @@ import { shortSessionId } from "../lib/session-id.js";
 import type { SipcodeIssue } from "../lib/errors.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { parseTranscriptVerbose, type ParsedSession } from "../modules/transcript/parse.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import { analyzeTokens, analyzeUnpriced } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
@@ -188,6 +188,9 @@ export async function runWhy(
 
   // Analyze.
   const totals = analyzeTokens(session, pricing);
+  // Tokens on a model with no known price are left out of the cost: say so.
+  const unpriced = analyzeUnpriced(session, pricing);
+  const unpricedNote = unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined;
   const dups = analyzeDuplicateReads(session);
   const idle = analyzeIdleContext(session);
   const topEx = analyzeTopExpensive(session);
@@ -218,6 +221,7 @@ export async function runWhy(
 
   if (opts.json) {
     stdout(formatJson(report));
+    if (unpricedNote) stderr(unpricedNote);
   } else {
     const useColor =
       env.get("NO_COLOR") === undefined && (process.stdout?.isTTY ?? false);
@@ -228,6 +232,10 @@ export async function runWhy(
         agentId: agent.id,
       }),
     );
+    if (unpricedNote) {
+      stdout("");
+      stdout(unpricedNote);
+    }
     if (picked.others.length > 0) {
       stdout("");
       for (const o of picked.others) stdout(otherAgentHint(o, opts.here ?? false));

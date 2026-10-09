@@ -30,7 +30,7 @@ import { MESSAGES } from "../lib/messages.js";
 import type { SipcodeIssue } from "../lib/errors.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { parseTranscriptVerbose, type ParsedSession } from "../modules/transcript/parse.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import { analyzeTokens, analyzeUnpriced } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
@@ -213,6 +213,9 @@ export async function runReceipt(
   const asOf = pricingAsOf(pricing, provider);
   const ageDays = daysSinceAsOf(asOf, clock.now());
   const totals = analyzeTokens(session, pricing);
+  // Tokens on a model with no known price are left out of the cost: say so.
+  const unpriced = analyzeUnpriced(session, pricing);
+  const unpricedNote = unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined;
   const dups = analyzeDuplicateReads(session);
   const idle = analyzeIdleContext(session);
   const topEx = analyzeTopExpensive(session);
@@ -296,6 +299,7 @@ export async function runReceipt(
       dateDisplay: model.header.dateDisplay,
     };
     stdout(JSON.stringify(payload, null, 2));
+    if (unpricedNote) stderr(unpricedNote);
     return {
       exitCode: 0,
       htmlPath: posix(htmlAbs),
@@ -309,6 +313,7 @@ export async function runReceipt(
   // With both tools shown, name the tool the receipt is about.
   if (agents.length > 1) stdout(sectionHeader(agent.displayName));
   stdout(formatTerminal(model, { useColor }));
+  if (unpricedNote) stdout(unpricedNote);
 
   // wrote ... + file:// link
   if (pngWritten) {
