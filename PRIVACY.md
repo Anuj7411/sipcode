@@ -17,6 +17,7 @@ Sipcode is a CLI that reads your machine and writes to your machine. it does not
 local files only:
 
 - **`~/.claude/projects/<hash>/*.jsonl`** — claude code's own session transcripts, which it already writes to your machine. `sipcode why`, `stats`, `receipt`, `benchmark` parse these read-only.
+- **`~/.codex/sessions/` and `~/.codex/archived_sessions/`** (or the folder `CODEX_HOME` points to): OpenAI Codex's own session logs, read-only, by `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` (and the MCP session tools) when Codex is installed.
 - **your repo's source files** — for `manifest`, `score`, `init`. tree-sitter does the parsing in-process.
 - **git history (via local `git`)** — for hot-files and change-frequency. invokes the `git` binary on disk via the standard child-process API.
 - **the pricing file shipped in the npm package** — `src/lib/pricing/*.json`. ships with each release. never fetched.
@@ -29,6 +30,10 @@ every write is triggered by a command you ran. no background writes, no opportun
 - **one named sub-block in your `CLAUDE.md`** — between recognizable markers. `sipcode rules --uninstall` reverses it byte-identically.
 - **optional entries in `~/.claude/settings.json`** — ONLY when you run `sipcode hygiene --install`. never otherwise. `--uninstall` removes them.
 - **optional hook scripts at `~/.claude/hooks/sipcode-*.mjs`** — same gate. these scripts also run zero-network; the privacy guard test scans them too.
+- **local caches under `~/.sipcode/`**, written by the commands that use them, so repeat runs do not re-read every log:
+  - `~/.sipcode/usage-cache/claude-code.json` and `~/.sipcode/usage-cache/codex.json` (`today`, `forecast`): for each session log, its size and modified time plus token counts, model names, timestamps, request ids, the session's working folder and the paths of files the agent read. never message text, prompts, file contents or command output.
+  - `~/.sipcode/drift/sessions-v3.jsonl` (`drift`): per-session metrics (session id, end time, token counts, cache-hit rate, duplicate-read tokens, project folder hash). `~/.sipcode/drift/configs.jsonl` keeps the names of your Claude Code MCP servers over time, so drift can say when a change lines up with a regression. an older `~/.sipcode/drift/sessions.jsonl` from before v1.7.0 is no longer used and can be deleted.
+  - none of these are ever uploaded. to remove them, delete the folder (for example `rm -rf ~/.sipcode/usage-cache ~/.sipcode/drift`). they are rebuilt on the next run; the only cost is a slower first run.
 - **the receipt PNG is copied to your system clipboard** — ONLY when you run `sipcode receipt`, never silently. via the OS's standard clipboard tool, locally.
 
 ## What sipcode never does without you running a command

@@ -15,7 +15,7 @@
   <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-1%2C404%20passing-28C840" alt="1404 tests passing" />
+  <img src="https://img.shields.io/badge/tests-1%2C925%20passing-28C840" alt="1925 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -67,6 +67,7 @@ It is open source under the MIT license. It makes zero network calls during norm
 | **Zero false-dedup by construction** | ✓ | n/a | n/a | n/a |
 | **Reproducible benchmark on locked corpus** | ✓ 62.6% median (20 synthetic tasks) | ✗ | ✗ | ✗ |
 | **Self-introspection MCP tools** | ✓ 15 tools | ✗ | ✗ | partial |
+| **Agents covered** | Claude Code (all features); OpenAI Codex (spend analytics only, no hook) | not compared | not compared | not compared |
 | **Zero network calls in normal use** | ✓ | ✓ | n/a | ✗ |
 | **MIT licensed** | ✓ | ✓ | ✓ | ✓ |
 
@@ -99,6 +100,8 @@ Tells you if your current Claude Code session is drifting from your normal usage
 ```
 ✓ Sipcode drift: no drift, context health stable vs your recent baseline.
 ```
+
+By default it checks your most recent session, across Claude Code and Codex. `--session <id>` checks a specific one, `--here` limits it to sessions from the folder you are in, and `--agent claude-code` or `--agent codex` picks the tool.
 
 ### 2. `sipcode proxy --stats`
 
@@ -136,6 +139,32 @@ Month-end projection based on your last 14 days.
 ```
 projected month-end   $17,674   (range $14,139 to $21,208)
 ```
+
+---
+
+## Codex
+
+Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.codex/archived_sessions`, or the folder `CODEX_HOME` points to). For Codex this is spend analytics only: Sipcode reports what your Codex sessions used and where the tokens went. It does not change what Codex does.
+
+**Commands that read Codex:** `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift`, plus the session tools in the MCP server (they take an optional `agent` input: `"claude-code"` or `"codex"`).
+
+- `--agent codex` shows Codex only. `--agent claude-code` shows Claude Code only.
+- With no `--agent` flag and both tools installed, `stats`, `today`, `forecast`, `trend` and `impact` print one section per tool. `stats`, `today` and `forecast` end with one combined line, in this shape:
+
+  ```
+  Both tools: <total tokens> tokens · ~$<Claude Code> + ~$<Codex>
+  ```
+
+- `why`, `receipt` and `drift` report on the most recent session across both tools. When the other tool has a recent session too, a one-line hint names it and the flag that shows it.
+- `--here` works for Codex too: it matches the working folder Codex recorded for each session.
+- `--json` covers one tool per call. Without `--agent` it covers Claude Code and prints a note on stderr when Codex logs exist too. Add `--agent codex` for Codex JSON.
+- With no `--agent` flag on a machine with Cursor and Codex, Sipcode shows Codex (it does not read Cursor's session logs).
+
+**How Codex tokens are counted.** Sipcode reads Codex's per-request usage records, or, in logs from older Codex versions, the change in the running total Codex logs after each request. Cached input is part of Codex's input count, so Sipcode never bills cached tokens twice. A request copied into a resumed or forked session file is counted once. On the maintainer's machine, Sipcode's per-file totals equal Codex's own final `total_token_usage` on all 15 real session logs, and an independent counter that shares no code with Sipcode ([`scripts/verify-counts.mjs`](scripts/verify-counts.mjs)) cross-checks every period command against the same logs.
+
+**Prices.** Codex models are priced from OpenAI's API price table ([developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing), as of 2026-10-08), including the long-context rate for prompts over 272,000 input tokens. A model with no known price is shown as unpriced: its tokens are still counted, a line under the cost says how many were left out of it, and it is never shown as $0.
+
+**Not supported for Codex yet:** writing rules to `AGENTS.md` (`rules`, and the rules step of `init`), registering the MCP server in Codex, the proxy and hooks (`proxy`, `hygiene`), `estimate` and `benchmark`. `rules --agent codex` and `estimate --agent codex` stop with error E009 instead of showing Claude Code data. Compressed Codex logs (`.jsonl.zst`) are skipped, and a note says how many.
 
 ---
 
@@ -179,7 +208,7 @@ Verify it installed:
 sipcode --version
 ```
 
-You should see `1.6.21` or higher.
+You should see `1.7.0` or higher.
 
 ### Step 3. Run `sipcode init` to wire it into Claude Code
 
@@ -258,7 +287,7 @@ After updating, confirm with `sipcode --version` and see what changed in the [CH
 | Context-rot detection | Warns when your Claude Code session is starting to behave worse than your norm |
 | Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
-| Spend telemetry | Daily, monthly, projected. All from your own transcripts, no cloud upload |
+| Spend telemetry | Daily, monthly, projected. All from your own transcripts (Claude Code and Codex), no cloud upload |
 | Task cost estimation | Predicts what a coding task will cost across Opus, Sonnet, and Haiku before you run it |
 | Codebase health score | Rates your repo 0-100 on how easy it is for an AI agent to work in |
 | MCP server | 15 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
@@ -276,6 +305,8 @@ Yes. MIT license. No tracking. No telemetry sent to us. No paid tier. You can re
 
 No. Sipcode makes zero network calls during normal use. Everything runs locally on your machine. We have a privacy test that fails if any network code is imported into the source.
 
+To make repeat runs fast, Sipcode keeps a few caches on your own disk under `~/.sipcode/` (token counts per session log for `today` and `forecast`, per-session metrics for `drift`). They never hold message text, are never uploaded, and are rebuilt automatically if you delete them. [PRIVACY.md](PRIVACY.md) lists exactly what is stored and where.
+
 ### How is it different from other context tools?
 
 See the [comparison page](https://anuj7411.github.io/sipcode/compare/). The short version: Sipcode is the only one with a published reproducible benchmark, zero false-dedup by architecture, and mid-session install support.
@@ -286,7 +317,7 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 ### Does it work with Cursor or other AI tools?
 
-Today, only with Claude Code (since Claude Code is the only tool that exposes the hooks Sipcode needs). Support for other CLIs is something we are exploring.
+The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift`); see [Codex](#codex) for what works and what is not supported for Codex yet. For Cursor, `sipcode rules --agent cursor` writes the output-compression rules to Cursor's rules file; Cursor's session logs are not read.
 
 ### How do I update?
 
@@ -314,7 +345,7 @@ npm uninstall -g sipcode
 | `sipcode hygiene` | Install Session Hygiene: read-once rules + context-pressure hooks |
 | `sipcode rules` | Install, switch, or inspect the output-compression rules in CLAUDE.md |
 | `sipcode manifest` | Generate or refresh the project manifest |
-| `sipcode drift` | Check if the current session is drifting from your norm |
+| `sipcode drift` | Check if the current session is drifting from your norm (`--session`, `--here`, `--agent`) |
 | `sipcode proxy --stats` | See what the proxy caught this session (also `--install` / `--uninstall`) |
 | `sipcode benchmark` | Run the locked 20-task corpus for a verifiable savings number |
 | `sipcode estimate` | Predict what a task will cost across models before you run it |
@@ -329,7 +360,7 @@ npm uninstall -g sipcode
 
 Run any of them with `--help` for full options.
 
-**Tip: which sessions do these report on?** By default, `why`, `stats`, `today`, `forecast`, `trend`, and `impact` look across **all** your projects, not just the folder you are standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope any of them to the project you are currently in, add `--here` (for example, `sipcode why --here` or `sipcode today --here`). Use `sipcode why --list` to see every session and pick a specific one with `--session <id>`.
+**Tip: which sessions do these report on?** By default, `why`, `stats`, `today`, `forecast`, `trend`, `impact`, `receipt` and `drift` look across **all** your projects, not just the folder you are standing in. So if you run `sipcode why` inside project A but project B had the most recent activity, you will see project B. To scope any of them to the project you are currently in, add `--here` (for example, `sipcode why --here` or `sipcode today --here`). The same goes for Codex sessions. Use `sipcode why --list` to see every session and pick a specific one with `--session <id>`.
 
 ---
 
@@ -337,6 +368,7 @@ Run any of them with `--help` for full options.
 
 - Node.js 18 or newer
 - Claude Code installed (for the proxy hook). Sipcode also works as standalone CLI tools (benchmark, score, etc.) without Claude Code installed.
+- Optional: OpenAI Codex CLI, for Codex spend analytics.
 
 ---
 

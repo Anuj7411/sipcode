@@ -6,7 +6,9 @@ Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/c
 
 On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pairs, not recordings of live sessions), Sipcode's mechanisms remove 62.6% of tokens at the median (range 37.4% to 80.6%), totalling 3,567,170 tokens and $22.48 priced as Claude Opus 4.7. Anyone can reproduce these numbers with `sipcode benchmark`. Real-world savings depend on the workload. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode is solo-maintained, MIT licensed, has 1,404 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet.
+
+Sipcode is solo-maintained, MIT licensed, has 1,925 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
@@ -53,8 +55,8 @@ Sipcode ships an MCP server exposing 15 tools so Claude Code can introspect its 
 
 ## Source code
 
-- [GitHub repository](https://github.com/Anuj7411/sipcode): MIT licensed source, 1,404 tests
-- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.6.21
+- [GitHub repository](https://github.com/Anuj7411/sipcode): MIT licensed source, 1,925 tests
+- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.7.0
 - [Privacy test](https://github.com/Anuj7411/sipcode/blob/main/src): build-blocking check that no network modules are imported in `src/`
 
 ## License
