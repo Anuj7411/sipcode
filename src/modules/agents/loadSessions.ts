@@ -31,17 +31,6 @@ export interface LoadSessionsInput {
    * are only scanned for dedupe and not returned. Omit to load everything.
    */
   readonly windowSinceMs?: number | undefined;
-  /**
-   * Load exactly these sessions (already discovered by the caller) instead of
-   * running discovery and --here. Dedupe then covers only these sessions.
-   */
-  readonly sessions?: ReadonlyArray<SessionMeta> | undefined;
-  /**
-   * Sessions that only claim their request keys for dedupe and are not
-   * returned (drift: sessions whose metrics are cached). Scanned when the agent
-   * has scanRequestKeys, otherwise fully parsed.
-   */
-  readonly scanOnly?: ((meta: SessionMeta) => boolean) | undefined;
 }
 
 export interface LoadSessionsOutput {
@@ -54,7 +43,7 @@ export interface LoadSessionsOutput {
   readonly unreadableFolders: number;
   /** Compressed logs skipped on purpose (Codex `.jsonl.zst`). */
   readonly skippedCompressed: number;
-  /** Files read for dedupe only (older than windowSinceMs, or scanOnly), not returned. */
+  /** Files scanned for dedupe only (older than windowSinceMs), not returned. */
   readonly scannedOnly: number;
   readonly droppedDuplicateRequests: number;
   readonly issues: SipcodeIssue[];
@@ -149,20 +138,13 @@ export async function loadSessions(
   input: LoadSessionsInput,
 ): Promise<Result<LoadSessionsOutput, SipcodeIssue[]>> {
   const { agent, deps, cwd } = input;
-  let found: AgentDiscovery;
-  let metas: SessionMeta[];
-  if (input.sessions) {
-    metas = [...input.sessions];
-    found = { sessions: metas, unreadable: 0, unreadableFolders: 0, skippedCompressed: 0, issues: [] };
-  } else {
-    const discovery = await discoverAgentSessions(agent, deps);
-    if (!discovery.ok) return discovery;
-    found = discovery.value;
-    metas = found.sessions;
-    // --here before dedupe is safe: a resumed session stays in its project.
-    if (input.here) metas = metas.filter((m) => agent.matchesCwd(m, cwd));
-  }
-  const discovered = found.sessions.length;
+  const discovery = await discoverAgentSessions(agent, deps);
+  if (!discovery.ok) return discovery;
+  const found = discovery.value;
+  let metas = found.sessions;
+  const discovered = metas.length;
+  // --here before dedupe is safe: a resumed session stays in its project.
+  if (input.here) metas = metas.filter((m) => agent.matchesCwd(m, cwd));
   const scan = agent.scanRequestKeys?.bind(agent);
   const since = input.windowSinceMs;
   const loaded: { meta: SessionMeta; parsed: ParsedSession; stub: boolean }[] = [];
@@ -177,8 +159,7 @@ export async function loadSessions(
       unreadable++;
       continue;
     }
-    const keysOnly = input.scanOnly?.(meta) ?? false;
-    if (scan && (keysOnly || (since !== undefined && meta.mtimeMs < since))) {
+    if (scan && since !== undefined && meta.mtimeMs < since) {
       loaded.push({ meta, parsed: stubSession(agent, meta, scan(content)), stub: true });
       scannedOnly++;
       continue;
@@ -188,8 +169,7 @@ export async function loadSessions(
       issues.push(...parsed.error);
       continue;
     }
-    if (keysOnly) scannedOnly++;
-    loaded.push({ meta, parsed: parsed.value, stub: keysOnly });
+    loaded.push({ meta, parsed: parsed.value, stub: false });
   }
   // Dedupe runs over stubs and parsed sessions together, so an out-of-window
   // original still removes its copies from a newer resumed file.

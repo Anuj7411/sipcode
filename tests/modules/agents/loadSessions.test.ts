@@ -3,7 +3,7 @@ import { InMemoryFs, type FileSystem } from "../../../src/lib/fs.js";
 import { FakeClock } from "../../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../../src/lib/process.js";
 import { claudeCodeAgent } from "../../../src/modules/agents/claude-code/adapter.js";
-import { discoverAgentSessions, loadSessions } from "../../../src/modules/agents/loadSessions.js";
+import { loadSessions } from "../../../src/modules/agents/loadSessions.js";
 
 const req = (id: string, ts: string) =>
   JSON.stringify({
@@ -191,55 +191,5 @@ describe("loadSessions", () => {
     if (!r.ok) throw new Error("load failed");
     expect(r.value.scannedOnly).toBe(0);
     expect(r.value.sessions).toHaveLength(3);
-  });
-});
-
-describe("loadSessions: given sessions + scanOnly (drift)", () => {
-  async function metas(d: ReturnType<typeof deps>) {
-    const r = await discoverAgentSessions(claudeCodeAgent, d);
-    if (!r.ok) throw new Error("discover failed");
-    const byId = new Map(r.value.sessions.map((m) => [m.sessionId, m]));
-    return (id: string) => byId.get(id)!;
-  }
-
-  it("loads exactly the given sessions, without discovery", async () => {
-    const d = deps();
-    const m = await metas(d);
-    const r = await loadSessions({ agent: claudeCodeAgent, deps: d, cwd: "/", sessions: [m("b")] });
-    if (!r.ok) throw new Error("load failed");
-    expect(r.value.discovered).toBe(1);
-    expect(r.value.sessions.map((s) => [s.meta.sessionId, s.parsed.assistantTurns.length])).toEqual([["b", 2]]);
-  });
-
-  it("scanOnly sessions take part in dedupe but are not returned", async () => {
-    const d = deps();
-    const m = await metas(d);
-    const r = await loadSessions({
-      agent: claudeCodeAgent,
-      deps: d,
-      cwd: "/",
-      sessions: [m("b"), m("a")],
-      scanOnly: (meta) => meta.sessionId === "a",
-    });
-    if (!r.ok) throw new Error("load failed");
-    expect(r.value.sessions.map((s) => [s.meta.sessionId, s.parsed.assistantTurns.length])).toEqual([["b", 1]]);
-    expect(r.value.scannedOnly).toBe(1);
-    expect(r.value.droppedDuplicateRequests).toBe(1);
-  });
-
-  it("scanOnly without scanRequestKeys parses fully, still not returned", async () => {
-    const { scanRequestKeys: _unused, ...rest } = claudeCodeAgent;
-    void _unused;
-    const d = deps();
-    const m = await metas(d);
-    const r = await loadSessions({
-      agent: rest as typeof claudeCodeAgent,
-      deps: d,
-      cwd: "/",
-      sessions: [m("b"), m("a")],
-      scanOnly: (meta) => meta.sessionId === "a",
-    });
-    if (!r.ok) throw new Error("load failed");
-    expect(r.value.sessions.map((s) => [s.meta.sessionId, s.parsed.assistantTurns.length])).toEqual([["b", 1]]);
   });
 });
