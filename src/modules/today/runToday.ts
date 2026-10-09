@@ -131,7 +131,8 @@ function buildTodayBlock(
     ) {
       topLeak = {
         kind: "duplicate-reads",
-        description: `${s.topDuplicateReadFile.count} re-reads of ${shortPath(s.topDuplicateReadFile.path)}`,
+        // count is every read of the file (the first one included); the rest are re-reads.
+        description: `${reReads(s.topDuplicateReadFile.count)} of ${shortPath(s.topDuplicateReadFile.path)}`,
         costUSD: s.topDuplicateReadFile.costUSD,
       };
     }
@@ -234,4 +235,9 @@ function fmtUsd(v: number): string {
 function shortPath(p: string): string {
   const parts = p.split(/[\\/]/);
   return parts.slice(-2).join("/");
+}
+
+function reReads(reads: number): string {
+  const n = Math.max(0, reads - 1);
+  return `${n} re-read${n === 1 ? "" : "s"}`;
 }
