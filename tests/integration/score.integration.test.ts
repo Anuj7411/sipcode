@@ -129,6 +129,9 @@ describe("runScoreCmd integration", () => {
     expect(h2.files.has(htmlPath)).toBe(false);
   });
 
+  // scores the fixture repo twice (disk walk + tree-sitter parse each time):
+  // measured at 3.8s while the full suite runs in parallel, so it gets its
+  // own budget instead of vitest's 5s default.
   it("produces byte-identical JSON, HTML, badge across runs (idempotence)", async () => {
     const a = makeDeps();
     const b = makeDeps();
@@ -158,7 +161,7 @@ describe("runScoreCmd integration", () => {
     );
     expect(a.harness.files.get(htmlPath)).toBe(b.harness.files.get(htmlPath));
     expect(a.harness.files.get(badgePath)).toBe(b.harness.files.get(badgePath));
-  });
+  }, 20_000);
 
   it("JSON envelope shape is stable: top-level keys are fixed", async () => {
     const { harness, deps } = makeDeps();
