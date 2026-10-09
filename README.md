@@ -170,7 +170,7 @@ Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.co
 
 ## How to install (more detail)
 
-Sipcode works on Mac, Linux, and Windows. You need Node.js 18 or newer.
+Sipcode works on Mac, Linux, and Windows. You need Node.js 20 or newer.
 
 ### Step 1. Install Node.js
 
@@ -186,7 +186,7 @@ Verify it worked:
 node --version
 ```
 
-You should see `v18.0.0` or higher.
+You should see `v20.0.0` or higher.
 
 ### Step 2. Install Sipcode globally
 
@@ -366,7 +366,7 @@ Run any of them with `--help` for full options.
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 20 or newer
 - Claude Code installed (for the proxy hook). Sipcode also works as standalone CLI tools (benchmark, score, etc.) without Claude Code installed.
 - Optional: OpenAI Codex CLI, for Codex spend analytics.
 
