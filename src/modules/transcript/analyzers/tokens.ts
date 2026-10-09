@@ -97,13 +97,18 @@ export function addUnpriced(a: UnpricedUsage, b: UnpricedUsage): UnpricedUsage {
  */
 export function isEmptySession(totals: TokenTotals): boolean {
   if (totals.missingAllUsage) return true;
-  return (
-    totals.inputTokens +
-      totals.outputTokens +
-      totals.cacheReadTokens +
-      totals.cacheCreationTokens ===
-    0
+  return !hasTokenUsage(
+    totals.inputTokens + totals.outputTokens + totals.cacheReadTokens + totals.cacheCreationTokens,
   );
+}
+
+/**
+ * The one rule for "this session has something to report": it used tokens.
+ * Assistant turns alone do not count (an in-flight or aborted request logs a
+ * turn with zero usage). isEmptySession and drift's session metrics both use it.
+ */
+export function hasTokenUsage(totalTokens: number): boolean {
+  return totalTokens > 0;
 }
 
 export function analyzeTokens(

@@ -26,6 +26,7 @@ import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
+import { hasTokenUsage } from "../modules/transcript/analyzers/tokens.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import type { ParsedSession, SessionMeta } from "../modules/agents/shared.js";
 import { dropCopiedRequests, type LoadedSession } from "../modules/agents/loadSessions.js";
@@ -270,7 +271,7 @@ export async function runDriftCommand(
       const known = metrics.has(s);
       if (!known) need.push(s);
       const m = metrics.get(s);
-      if (opts.session || !known || (m && m.assistantTurns > 0)) latestAt = i;
+      if (opts.session || !known || (m && hasTokenUsage(m.totalTokens))) latestAt = i;
     }
     if (latestAt < 0) return need;
     const hash = window[latestAt]!.projectHash;
@@ -283,7 +284,7 @@ export async function runDriftCommand(
       const known = metrics.has(s);
       if (!known) need.push(s);
       const m = metrics.get(s);
-      if (!known || (m && m.assistantTurns > 0)) {
+      if (!known || (m && hasTokenUsage(m.totalTokens))) {
         any++;
         if (same) inProject++;
       }
@@ -307,16 +308,17 @@ export async function runDriftCommand(
     await pruneIfLarge(sessionsPath, io);
   }
 
-  // 6. The latest session. Empty (0 assistant turns) sessions are in-flight
-  // or aborted; using them as `latest` raised v1.6.2 false alarms
+  // 6. The latest session. Empty sessions (no token usage, whatever their
+  // turn count: hasTokenUsage, the rule the pick uses too) are in-flight or
+  // aborted; using them as `latest` raised v1.6.2 false alarms
   // (cacheHitRate=0, tokensPerTurn=0 ≈ catastrophic). Without --session the
   // newest non-empty one wins (a resumed file can be empty after dedupe).
-  if (!opts.session) latestIdx = pool.findIndex((m) => m.assistantTurns > 0);
+  if (!opts.session) latestIdx = pool.findIndex((m) => hasTokenUsage(m.totalTokens));
   const latest = latestIdx >= 0 ? pool[latestIdx] : undefined;
   if (!latest) return noData(opts, [agent.displayName], stdout);
 
   // 7. Per-project history, with global fallback when too sparse.
-  const tail = pool.slice(latestIdx + 1).filter((m) => m.assistantTurns > 0);
+  const tail = pool.slice(latestIdx + 1).filter((m) => hasTokenUsage(m.totalTokens));
   const projectHistory = latest.projectHash
     ? tail.filter((m) => m.projectHash === latest.projectHash).slice(0, WINDOW)
     : [];
@@ -404,7 +406,7 @@ function pickFromCache(
       if (meta.isSubagent) continue;
       const c = fresh(meta);
       if (!c) return undefined;
-      if (c.assistantTurns > 0) {
+      if (hasTokenUsage(c.totalTokens)) {
         found.push({ agent, meta });
         break;
       }

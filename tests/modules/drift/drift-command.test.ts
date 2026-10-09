@@ -350,6 +350,29 @@ describe("runDriftCommand", () => {
     expect(out.join("\n")).not.toContain("⚠");
   });
 
+  it("a newest session with turns but no token usage is never latest, cold or warm (cached by an earlier --session run)", async () => {
+    const zeroUsage = JSON.stringify({
+      type: "assistant",
+      timestamp: "2026-06-01T00:00:00.000Z",
+      sessionId: "Z",
+      message: { model: "claude-sonnet-4-5", usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }, content: [] },
+    });
+    const files = { Z: zeroUsage, B: transcript("B", 100), C: transcript("C", 100), D: transcript("D", 100), E: transcript("E", 100) };
+    const fs = new InMemoryFs();
+    writeSessions(fs, files, ["Z", "B", "C", "D", "E"]);
+    const storeIO = memStoreIO();
+    const cold: string[] = [];
+    await runDriftCommand({ json: true }, baseDeps(fs, cold, "/tmp/test-drift-zero", storeIO));
+    expect(JSON.parse(cold.join("\n")).latest.sessionId).toBe("B");
+    // An explicit --session Z puts Z's metrics in the cache ...
+    await runDriftCommand({ json: true, session: "Z" }, baseDeps(fs, [], "/tmp/test-drift-zero", storeIO));
+    // ... and the warm pick still passes over it.
+    const warm: string[] = [];
+    await runDriftCommand({ json: true }, baseDeps(fs, warm, "/tmp/test-drift-zero", storeIO));
+    expect(JSON.parse(warm.join("\n")).latest.sessionId).toBe("B");
+    expect(warm).toEqual(cold);
+  });
+
   const req = (id: string, input: number) =>
     JSON.stringify({
       type: "assistant",
