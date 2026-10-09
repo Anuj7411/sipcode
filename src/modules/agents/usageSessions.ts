@@ -71,10 +71,41 @@ let tmpSeq = 0;
 /** Lines buffered before a write to the temp file. */
 const FLUSH_CHARS = 1 << 20;
 
+/** A temp file untouched this long was left by a killed writer (live ones write every 1 MB). */
+const STALE_TMP_MS = 15 * 60 * 1000;
+
+/**
+ * Removes `<cache>.<pid>.<n>.tmp` files left beside the cache by a process
+ * killed between writing and renaming. Only old ones: a recent one may be a
+ * concurrent writer's. Errors are ignored (it is housekeeping).
+ */
+async function removeStaleTemps(file: string): Promise<void> {
+  const dir = path.dirname(file);
+  const base = path.basename(file);
+  const own = new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.\\d+\\.\\d+\\.tmp$`);
+  let names: string[];
+  try {
+    names = await nodeFs.readdir(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!own.test(name)) continue;
+    const p = path.join(dir, name);
+    try {
+      const st = await nodeFs.stat(p);
+      if (Date.now() - st.mtimeMs > STALE_TMP_MS) await nodeFs.rm(p, { force: true });
+    } catch {
+      // gone already, or not ours to remove
+    }
+  }
+}
+
 /** The cache on disk. Writes go to a temp file renamed into place. */
 export function fileUsageCacheIO(file: string): UsageCacheIO {
   return {
     async *lines() {
+      await removeStaleTemps(file);
       let handle: nodeFs.FileHandle;
       try {
         handle = await nodeFs.open(file, "r");

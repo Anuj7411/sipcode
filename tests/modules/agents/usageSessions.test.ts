@@ -300,6 +300,32 @@ describe("fileUsageCacheIO", () => {
     }
   });
 
+  it("reading the cache removes temp files a killed writer left, never a recent one", async () => {
+    const { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } = await import("node:fs");
+    const os = await import("node:os");
+    const dir = mkdtempSync(path.join(os.tmpdir(), "sipcode-usage-cache-"));
+    try {
+      const file = path.join(dir, "claude-code.json");
+      writeFileSync(file, "header\n");
+      const old = Date.now() / 1000 - 3600;
+      for (const n of ["claude-code.json.111.0.tmp", "claude-code.json.222.7.tmp"]) {
+        writeFileSync(path.join(dir, n), "partial");
+        utimesSync(path.join(dir, n), old, old);
+      }
+      writeFileSync(path.join(dir, "claude-code.json.333.1.tmp"), "being written"); // recent: another process may be writing it
+      writeFileSync(path.join(dir, "codex.json.444.0.tmp"), "other cache");
+      utimesSync(path.join(dir, "codex.json.444.0.tmp"), old, old);
+      writeFileSync(path.join(dir, "notes.tmp"), "x");
+      utimesSync(path.join(dir, "notes.tmp"), old, old);
+      const back: string[] = [];
+      for await (const l of fileUsageCacheIO(file).lines()) back.push(l);
+      expect(back).toEqual(["header"]);
+      expect(readdirSync(dir).sort()).toEqual(["claude-code.json", "claude-code.json.333.1.tmp", "codex.json.444.0.tmp", "notes.tmp"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("no cache file: no lines", async () => {
     const io = fileUsageCacheIO(path.join(process.cwd(), "no-such-dir", "x.json"));
     const back: string[] = [];
