@@ -8,7 +8,7 @@ import { issue, type SipcodeIssue } from "../../../lib/errors.js";
 import type { Agent, AgentDeps, AgentRulesRead, SessionDiscovery } from "../types.js";
 import type { SessionMeta } from "../shared.js";
 import { hasCodexRollout, listCodexSessions, resolveCodexHome } from "./discover.js";
-import { parseCodexRollout } from "./parse.js";
+import { parseCodexRollout, scanCodexRequestKeys } from "./parse.js";
 
 const RULES_FILE_NAME = "AGENTS.md";
 
@@ -54,6 +54,10 @@ export const codexAgent: Agent = {
 
   parseTranscript(content: string) {
     return parseCodexRollout(content);
+  },
+
+  scanRequestKeys(content: string) {
+    return scanCodexRequestKeys(content);
   },
 
   matchesCwd(meta: SessionMeta, cwd: string): boolean {

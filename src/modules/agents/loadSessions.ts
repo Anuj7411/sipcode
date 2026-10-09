@@ -190,24 +190,99 @@ export async function loadSessions(
   });
 }
 
-/** Clock and write-order jitter allowed by the copy-window rule in couldHoldCopy. */
+/** Clock and write-order jitter allowed by Claude Code's copy-window rule (copyCandidates). */
 const COPY_WINDOW_SLACK_MS = 60 * 60 * 1000;
 
 /**
- * Whether `other` can hold a copy of one of `target`'s requests.
- * Claude Code: a resumed session stays in its project folder, and copied
- * lines keep their original timestamps, so every request in the target is
- * logged at or after its startedAt; a file holding the same request was
- * written at or after that moment too. A file in another folder, or last
- * written before the target started, holds none of its requests.
- * Codex: forks may restamp copied history and can run in another folder, so
- * every Codex log is a candidate.
+ * Codex families: logs joined by the fork / subagent / root links line 1
+ * names (SessionMeta.lineage). A request is copied only from a thread into
+ * the threads forked or spawned from it, so two logs holding the same
+ * request are in one family. A family is open (null) when a link names a
+ * thread with no readable log (deleted, compressed): the logs on its other
+ * side cannot be told apart, so an open log is a candidate for every target.
+ * A log without lineage is open too.
  */
-function couldHoldCopy(agent: Agent, target: LoadedSession, other: SessionMeta): boolean {
-  if (agent.id !== "claude-code") return true;
-  if (other.projectHash !== target.meta.projectHash) return false;
-  const start = target.parsed.startedAt ? Date.parse(target.parsed.startedAt) : NaN;
-  return !Number.isFinite(start) || other.mtimeMs >= start - COPY_WINDOW_SLACK_MS;
+function codexFamilies(all: ReadonlyArray<SessionMeta>): (m: SessionMeta) => string | null {
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    let r = x;
+    for (let p = parent.get(r); p !== undefined && p !== r; p = parent.get(r)) r = p;
+    for (let y = x; y !== r; ) {
+      const next = parent.get(y)!;
+      parent.set(y, r);
+      y = next;
+    }
+    return r;
+  };
+  const union = (a: string, b: string): void => {
+    if (!parent.has(a)) parent.set(a, a);
+    if (!parent.has(b)) parent.set(b, b);
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  const known = new Set<string>();
+  for (const m of all) {
+    if (!m.lineage) continue;
+    known.add(m.lineage.id);
+    union(m.lineage.id, m.lineage.id);
+    for (const l of m.lineage.linkedIds) union(m.lineage.id, l);
+  }
+  const open = new Set<string>();
+  for (const id of parent.keys()) if (!known.has(id)) open.add(find(id));
+  return (m) => {
+    if (!m.lineage) return null;
+    const root = find(m.lineage.id);
+    return open.has(root) ? null : root;
+  };
+}
+
+/**
+ * Which logs can hold a copy of one of the targets' requests (the rest
+ * cannot change what the targets keep, so they are never read).
+ * Claude Code: a resumed session stays in its project folder, and copied
+ * lines keep their original timestamps, so every request in a target is
+ * logged at or after the target's (as logged) start; a file holding the same
+ * request was written at or after that moment too. A file in another folder,
+ * or last written before the target started, holds none of its requests.
+ * Codex: forks may restamp copied history and run in another folder, so only
+ * the family links decide (codexFamilies).
+ * Other agents: every log.
+ */
+export function copyCandidates(
+  agent: Agent,
+  all: ReadonlyArray<SessionMeta>,
+  targets: ReadonlyArray<{ readonly meta: SessionMeta; readonly startedAt: string | undefined }>,
+): (other: SessionMeta) => boolean {
+  if (agent.id === "claude-code") {
+    const since = new Map<string, number>();
+    for (const t of targets) {
+      const start = t.startedAt ? Date.parse(t.startedAt) : NaN;
+      const s = Number.isFinite(start) ? start - COPY_WINDOW_SLACK_MS : Number.NEGATIVE_INFINITY;
+      const cur = since.get(t.meta.projectHash);
+      if (cur === undefined || s < cur) since.set(t.meta.projectHash, s);
+    }
+    return (o) => {
+      const s = since.get(o.projectHash);
+      return s !== undefined && o.mtimeMs >= s;
+    };
+  }
+  if (agent.id === "codex") {
+    const family = codexFamilies(all);
+    const families = new Set<string>();
+    let anyOpen = false;
+    for (const t of targets) {
+      const f = family(t.meta);
+      if (f === null) anyOpen = true;
+      else families.add(f);
+    }
+    return (o) => {
+      if (anyOpen) return true;
+      const f = family(o);
+      return f === null || families.has(f);
+    };
+  }
+  return () => true;
 }
 
 /**
@@ -217,7 +292,7 @@ function couldHoldCopy(agent: Agent, target: LoadedSession, other: SessionMeta):
  * started first keeps a request). A resumed Claude Code session or a Codex
  * fork then reports only its own requests; reads in the dropped history
  * become priorReads, so a later read of the same file still counts as a
- * re-read. Only files that can hold a copy (couldHoldCopy) are read, and
+ * re-read. Only files that can hold a copy (copyCandidates) are read, and
  * only their request keys (scanRequestKeys) when the agent has a scanner.
  * Unreadable or unparseable candidates are skipped.
  */
@@ -232,9 +307,14 @@ export async function dropCopiedRequests(i: {
   const targetFiles = new Set(targets.map((t) => t.meta.filePath));
   const scan = agent.scanRequestKeys?.bind(agent);
   const others: ParsedSession[] = [];
+  const candidate = copyCandidates(
+    agent,
+    i.all,
+    targets.map((t) => ({ meta: t.meta, startedAt: t.parsed.startedAt })),
+  );
   for (const meta of i.all) {
     if (targetFiles.has(meta.filePath)) continue;
-    if (!targets.some((t) => couldHoldCopy(agent, t, meta))) continue;
+    if (!candidate(meta)) continue;
     let content: string;
     try {
       content = await deps.fs.readFile(meta.filePath);

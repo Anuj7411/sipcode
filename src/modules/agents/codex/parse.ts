@@ -23,7 +23,7 @@
 import path from "node:path";
 import { ok, type Result } from "../../../lib/result.js";
 import type { SipcodeIssue } from "../../../lib/errors.js";
-import type { AssistantTurn, ParsedSession, ToolCall } from "../../transcript/parse.js";
+import { own, type AssistantTurn, type KeyScan, type ParsedSession, type ToolCall } from "../../transcript/parse.js";
 import { detectShellRead, unwrapShellArgv } from "./readDetect.js";
 
 interface Usage {
@@ -41,6 +41,13 @@ export interface CodexMeta {
   readonly cwd?: string | undefined;
   readonly cliVersion?: string | undefined;
   readonly isSubagent: boolean;
+  /**
+   * Threads this one copied history from or was started by, as line 1 names
+   * them: forked_from_id, parent_thread_id (also inside source.subagent's
+   * thread_spawn) and session_id when it is not the thread's own id (Codex
+   * sets it to the root thread). Empty for a thread that names none.
+   */
+  readonly linkedIds: readonly string[];
 }
 
 type Line = { timestamp?: string; type?: string; payload?: Record<string, unknown> };
@@ -61,12 +68,17 @@ function metaFrom(p: Record<string, unknown> | undefined): CodexMeta {
   const isSubagent =
     (typeof source === "object" && source !== null && "subagent" in source) ||
     typeof p?.parent_thread_id === "string";
+  const id = str(p?.id);
+  const spawn = typeof source === "object" && source !== null ? (source.subagent as { thread_spawn?: { parent_thread_id?: unknown } } | undefined)?.thread_spawn : undefined;
+  const linked = [str(p?.forked_from_id), str(p?.parent_thread_id), str(spawn?.parent_thread_id), str(p?.session_id)];
+  const linkedIds = [...new Set(linked.filter((x): x is string => x !== undefined && x !== id))];
   return {
-    id: str(p?.id),
-    rootSessionId: str(p?.session_id) ?? str(p?.id),
+    id,
+    rootSessionId: str(p?.session_id) ?? id,
     cwd: str(p?.cwd),
     cliVersion: str(p?.cli_version),
     isSubagent,
+    linkedIds,
   };
 }
 
@@ -74,7 +86,7 @@ function metaFrom(p: Record<string, unknown> | undefined): CodexMeta {
 export function parseCodexMeta(content: string): CodexMeta {
   const nl = content.indexOf("\n");
   const l = parseLine(nl >= 0 ? content.slice(0, nl) : content);
-  return l?.type === "session_meta" ? metaFrom(l.payload) : { isSubagent: false };
+  return l?.type === "session_meta" ? metaFrom(l.payload) : { isSubagent: false, linkedIds: [] };
 }
 
 const n = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0);
@@ -365,15 +377,134 @@ export function parseCodexRollout(content: string): Result<ParsedSession, Sipcod
   return ok(parseCodexRolloutWithStats(content).session);
 }
 
+/**
+ * Token accounting shared by the parser and the key scan, so both see the
+ * same requests: session_meta, turn_context, token_usage_record and
+ * token_count lines. Tool calls stay with the parser (`pending`).
+ */
+interface TokenState {
+  meta: CodexMeta;
+  metaSeen: boolean;
+  readonly turnModel: Map<string, string>;
+  readonly turnIds: Set<string>;
+  anonymousTurns: number;
+  currentModel: string | undefined;
+  turnCwd: string | undefined;
+  readonly turns: RawTurn[];
+  pending: PendingCall[];
+  readonly seenKeys: Set<string>;
+  recordSeen: boolean;
+  prevTotal: Usage | undefined;
+}
+
+function newTokenState(): TokenState {
+  return {
+    meta: { isSubagent: false, linkedIds: [] },
+    metaSeen: false,
+    turnModel: new Map(),
+    turnIds: new Set(),
+    anonymousTurns: 0,
+    currentModel: undefined,
+    turnCwd: undefined,
+    turns: [],
+    pending: [],
+    seenKeys: new Set(),
+    recordSeen: false,
+    prevTotal: undefined,
+  };
+}
+
+/** Line types tokenLine reads; every other line only contributes its timestamp. */
+const TOKEN_TYPES: ReadonlySet<string> = new Set(["session_meta", "turn_context", "token_usage_record"]);
+
+/** Handles one parsed line if it is a token line (see TokenState); false for any other line. */
+function tokenLine(s: TokenState, type: unknown, p: Record<string, unknown>, ts: string | undefined): boolean {
+  const push = (t: Omit<RawTurn, "calls">) => {
+    s.turns.push({ ...t, calls: s.pending });
+    s.pending = [];
+  };
+  if (type === "session_meta") {
+    if (!s.metaSeen) { s.meta = metaFrom(p); s.metaSeen = true; }
+    return true;
+  }
+  if (type === "turn_context") {
+    const turnId = str(p.turn_id);
+    if (typeof p.model === "string") {
+      s.currentModel = p.model;
+      if (turnId) s.turnModel.set(turnId, p.model);
+    }
+    if (str(p.cwd)) s.turnCwd = p.cwd as string;
+    if (turnId) s.turnIds.add(turnId);
+    else s.anonymousTurns++;
+    return true;
+  }
+  if (type === "token_usage_record") {
+    const usage = (p.usage && typeof p.usage === "object" ? p.usage : {}) as Usage;
+    const thread = (p.thread_token_usage && typeof p.thread_token_usage === "object" ? p.thread_token_usage : undefined) as Usage | undefined;
+    if (!s.recordSeen) {
+      s.recordSeen = true;
+      // token_count turns logged before the first record (a file resumed under a
+      // newer Codex) stay only if the thread total says they precede this record.
+      if (thread) {
+        const before = n(thread.total_tokens) - n(usage.total_tokens);
+        while (s.turns.length) {
+          const last = s.turns[s.turns.length - 1]!;
+          if (last.cumulative === undefined || last.cumulative <= before) break;
+          s.turns.pop();
+          s.pending = [...last.calls, ...s.pending];
+        }
+      }
+    }
+    const root = s.meta.rootSessionId ?? s.meta.id;
+    const key = str(p.response_id) ??
+      (thread && root
+        ? `codex:${root}:rec:${n(thread.total_tokens)}:${n(thread.input_tokens)}:${n(thread.cached_input_tokens)}:${n(thread.output_tokens)}`
+        : undefined);
+    if (key) {
+      if (s.seenKeys.has(key)) return true;
+      s.seenKeys.add(key);
+    }
+    const turnId = str(p.turn_id);
+    const model = (turnId ? s.turnModel.get(turnId) : undefined) ?? s.currentModel;
+    push({ usage, model, ts, key });
+    return true;
+  }
+  if (type === "event_msg" && p.type === "token_count") {
+    if (s.recordSeen) return true;
+    const info = p.info as { total_token_usage?: Usage; last_token_usage?: Usage } | null | undefined;
+    if (!info?.total_token_usage || typeof info.total_token_usage !== "object") return true;
+    const T = info.total_token_usage;
+    const last = info.last_token_usage ?? {};
+    const prevTotal = s.prevTotal;
+    if (prevTotal && sameUsage(T, prevTotal)) return true;
+    // Cumulative total went backwards: the counter was reset; start a new baseline.
+    if (prevTotal && n(T.total_tokens) < n(prevTotal.total_tokens)) { s.prevTotal = T; return true; }
+    let delta: Usage = last;
+    if (prevTotal) {
+      const sum = n(prevTotal.total_tokens) + n(last.total_tokens);
+      delta = sum === n(T.total_tokens) ? last : minus(T, prevTotal);
+    }
+    s.prevTotal = T;
+    if (n(delta.input_tokens) === 0 && n(delta.output_tokens) === 0 && n(delta.cached_input_tokens) === 0) return true;
+    // Key = root session + the FULL cumulative vector: fork copies (same root, same totals)
+    // dedupe, while a subagent's own counter (restarting at 0) cannot realistically collide.
+    const root = s.meta.rootSessionId ?? s.meta.id;
+    const key = root
+      ? `codex:${root}:${n(T.total_tokens)}:${n(T.input_tokens)}:${n(T.cached_input_tokens)}:${n(T.output_tokens)}`
+      : undefined;
+    if (key) {
+      if (s.seenKeys.has(key)) return true;
+      s.seenKeys.add(key);
+    }
+    push({ usage: delta, model: s.currentModel, ts, key, cumulative: n(T.total_tokens) });
+    return true;
+  }
+  return false;
+}
+
 export function parseCodexRolloutWithStats(content: string): { session: ParsedSession; stats: CodexParseStats } {
   const lines = content.split(/\r?\n/);
-  let meta: CodexMeta = { isSubagent: false };
-  let metaSeen = false;
-  const turnModel = new Map<string, string>();
-  const turnIds = new Set<string>();
-  let anonymousTurns = 0;
-  let currentModel: string | undefined;
-  let turnCwd: string | undefined;
+  const st = newTokenState();
   let firstTs: string | undefined;
   let lastTs: string | undefined;
   let parsed = 0;
@@ -381,17 +512,6 @@ export function parseCodexRolloutWithStats(content: string): { session: ParsedSe
   const outputs = new Map<string, string>();
   const seenCallIds = new Set<string>();
   let wrapped = 0;
-
-  const turns: RawTurn[] = [];
-  let pending: PendingCall[] = [];
-  const seenKeys = new Set<string>();
-  let recordSeen = false;
-  let prevTotal: Usage | undefined;
-
-  const push = (t: Omit<RawTurn, "calls">) => {
-    turns.push({ ...t, calls: pending });
-    pending = [];
-  };
 
   for (const raw of lines) {
     if (!raw.trim()) continue;
@@ -404,21 +524,6 @@ export function parseCodexRolloutWithStats(content: string): { session: ParsedSe
       if (!lastTs || ts > lastTs) lastTs = ts;
     }
     const p = l.payload;
-    if (l.type === "session_meta") {
-      if (!metaSeen) { meta = metaFrom(p); metaSeen = true; }
-      continue;
-    }
-    if (l.type === "turn_context") {
-      const turnId = str(p.turn_id);
-      if (typeof p.model === "string") {
-        currentModel = p.model;
-        if (turnId) turnModel.set(turnId, p.model);
-      }
-      if (str(p.cwd)) turnCwd = p.cwd as string;
-      if (turnId) turnIds.add(turnId);
-      else anonymousTurns++;
-      continue;
-    }
     if (l.type === "response_item") {
       const t = p.type;
       if (t === "function_call" || t === "custom_tool_call" || t === "local_shell_call") {
@@ -427,73 +532,18 @@ export function parseCodexRolloutWithStats(content: string): { session: ParsedSe
           if (seenCallIds.has(id)) continue; // copied item (fork history)
           seenCallIds.add(id);
         }
-        const r = toCalls(p, { ts, cwd: turnCwd ?? meta.cwd });
+        const r = toCalls(p, { ts, cwd: st.turnCwd ?? st.meta.cwd });
         wrapped += r.wrapped;
-        pending.push(...r.calls);
+        st.pending.push(...r.calls);
       } else if ((t === "function_call_output" || t === "custom_tool_call_output") && typeof p.call_id === "string") {
         if (!outputs.has(p.call_id)) outputs.set(p.call_id, outputText(p.output));
       }
       continue;
     }
-    if (l.type === "token_usage_record") {
-      const usage = (p.usage && typeof p.usage === "object" ? p.usage : {}) as Usage;
-      const thread = (p.thread_token_usage && typeof p.thread_token_usage === "object" ? p.thread_token_usage : undefined) as Usage | undefined;
-      if (!recordSeen) {
-        recordSeen = true;
-        // token_count turns logged before the first record (a file resumed under a
-        // newer Codex) stay only if the thread total says they precede this record.
-        if (thread) {
-          const before = n(thread.total_tokens) - n(usage.total_tokens);
-          while (turns.length) {
-            const last = turns[turns.length - 1]!;
-            if (last.cumulative === undefined || last.cumulative <= before) break;
-            turns.pop();
-            pending = [...last.calls, ...pending];
-          }
-        }
-      }
-      const root = meta.rootSessionId ?? meta.id;
-      const key = str(p.response_id) ??
-        (thread && root
-          ? `codex:${root}:rec:${n(thread.total_tokens)}:${n(thread.input_tokens)}:${n(thread.cached_input_tokens)}:${n(thread.output_tokens)}`
-          : undefined);
-      if (key) {
-        if (seenKeys.has(key)) continue;
-        seenKeys.add(key);
-      }
-      const turnId = str(p.turn_id);
-      const model = (turnId ? turnModel.get(turnId) : undefined) ?? currentModel;
-      push({ usage, model, ts, key });
-      continue;
-    }
-    if (l.type === "event_msg" && p.type === "token_count" && !recordSeen) {
-      const info = p.info as { total_token_usage?: Usage; last_token_usage?: Usage } | null | undefined;
-      if (!info?.total_token_usage || typeof info.total_token_usage !== "object") continue;
-      const T = info.total_token_usage;
-      const last = info.last_token_usage ?? {};
-      if (prevTotal && sameUsage(T, prevTotal)) continue;
-      // Cumulative total went backwards: the counter was reset; start a new baseline.
-      if (prevTotal && n(T.total_tokens) < n(prevTotal.total_tokens)) { prevTotal = T; continue; }
-      let delta: Usage = last;
-      if (prevTotal) {
-        const sum = n(prevTotal.total_tokens) + n(last.total_tokens);
-        delta = sum === n(T.total_tokens) ? last : minus(T, prevTotal);
-      }
-      prevTotal = T;
-      if (n(delta.input_tokens) === 0 && n(delta.output_tokens) === 0 && n(delta.cached_input_tokens) === 0) continue;
-      // Key = root session + the FULL cumulative vector: fork copies (same root, same totals)
-      // dedupe, while a subagent's own counter (restarting at 0) cannot realistically collide.
-      const root = meta.rootSessionId ?? meta.id;
-      const key = root
-        ? `codex:${root}:${n(T.total_tokens)}:${n(T.input_tokens)}:${n(T.cached_input_tokens)}:${n(T.output_tokens)}`
-        : undefined;
-      if (key) {
-        if (seenKeys.has(key)) continue;
-        seenKeys.add(key);
-      }
-      push({ usage: delta, model: currentModel, ts, key, cumulative: n(T.total_tokens) });
-    }
+    tokenLine(st, l.type, p, ts);
   }
+  const { meta, turns, turnIds, anonymousTurns, recordSeen } = st;
+  const pending = st.pending;
   let droppedCalls = 0;
   if (pending.length) {
     if (turns.length) turns[turns.length - 1]!.calls.push(...pending);
@@ -542,4 +592,62 @@ export function parseCodexRolloutWithStats(content: string): { session: ParsedSe
     agent: "codex", isSubagent: meta.isSubagent,
   };
   return { session, stats: { execWrappedCommands: wrapped, failedReads, droppedCalls, usedRecords: recordSeen } };
+}
+
+/** `{"timestamp":"…",["ordinal":N,]"type":"…","payload":{`: the layout Codex writes every line in. */
+const LINE_HEAD = /^\{"timestamp":"([^"\\]*)",(?:"ordinal":\d+,)?"type":"([a-z_]+)","payload":\{/;
+
+/**
+ * Fast dedupe-only scan of a rollout: what parseCodexRollout would give
+ * cross-file dedupe (request keys in first-seen order, keyless turn count,
+ * first / last timestamp), without building tool calls. Token lines go
+ * through the parser's own code (tokenLine); every other line in Codex's
+ * usual layout only gives its timestamp, without JSON.parse. Lines in any
+ * other layout, and the last line (the one a crash can leave cut short), are
+ * parsed exactly; like the Claude Code scan, a line damaged in the middle
+ * that still ends with `}` gives its timestamp. Equivalence with the parser is pinned by
+ * tests/modules/agents/codex/scanKeys.test.ts.
+ */
+export function scanCodexRequestKeys(content: string): KeyScan {
+  const st = newTokenState();
+  let firstTs: string | undefined;
+  let lastTs: string | undefined;
+  const lines = content.split(/\r?\n/);
+  let lastLine = lines.length - 1;
+  while (lastLine >= 0 && !lines[lastLine]!.trim()) lastLine--;
+  for (let i = 0; i <= lastLine; i++) {
+    const raw = lines[i]!;
+    const line = raw.trim();
+    if (!line) continue;
+    let ts: string | undefined;
+    const head = i < lastLine && line.endsWith("}") ? LINE_HEAD.exec(line) : null;
+    if (
+      head &&
+      !TOKEN_TYPES.has(head[2]!) &&
+      !(head[2] === "event_msg" && line.includes('"token_count"'))
+    ) {
+      ts = head[1] || undefined;
+    } else {
+      const l = parseLine(raw);
+      if (!l || !l.payload || typeof l.payload !== "object") continue;
+      ts = typeof l.timestamp === "string" ? l.timestamp : undefined;
+      tokenLine(st, l.type, l.payload, ts);
+    }
+    if (ts) {
+      if (!firstTs || ts < firstTs) firstTs = ts;
+      if (!lastTs || ts > lastTs) lastTs = ts;
+    }
+  }
+  const keys: string[] = [];
+  let keylessTurns = 0;
+  for (const t of st.turns) {
+    if (t.key === undefined) keylessTurns++;
+    else keys.push(t.key);
+  }
+  return {
+    keys,
+    keylessTurns,
+    startedAt: firstTs === undefined ? undefined : own(firstTs),
+    endedAt: lastTs === undefined ? undefined : own(lastTs),
+  };
 }

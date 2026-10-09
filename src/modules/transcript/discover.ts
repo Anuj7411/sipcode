@@ -26,6 +26,13 @@ export interface SessionMeta {
    * from line 1. Listings mark it; ParsedSession.isSubagent stays the rule.
    */
   readonly isSubagent?: boolean | undefined;
+  /**
+   * Codex: the thread id line 1 records, and the threads it names as its
+   * fork source, parent or root (CodexMeta.linkedIds). Absent when line 1
+   * is not a session_meta with an id. Decides which logs can hold copies of
+   * each other's requests (loadSessions' copy candidates).
+   */
+  readonly lineage?: { readonly id: string; readonly linkedIds: readonly string[] } | undefined;
 }
 
 export function resolveProjectsDir(env: ProcessEnv): string {

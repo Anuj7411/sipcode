@@ -418,7 +418,7 @@ const M_ID = '"id":"';
  * string, so a key or timestamp kept from the scan would pin the ENTIRE file
  * text (hundreds of MB) in memory until dedupe finishes.
  */
-function own(s: string): string {
+export function own(s: string): string {
   return Buffer.from(s, "utf8").toString("utf8");
 }
 
