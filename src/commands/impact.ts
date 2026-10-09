@@ -24,7 +24,7 @@ import {
   type SectionResult,
 } from "../modules/agents/multi.js";
 import type { Agent } from "../modules/agents/types.js";
-import { MESSAGES } from "../lib/messages.js";
+import { CODEX_IMPACT_LABEL, MESSAGES } from "../lib/messages.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import {
   addUnpriced,
@@ -189,13 +189,17 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
     setupSupported: agent.id !== "codex",
   });
 
+  // A Codex before/after is not Sipcode's doing: it does not act inside Codex.
+  const beforeAfterLabel = agent.id === "codex" && report.installedAtIso ? CODEX_IMPACT_LABEL : undefined;
   if (opts.json) {
     stdout(formatJson(report));
-    // JSON has no field for it: say on stderr that the costs leave tokens out.
+    // JSON has no field for these: they go to stderr.
+    if (beforeAfterLabel) stderr(beforeAfterLabel);
     if (unpriced.requests > 0) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
     stdout(
       formatTerminal(report, {
+        beforeAfterLabel,
         agentName: agent.displayName,
         unpricedNote: unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined,
       }),

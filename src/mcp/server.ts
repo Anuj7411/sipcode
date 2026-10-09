@@ -46,7 +46,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { RealGit } from "../lib/git.js";
-import { isUnpricedNote, MESSAGES } from "../lib/messages.js";
+import { CODEX_IMPACT_LABEL, isUnpricedNote, MESSAGES } from "../lib/messages.js";
 import { shortSessionId } from "../lib/session-id.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { isOtherAgentNote, resolveDisplayAgents } from "../modules/agents/multi.js";
@@ -140,24 +140,29 @@ class Captured {
   get otherAgent(): boolean {
     return this.err.some(isOtherAgentNote);
   }
-  /** The unpriced-tokens note the command printed on stderr (--json has no field for it). */
-  get unpriced(): string[] {
-    return this.err.filter(isUnpricedNote);
+  /**
+   * Notes the command printed on stderr because --json has no field for
+   * them: the unpriced-tokens note, the Codex impact label.
+   */
+  get notes(): string[] {
+    return this.err.filter(isJsonNote);
   }
   /** stderr without those notes. */
   get errors(): string {
-    return this.err.filter((l) => !isOtherAgentNote(l) && !isUnpricedNote(l)).join("\n").trim();
+    return this.err.filter((l) => !isOtherAgentNote(l) && !isJsonNote(l)).join("\n").trim();
   }
 }
 
+const isJsonNote = (l: string): boolean => isUnpricedNote(l) || l === CODEX_IMPACT_LABEL;
+
 /**
- * Adds, each as its own text item after the result, the unpriced-tokens note
- * (the cost leaves those tokens out) and the other-tool hint when the
- * command left Codex out. Never inside the JSON item.
+ * Adds, each as its own text item after the result, the notes --json prints
+ * on stderr (unpriced tokens, the Codex impact label) and the other-tool hint
+ * when the command left Codex out. Never inside the JSON item.
  */
 function withHint(result: CallToolResult, c: Captured): CallToolResult {
   if (result.isError) return result;
-  const extra = [...c.unpriced, ...(c.otherAgent ? [OTHER_AGENT_HINT] : [])];
+  const extra = [...c.notes, ...(c.otherAgent ? [OTHER_AGENT_HINT] : [])];
   if (extra.length === 0) return result;
   return { ...result, content: [...result.content, ...extra.map((text) => ({ type: "text" as const, text }))] };
 }

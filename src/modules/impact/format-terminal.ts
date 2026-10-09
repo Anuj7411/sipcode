@@ -153,6 +153,8 @@ function renderAllTimeBlock(allTime: ImpactBucket, opts: FormatOptions): string 
 }
 
 export interface FormatOptions {
+  /** One line shown under the pivot whenever there is a before/after (Codex: not caused by Sipcode). */
+  readonly beforeAfterLabel?: string | undefined;
   /** Agent named in the all-time block. Default: Claude Code. */
   readonly agentName?: string | undefined;
   /** One line under the spend naming tokens on models with no known price. */
@@ -161,6 +163,7 @@ export interface FormatOptions {
 
 export function formatTerminal(report: ImpactReport, opts: FormatOptions = {}): string {
   const parts = [renderHeader(report)];
+  if (opts.beforeAfterLabel && report.installedAtIso) parts.push(`${opts.beforeAfterLabel}\n`);
   if (
     report.status === "no-install-marker"
     || report.status === "no-baseline"

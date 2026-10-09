@@ -232,7 +232,8 @@ describe("period tools", () => {
   it("verify_sipcode_impact: agent codex reads Codex, and the JSON is the whole first item", async () => {
     const r = await call("verify_sipcode_impact", { agent: "codex", since: "2026-05-05", cwd: "/w" }, bothFs());
     expect(r.isError).toBe(false);
-    expect(r.texts).toHaveLength(1);
+    // The JSON, then the label every Codex before/after carries.
+    expect(r.texts).toEqual([r.text, "Sipcode does not act inside Codex yet, so this difference is not caused by Sipcode."]);
     expect(() => JSON.parse(r.text)).not.toThrow();
     const d = await call("verify_sipcode_impact", { since: "2026-05-05", cwd: "/w" }, bothFs());
     expect(() => JSON.parse(d.text)).not.toThrow();

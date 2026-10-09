@@ -150,3 +150,32 @@ describe("runImpactCommand: Codex with no install marker", () => {
   });
 });
 
+describe("runImpactCommand: a Codex before/after is labelled as not caused by Sipcode", () => {
+  const LABEL = "Sipcode does not act inside Codex yet, so this difference is not caused by Sipcode.";
+  it("terminal: one label line on the Codex before/after; the comparison itself is unchanged", async () => {
+    const r = await run({ agent: "codex", since: "2026-05-10" }, withCodex());
+    expect(r.out.split("\n").filter((l) => l === LABEL)).toHaveLength(1);
+    expect(r.out).toContain("BEFORE");
+    expect(r.out.replace(`${LABEL}\n`, "")).not.toContain(LABEL);
+  });
+
+  it("JSON: unchanged, the label goes to stderr", async () => {
+    const r = await run({ agent: "codex", since: "2026-05-10", json: true }, withCodex());
+    expect(r.out).not.toContain(LABEL);
+    expect(() => JSON.parse(r.out)).not.toThrow();
+    expect(r.err).toContain(LABEL);
+  });
+
+  it("Claude Code output is byte-identical (no label)", async () => {
+    const a = await run({ since: "2026-05-10" }, claudeFs());
+    expect(a.out).not.toContain(LABEL);
+    expect(a.err).not.toContain(LABEL);
+  });
+
+  it("no before/after (no marker, no --since): no label", async () => {
+    const r = await run({ agent: "codex" }, withCodex());
+    expect(r.out).not.toContain(LABEL);
+  });
+  // MCP verify_sipcode_impact: see tests/mcp/agent-param.test.ts (the label is the item after the JSON).
+});
+

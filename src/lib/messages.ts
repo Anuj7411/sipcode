@@ -29,6 +29,13 @@ export function isUnpricedNote(line: string): boolean {
   return line.includes(" tokens on models without a known price (") && line.endsWith(UNPRICED_TAIL);
 }
 
+/**
+ * The line under a Codex before/after (impact): Sipcode does not run inside
+ * Codex, so the difference is not its doing. --json prints it on stderr;
+ * MCP returns it as its own text item.
+ */
+export const CODEX_IMPACT_LABEL = "Sipcode does not act inside Codex yet, so this difference is not caused by Sipcode.";
+
 export const MESSAGES = {
   tagline: "sip your tokens. don't gulp them.",
 
