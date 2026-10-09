@@ -38,7 +38,7 @@ import {
   daysSinceAsOf,
   loadPricingForDate,
   newestPricingAsOf,
-  pricingAgeDays,
+  pricingAsOf,
 } from "../lib/pricing/load.js";
 import { priceProvider } from "../modules/agents/latest.js";
 import { anchorAllWindow, parseSince, isInWindow } from "../modules/stats/window.js";
@@ -206,7 +206,9 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
 
   // Pricing — keyed off the window's upper-bound (best snapshot of "today").
   const pricing = loadPricingForDate(new Date(window.untilIso));
-  const ageDays = pricingAgeDays(pricing, clock.now());
+  // The table this section's costs come from: OpenAI's for Codex, Anthropic's for Claude Code.
+  const asOf = pricingAsOf(pricing, priceProvider(agent));
+  const ageDays = daysSinceAsOf(asOf, clock.now());
 
   // Discover, scope (--here), parse and de-duplicate requests that a resumed
   // session file repeats from its original; each session is analyzed as it is
@@ -292,6 +294,7 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
         groupBy,
         pricing,
         pricingAgeDays: ageDays,
+        pricingAsOf: asOf,
         warnings,
       });
       stdout(formatJson(empty));
@@ -314,6 +317,7 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
     groupBy,
     pricing,
     pricingAgeDays: ageDays,
+    pricingAsOf: asOf,
     warnings,
   });
 

@@ -28,6 +28,8 @@ export interface RenderStatsInput {
   readonly groupBy: GroupBy;
   readonly pricing: PricingFile;
   readonly pricingAgeDays: number;
+  /** Date of the price table the costs come from (Codex: the OpenAI table). Default: pricing.as_of. */
+  readonly pricingAsOf?: string | undefined;
   readonly warnings: ReadonlyArray<{ code: string; message: string }>;
 }
 
@@ -116,7 +118,7 @@ export function renderStats(input: RenderStatsInput): StatsResult {
     sessions,
     groupBy: input.groupBy,
     metaPricing: {
-      asOf: input.pricing.as_of,
+      asOf: input.pricingAsOf ?? input.pricing.as_of,
       ageDays: input.pricingAgeDays,
     },
     warnings: input.warnings,

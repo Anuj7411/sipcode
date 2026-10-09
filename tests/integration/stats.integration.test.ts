@@ -541,6 +541,13 @@ describe("runStats: Claude Code and Codex sections", () => {
     const r = await run({ since: "30d", json: true, agent: "codex" }, withCodex());
     const j = JSON.parse(r.out);
     expect(j.agent).toBe("codex");
+    // Priced with the OpenAI table: its date, not the Anthropic one.
+    const { loadPricingForDate, pricingAsOf } = await import("../../src/lib/pricing/load.js");
+    const p = loadPricingForDate(NOW);
+    expect(pricingAsOf(p, "openai")).not.toBe(p.as_of);
+    expect(j.metaPricing.asOf).toBe(pricingAsOf(p, "openai"));
+    const claude = JSON.parse((await run({ since: "30d", json: true, agent: "claude-code" }, withCodex())).out);
+    expect(claude.metaPricing.asOf).toBe(p.as_of);
     expect(j.sessionCount).toBe(1);
     expect(j.totals.totalTokens).toBe(1100);
   });
