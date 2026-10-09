@@ -9,7 +9,12 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import { discoveryNotes, type LoadedSession } from "../modules/agents/loadSessions.js";
+import {
+  defaultUsageCaches,
+  loadUsageSessions,
+  type UsageCaches,
+} from "../modules/agents/usageSessions.js";
 import {
   agentLabel,
   resolveDisplayAgents,
@@ -32,6 +37,8 @@ import { runToday, toLocalDay, type TodaySession } from "../modules/today/runTod
 import { formatTodayTerminal } from "../modules/today/format-terminal.js";
 import { formatTodayJson } from "../modules/today/format-json.js";
 
+const NO_DUPLICATES = { duplicateReadTokenCost: 0, topOffenders: [] } as const;
+
 export interface TodayOptions {
   json?: boolean;
   agent?: string;
@@ -45,6 +52,8 @@ export interface TodayDeps {
   env?: ProcessEnv;
   stdout?: (s: string) => void;
   stderr?: (s: string) => void;
+  /** Usage cache per agent (modules/agents/usageSessions.ts). Default: defaultUsageCaches. */
+  usageCaches?: UsageCaches;
 }
 
 export interface TodayExit {
@@ -79,7 +88,15 @@ export async function runTodayCmd(
     combined: true,
     stdout,
     stderr,
-    run: (agent) => todayForAgent(agent, { opts, fs, env, clock, cwd }),
+    run: (agent) =>
+      todayForAgent(agent, {
+        opts,
+        fs,
+        env,
+        clock,
+        cwd,
+        usageCaches: deps.usageCaches ?? defaultUsageCaches(fs, env),
+      }),
   });
   return { exitCode };
 }
@@ -90,6 +107,7 @@ interface TodayContext {
   readonly env: ProcessEnv;
   readonly clock: Clock;
   readonly cwd: string;
+  readonly usageCaches: UsageCaches;
 }
 
 /** One agent's today report, returned as ordered output instead of printed. */
@@ -105,14 +123,22 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
   const now = clock.now();
   const pricing = loadPricingForDate(now);
 
-  // No windowSinceMs here on purpose: the runners derive "days of history"
-  // (baseline tier, forecast eligibility) from the EARLIEST session, so dropping
-  // old files would change the report status, not just speed it up.
-  const loaded = await loadSessions({
+  // Every session counts (the baseline tier comes from the EARLIEST one), but
+  // only its token usage; tool calls (duplicate reads) only for today's
+  // sessions. Unchanged files come from the usage cache.
+  const todayLocal = toLocalDay(now);
+  const dayStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const isToday = (s: LoadedSession): boolean =>
+    toLocalDay(new Date(s.parsed.startedAt ?? new Date(s.meta.mtimeMs).toISOString())) === todayLocal;
+  const loaded = await loadUsageSessions({
     agent,
     deps: { fs, env, clock },
     cwd: ctx.cwd,
     here: opts.here,
+    cache: ctx.usageCaches(agent.id),
+    needsToolCalls: isToday,
+    // A file last written before today cannot hold a session that started today.
+    keepFull: (meta) => meta.mtimeMs >= dayStartMs,
   });
   if (!loaded.ok) {
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
@@ -123,16 +149,18 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
   const sessions: TodaySession[] = [];
   // Unpriced tokens behind "spend so far": today's sessions only.
   let unpriced = NO_UNPRICED;
-  const todayLocal = toLocalDay(now);
   for (const { meta, parsed } of loaded.value.sessions) {
     const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
 
     const tokens = analyzeTokens(parsed, pricing);
     if (isEmptySession(tokens)) continue;
-    if (toLocalDay(new Date(startedAt)) === todayLocal) {
+    const startedToday = toLocalDay(new Date(startedAt)) === todayLocal;
+    if (startedToday) {
       unpriced = addUnpriced(unpriced, analyzeUnpriced(parsed, pricing));
     }
-    const dups = analyzeDuplicateReads(parsed);
+    // Duplicate reads feed only today's top leak; earlier sessions are
+    // usage-only (no tool calls), so they are not analyzed.
+    const dups = startedToday ? analyzeDuplicateReads(parsed) : NO_DUPLICATES;
     const totalTokens =
       tokens.inputTokens +
       tokens.outputTokens +

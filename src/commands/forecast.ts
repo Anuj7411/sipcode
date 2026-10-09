@@ -7,7 +7,12 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import { discoveryNotes } from "../modules/agents/loadSessions.js";
+import {
+  defaultUsageCaches,
+  loadUsageSessions,
+  type UsageCaches,
+} from "../modules/agents/usageSessions.js";
 import {
   agentLabel,
   resolveDisplayAgents,
@@ -43,6 +48,8 @@ export interface ForecastDeps {
   env?: ProcessEnv;
   stdout?: (s: string) => void;
   stderr?: (s: string) => void;
+  /** Usage cache per agent (modules/agents/usageSessions.ts). Default: defaultUsageCaches. */
+  usageCaches?: UsageCaches;
 }
 
 export interface ForecastExit {
@@ -77,7 +84,15 @@ export async function runForecastCmd(
     combined: true,
     stdout,
     stderr,
-    run: (agent) => forecastForAgent(agent, { opts, fs, env, clock, cwd }),
+    run: (agent) =>
+      forecastForAgent(agent, {
+        opts,
+        fs,
+        env,
+        clock,
+        cwd,
+        usageCaches: deps.usageCaches ?? defaultUsageCaches(fs, env),
+      }),
   });
   return { exitCode };
 }
@@ -88,6 +103,7 @@ interface ForecastContext {
   readonly env: ProcessEnv;
   readonly clock: Clock;
   readonly cwd: string;
+  readonly usageCaches: UsageCaches;
 }
 
 /** One agent's forecast, returned as ordered output instead of printed. */
@@ -103,14 +119,14 @@ async function forecastForAgent(agent: Agent, ctx: ForecastContext): Promise<Sec
   const now = clock.now();
   const pricing = loadPricingForDate(now);
 
-  // No windowSinceMs here on purpose: the runners derive "days of history"
-  // (baseline tier, forecast eligibility) from the EARLIEST session, so dropping
-  // old files would change the report status, not just speed it up.
-  const loaded = await loadSessions({
+  // Every session counts (forecast eligibility comes from the EARLIEST one),
+  // but only its token usage: unchanged files come from the usage cache.
+  const loaded = await loadUsageSessions({
     agent,
     deps: { fs, env, clock },
     cwd: ctx.cwd,
     here: opts.here,
+    cache: ctx.usageCaches(agent.id),
   });
   if (!loaded.ok) {
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
