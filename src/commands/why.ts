@@ -9,6 +9,7 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
+import { shortSessionId } from "../lib/session-id.js";
 import type { SipcodeIssue } from "../lib/errors.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { parseTranscriptVerbose, type ParsedSession } from "../modules/transcript/parse.js";
@@ -113,7 +114,7 @@ export async function runWhy(
       for (const s of l.scoped.slice(0, 50)) {
         const when = new Date(s.mtimeMs).toISOString();
         stdout(
-          `${s.sessionId.slice(0, 8)}  ${when}  ${s.projectHash}  ${humanSize(s.size)}`,
+          `${shortSessionId(s.sessionId, l.agent.id)}  ${when}  ${s.projectHash}  ${humanSize(s.size)}`,
         );
       }
       if (agents.length > 1) stdout("");

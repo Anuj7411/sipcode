@@ -11,6 +11,7 @@ import type { ExpensiveCall } from "../transcript/analyzers/topExpensive.js";
 import type { CounterfactualSavings } from "../transcript/analyzers/counterfactual.js";
 import type { SipcodeIssue } from "../../lib/errors.js";
 import type { AgentId } from "../agents/types.js";
+import { shortSessionId } from "../../lib/session-id.js";
 
 export interface RenderedReport {
   readonly schemaVersion: "sipcode-why/1";
@@ -103,9 +104,9 @@ function humanDuration(sec: number): string {
   return `${s}s`;
 }
 
-function shortId(id: string | undefined): string {
+function shortId(id: string | undefined, agentId: AgentId | undefined): string {
   if (!id) return "unknown";
-  return id.slice(0, 8);
+  return shortSessionId(id, agentId);
 }
 
 function pct(n: number): number {
@@ -169,7 +170,7 @@ export function renderReport(input: RenderInput): RenderedReport {
   return {
     schemaVersion: "sipcode-why/1",
     header: {
-      sessionIdShort: shortId(session.sessionId),
+      sessionIdShort: shortId(session.sessionId, input.agentId),
       model: session.primaryModel ?? "(unknown)",
       durationHuman: humanDuration(session.durationSec),
       projectHash: input.projectHash,

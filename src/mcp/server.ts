@@ -47,6 +47,7 @@ import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { RealGit } from "../lib/git.js";
 import { MESSAGES } from "../lib/messages.js";
+import { shortSessionId } from "../lib/session-id.js";
 import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import { isOtherAgentNote, resolveDisplayAgents } from "../modules/agents/multi.js";
 import { listAgentSessions } from "../modules/agents/latest.js";
@@ -318,7 +319,7 @@ export async function toolListRecentSessions(
     const kb = (s.size / 1024).toFixed(1);
     // Codex helper threads are listed (their spend is real) but marked.
     const mark = s.isSubagent ? "  (subagent)" : "";
-    return `${s.sessionId.slice(0, 8)}  ${when}  ${s.projectHash}  ${kb}KB${mark}`;
+    return `${shortSessionId(s.sessionId, agent.id)}  ${when}  ${s.projectHash}  ${kb}KB${mark}`;
   });
   return withHint(
     ok(`Found ${sessions.length} session(s). Showing ${top.length} most recent:\n\n${lines.join("\n")}`),
@@ -361,7 +362,7 @@ export async function toolAuditLatestSession(
         return fail(
           [
             `session_id "${prefix}" matches sessions in more than one tool:`,
-            ...hits.map((h) => `  ${h.agent.displayName}: ${h.meta!.sessionId.slice(0, 8)}`),
+            ...hits.map((h) => `  ${h.agent.displayName}: ${shortSessionId(h.meta!.sessionId, h.agent.id)}`),
             "",
             `Pass ${hits.map((h) => `agent: "${h.agent.id}"`).join(" or ")}, or a longer session_id.`,
           ].join("\n"),

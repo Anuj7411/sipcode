@@ -25,8 +25,9 @@ export interface RenderReceiptInput {
   readonly sessionStartedAt: string | undefined;
   /**
    * The tool the session came from. Codex ids are time-ordered (UUIDv7): their
-   * first 4 characters change only every ~50 days, so a Codex receipt keeps 8
-   * (the folder and title would otherwise be shared by every recent session).
+   * first characters are shared by every session started around the same
+   * time, so a Codex receipt keeps the id why shows (lib/session-id.ts); the
+   * folder and title would otherwise be shared by several sessions.
    */
   readonly agentId?: AgentId | undefined;
 }
@@ -78,9 +79,10 @@ export function renderReceipt(input: RenderReceiptInput): ReceiptModel {
     schemaVersion: "sipcode-receipt/1",
     variant,
     header: {
-      sessionIdShort: report.header.sessionIdShort
-        .slice(0, input.agentId === "codex" ? 8 : 4)
-        .toLowerCase(),
+      sessionIdShort: (input.agentId === "codex"
+        ? report.header.sessionIdShort
+        : report.header.sessionIdShort.slice(0, 4)
+      ).toLowerCase(),
       dateDisplay: fmtDate(input.sessionStartedAt),
       durationDisplay: report.header.durationHuman,
     },

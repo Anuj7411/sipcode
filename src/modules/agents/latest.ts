@@ -17,6 +17,7 @@
  */
 import { issue, type SipcodeIssue } from "../../lib/errors.js";
 import { MESSAGES } from "../../lib/messages.js";
+import { shortSessionId } from "../../lib/session-id.js";
 import { loadPricingForDate, type PriceProvider } from "../../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../transcript/analyzers/tokens.js";
 import { discoverAgentSessions, dropCopiedRequests } from "./loadSessions.js";
@@ -175,7 +176,7 @@ export async function ownRequestsOnly(i: {
 
 /** With --here, the suggested command keeps it (without it, --agent picks the newest anywhere). */
 export function otherAgentHint(o: Pick<PickedSession, "agent" | "meta">, here = false): string {
-  return `${o.agent.displayName} also has a recent session (${o.meta.sessionId.slice(0, 8)}): run with --agent ${o.agent.id}${here ? " --here" : ""}.`;
+  return `${o.agent.displayName} also has a recent session (${shortSessionId(o.meta.sessionId, o.agent.id)}): run with --agent ${o.agent.id}${here ? " --here" : ""}.`;
 }
 
 /** Whose prices a session is costed with (and whose table date to show). */

@@ -145,6 +145,17 @@ describe("list_recent_sessions", () => {
     expect(r.texts[1]).toContain('agent: "codex"');
   });
 
+  it("Codex ids started in the same minute are listed apart (UUIDv7 ids share 8 characters)", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "0199a1b2-c3d4-7a11-8000-000000000001", [solTurn("2026-05-10T10:00:00Z")]);
+    addCodexRollout(fs, "0199a1b2-c3f0-7b22-8000-000000000002", [solTurn("2026-05-10T10:00:30Z")]);
+    const r = await call("list_recent_sessions", { agent: "codex" }, fs);
+    const ids = r.text.split("\n").slice(2).map((l) => l.split(" ")[0]);
+    expect(ids.sort()).toEqual(["0199a1b2-c3d4-7a11", "0199a1b2-c3f0-7b22"]);
+    const audit = await call("audit_latest_session", { session_id: ids[0]! }, fs);
+    expect(audit.isError).toBe(false);
+  });
+
   it("Codex alone: lists Codex sessions without agent", async () => {
     const r = await call("list_recent_sessions", {}, codexOnlyFs());
     expect(r.text).toContain("cx1");

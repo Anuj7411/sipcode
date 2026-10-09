@@ -272,8 +272,27 @@ describe("Codex wording in the reports", () => {
     addCodexRollout(fs, "0199c3d4-0000-7000-8000-000000000002", [solTurn("2026-05-11T10:00:00Z")]);
     const a = JSON.parse((await receipt({ json: true, session: "0199a1b2" }, fs)).out);
     const b = JSON.parse((await receipt({ json: true, session: "0199c3d4" }, fs)).out);
-    expect([a.sessionIdShort, b.sessionIdShort]).toEqual(["0199a1b2", "0199c3d4"]);
+    expect([a.sessionIdShort, b.sessionIdShort]).toEqual(["0199a1b2-0000-7000", "0199c3d4-0000-7000"]);
     expect(a.htmlPath).not.toBe(b.htmlPath);
+  });
+
+  it("Codex sessions started in the same minute get their own id and receipt folder", async () => {
+    // UUIDv7: the first 8 hex digits are shared for ~65 s (a parent and its subagent).
+    const parent = "0199a1b2-c3d4-7a11-8000-000000000001";
+    const child = "0199a1b2-c3f0-7b22-8000-000000000002";
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, parent, [solTurn("2026-05-10T10:00:00Z")]);
+    addCodexRollout(fs, child, [solTurn("2026-05-10T10:00:30Z")]);
+    const a = JSON.parse((await receipt({ json: true, session: parent }, fs)).out);
+    const b = JSON.parse((await receipt({ json: true, session: child }, fs)).out);
+    expect([a.sessionIdShort, b.sessionIdShort]).toEqual(["0199a1b2-c3d4-7a11", "0199a1b2-c3f0-7b22"]);
+    expect(a.htmlPath).not.toBe(b.htmlPath);
+    // The id shown is a --session prefix that finds exactly that session.
+    const w = JSON.parse((await why({ json: true, session: a.sessionIdShort }, fs)).out);
+    expect(w.header.sessionIdShort).toBe("0199a1b2-c3d4-7a11");
+    const list = await why({ list: true } as never, fs);
+    expect(list.out).toContain("0199a1b2-c3d4-7a11  ");
+    expect(list.out).toContain("0199a1b2-c3f0-7b22  ");
   });
 
   it("drift: Codex wording when there is not enough history", async () => {

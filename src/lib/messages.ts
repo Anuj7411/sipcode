@@ -5,6 +5,7 @@
  * (c) how to fix (d) suggested next command.
  */
 import { formatNum } from "./format.js";
+import { shortSessionId } from "./session-id.js";
 
 /** The agent a message is about (structural, so this file imports no agent module). */
 export interface MessageAgent {
@@ -243,13 +244,13 @@ export const MESSAGES = {
   ) =>
     [
       `[E003] "${prefix}" matches sessions in more than one tool:`,
-      ...matches.map((m) => `  ${m.agentName}: ${m.sessionId.slice(0, 8)}`),
+      ...matches.map((m) => `  ${m.agentName}: ${shortSessionId(m.sessionId, m.agentId)}`),
       ``,
       `why: session ids from different tools can start the same way, and sipcode won't guess which one you meant.`,
       ``,
       `fix: pass --agent with the tool you meant, or a longer id.`,
       ``,
-      `next: npx sipcode ${command} --agent ${matches[0]?.agentId ?? "claude-code"} --session ${matches[0]?.sessionId.slice(0, 8) ?? prefix}`,
+      `next: npx sipcode ${command} --agent ${matches[0]?.agentId ?? "claude-code"} --session ${matches[0] ? shortSessionId(matches[0].sessionId, matches[0].agentId) : prefix}`,
     ].join("\n"),
 
   /** drift --here: nothing in this folder, though sessions exist elsewhere (a calm one-liner, exit 0). */
