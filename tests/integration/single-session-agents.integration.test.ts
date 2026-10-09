@@ -248,7 +248,7 @@ describe("Codex wording in the reports", () => {
     expect(r.out).toContain("not supported for Codex yet");
     expect(r.out).not.toContain("later release");
     const openaiAsOf = (
-      JSON.parse(readFileSync(path.resolve(__dirname, "../../src/lib/pricing/openai-2026-10-08.json"), "utf-8")) as { as_of: string }
+      JSON.parse(readFileSync(path.resolve(__dirname, "../../src/lib/pricing/openai-2026-10-09.json"), "utf-8")) as { as_of: string }
     ).as_of;
     expect(r.out).toContain(`prices from ${openaiAsOf}`);
     const json = JSON.parse((await why({ agent: "codex", json: true }, codexOnlyFs())).out);
@@ -268,9 +268,9 @@ describe("Codex wording in the reports", () => {
   it("why and receipt say when a model has no known price instead of a silent $0", async () => {
     const fs = new InMemoryFs();
     addCodexRollout(fs, "cx9", [
-      { model: "gpt-5.1-codex-mini", input: 50_000, output: 2_000, at: "2026-05-10T10:00:00Z" },
+      { model: "codex-auto-review", input: 50_000, output: 2_000, at: "2026-05-10T10:00:00Z" },
     ]);
-    const note = "52,000 tokens on models without a known price (gpt-5.1-codex-mini): not included in the cost above.";
+    const note = "52,000 tokens on models without a known price (codex-auto-review): not included in the cost above.";
     expect((await why({ agent: "codex" }, fs)).out).toContain(note);
     expect((await receipt({ agent: "codex" }, fs)).out).toContain(note);
     // JSON: stdout stays the unchanged report; the note goes to stderr.

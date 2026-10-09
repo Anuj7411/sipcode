@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-10-08",
-  "source_url": "https://developers.openai.com/api/docs/pricing",
+  "as_of": "2026-10-09",
+  "source_url": "https://developers.openai.com/api/docs/pricing (Codex rows not in that table: https://developers.openai.com/api/docs/models/<model id>)",
   "models": {
     "gpt-6-astra": { "input_per_mtok": 10, "output_per_mtok": 50, "cache_read_per_mtok": 1.0, "cache_creation_per_mtok": 12.5,
       "long_prompt": { "over_tokens": 272000, "input_per_mtok": 20, "output_per_mtok": 75, "cache_read_per_mtok": 2.0, "cache_creation_per_mtok": 25 } },
@@ -27,6 +27,12 @@
     "gpt-5.4-mini": { "input_per_mtok": 0.75, "output_per_mtok": 4.5, "cache_read_per_mtok": 0.075, "cache_creation_per_mtok": 0.75 },
     "gpt-5.4-nano": { "input_per_mtok": 0.2, "output_per_mtok": 1.25, "cache_read_per_mtok": 0.02, "cache_creation_per_mtok": 0.2 },
     "gpt-5.3-codex": { "input_per_mtok": 1.75, "output_per_mtok": 14, "cache_read_per_mtok": 0.175, "cache_creation_per_mtok": 1.75 },
+    "gpt-5.2-codex": { "input_per_mtok": 1.75, "output_per_mtok": 14, "cache_read_per_mtok": 0.175, "cache_creation_per_mtok": 1.75 },
+    "gpt-5.1-codex-max": { "input_per_mtok": 1.25, "output_per_mtok": 10, "cache_read_per_mtok": 0.125, "cache_creation_per_mtok": 1.25 },
+    "gpt-5.1-codex": { "input_per_mtok": 1.25, "output_per_mtok": 10, "cache_read_per_mtok": 0.125, "cache_creation_per_mtok": 1.25 },
+    "gpt-5.1-codex-mini": { "input_per_mtok": 0.25, "output_per_mtok": 2, "cache_read_per_mtok": 0.025, "cache_creation_per_mtok": 0.25 },
+    "gpt-5-codex": { "input_per_mtok": 1.25, "output_per_mtok": 10, "cache_read_per_mtok": 0.125, "cache_creation_per_mtok": 1.25 },
+    "codex-mini-latest": { "input_per_mtok": 1.5, "output_per_mtok": 6, "cache_read_per_mtok": 0.375, "cache_creation_per_mtok": 1.5 },
     "gpt-5.2": { "input_per_mtok": 1.75, "output_per_mtok": 14, "cache_read_per_mtok": 0.175, "cache_creation_per_mtok": 1.75 },
     "gpt-5.2-pro": { "input_per_mtok": 21, "output_per_mtok": 168, "cache_read_per_mtok": 21, "cache_creation_per_mtok": 21 },
     "gpt-5.1": { "input_per_mtok": 1.25, "output_per_mtok": 10, "cache_read_per_mtok": 0.125, "cache_creation_per_mtok": 1.25 },

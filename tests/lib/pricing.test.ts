@@ -103,6 +103,26 @@ describe("OpenAI models (Codex)", () => {
   });
 });
 
+describe("Codex model rows (OpenAI model pages, 2026-10-09)", () => {
+  const p = loadPricingForDate(new Date("2026-10-09"));
+  const row = (m: string) => {
+    const r = priceForModel(p, m);
+    return r && [r.input_per_mtok, r.cache_read_per_mtok, r.output_per_mtok];
+  };
+  it("prices each Codex model OpenAI lists a price for, on its own row", () => {
+    expect(row("gpt-5-codex")).toEqual([1.25, 0.125, 10]);
+    expect(row("gpt-5.1-codex")).toEqual([1.25, 0.125, 10]);
+    expect(row("gpt-5.1-codex-max")).toEqual([1.25, 0.125, 10]);
+    expect(row("gpt-5.1-codex-mini")).toEqual([0.25, 0.025, 2]);
+    expect(row("gpt-5.2-codex")).toEqual([1.75, 0.175, 14]);
+    expect(row("gpt-5.3-codex")).toEqual([1.75, 0.175, 14]);
+    expect(row("codex-mini-latest")).toEqual([1.5, 0.375, 6]);
+  });
+  it("keeps Codex's own helper model unpriced (no official price)", () => {
+    expect(priceForModel(p, "codex-auto-review")).toBeUndefined();
+  });
+});
+
 describe("snapshot-id matching", () => {
   const p = loadPricingForDate(new Date("2026-10-08"));
   it("resolves dated and versioned snapshot ids to their base row", () => {
@@ -110,10 +130,9 @@ describe("snapshot-id matching", () => {
     expect(priceForModel(p, "gpt-5.4-2026-03-01")?.input_per_mtok).toBe(2.5);
     expect(priceForModel(p, "gpt-5.4-mini-2026-03-01")?.input_per_mtok).toBe(0.75);
   });
-  it("leaves codex-mini and other non-snapshot suffixes unpriced", () => {
-    expect(priceForModel(p, "gpt-5.1-codex-mini")).toBeUndefined();
+  it("leaves non-snapshot suffixes without their own row unpriced", () => {
     expect(priceForModel(p, "gpt-5-codex-mini")).toBeUndefined();
-    expect(priceForModel(p, "gpt-5.1-codex")).toBeUndefined();
+    expect(priceForModel(p, "gpt-5.4-codex")).toBeUndefined();
     expect(priceForModel(p, "gpt-5.4-turbo")).toBeUndefined();
     expect(priceForModel(p, "claude-opus-5-5[1m]")).toBeUndefined();
     expect(priceForModel(p, "<synthetic>")).toBeUndefined();
@@ -135,7 +154,7 @@ describe("pricingAsOf (date shown next to a session's cost)", () => {
     const p = loadPricingForDate(new Date("2026-10-08T00:00:00Z"));
     expect(pricingAsOf(p, "anthropic")).toBe(p.as_of);
     const openai = JSON.parse(
-      readFileSync(new URL("../../src/lib/pricing/openai-2026-10-08.json", import.meta.url), "utf-8"),
+      readFileSync(new URL("../../src/lib/pricing/openai-2026-10-09.json", import.meta.url), "utf-8"),
     ) as { as_of: string };
     expect(pricingAsOf(p, "openai")).toBe(openai.as_of);
     // An old Anthropic table does not change the OpenAI date.
