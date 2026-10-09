@@ -7,6 +7,13 @@
 import { formatNum } from "./format.js";
 import { shortSessionId } from "./session-id.js";
 
+/** The command that opens one session: receipt takes the id as an argument, why / drift take --session. */
+function sessionCommand(command: string, agentId: string, id: string): string {
+  return command === "receipt"
+    ? `npx sipcode receipt ${id} --agent ${agentId}`
+    : `npx sipcode ${command} --agent ${agentId} --session ${id}`;
+}
+
 /** The agent a message is about (structural, so this file imports no agent module). */
 export interface MessageAgent {
   readonly id: string;
@@ -250,7 +257,7 @@ export const MESSAGES = {
       ``,
       `fix: pass --agent with the tool you meant, or a longer id.`,
       ``,
-      `next: npx sipcode ${command} --agent ${matches[0]?.agentId ?? "claude-code"} --session ${matches[0] ? shortSessionId(matches[0].sessionId, matches[0].agentId) : prefix}`,
+      `next: ${sessionCommand(command, matches[0]?.agentId ?? "claude-code", matches[0] ? shortSessionId(matches[0].sessionId, matches[0].agentId) : prefix)}`,
     ].join("\n"),
 
   /** drift --here: nothing in this folder, though sessions exist elsewhere (a calm one-liner, exit 0). */

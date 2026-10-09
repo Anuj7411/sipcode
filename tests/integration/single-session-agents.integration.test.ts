@@ -169,6 +169,10 @@ for (const [name, run] of commands) {
       expect(r.err).toContain(`[E003] "cx" matches sessions in more than one tool:`);
       expect(r.err).toContain("  Codex: cx1");
       expect(r.err).toContain("  Claude Code: cx-claud");
+      // The suggested command runs as written (receipt takes the id as an argument).
+      expect(r.err).toContain(
+        name === "receipt" ? "next: npx sipcode receipt cx1 --agent codex" : `next: npx sipcode ${name} --agent codex --session cx1`,
+      );
       expect(r.out).toBe("");
     });
 
