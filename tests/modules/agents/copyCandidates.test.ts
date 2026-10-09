@@ -13,6 +13,7 @@ import { codexAgent } from "../../../src/modules/agents/codex/adapter.js";
 import {
   discoverAgentSessions,
   dropCopiedRequests,
+  loadSessions,
   type LoadedSession,
 } from "../../../src/modules/agents/loadSessions.js";
 import { CODEX_SESSIONS } from "../../integration/codex-fixtures.js";
@@ -120,5 +121,29 @@ describe("dropCopiedRequests: Codex candidates", () => {
     reads.length = 0;
     await dropCopiedRequests({ agent: codexAgent, deps: d, targets: [t], all });
     expect(reads).toEqual(["n1"]);
+  });
+});
+
+describe("loadSessions --here: logs outside the folder still claim their requests", () => {
+  it("a Codex fork whose parent ran in another folder reports only its own requests, as why does", async () => {
+    const fs = new InMemoryFs();
+    const write = (name: string, text: string, m: string) =>
+      fs.writeFile(`${CODEX_SESSIONS}/2026/05/10/rollout-${name}.jsonl`, text, Date.parse(m));
+    write("p1", rollout("p1", { cwd: "C:\\other" }, ["r1", "r2"], "2026-05-10T09:00:00Z"), "2026-05-10T09:10:00Z");
+    write("f1", rollout("f1", { forked_from_id: "p1" }, ["r1", "r2", "r3"], "2026-05-10T09:30:00Z"), "2026-05-10T09:40:00Z");
+    write("u1", rollout("u1", { cwd: "C:\\other" }, ["x1"], "2026-05-10T09:00:00Z"), "2026-05-10T09:05:00Z");
+    const d = deps(fs);
+    const r = await loadSessions({ agent: codexAgent, deps: d, cwd: "C:\\p", here: true, analyze: (s) => s.parsed });
+    if (!r.ok) throw new Error("load failed");
+    expect(r.value.sessions.map((s) => s.meta.sessionId)).toEqual(["f1"]);
+    expect(r.value.sessions[0]!.value.assistantTurns.map((t) => t.requestKey)).toEqual(["r3"]);
+    // Only the fork's family is read outside the folder (u1 is not).
+    expect(r.value.scannedOnly).toBe(1);
+    // why's copy-dropping gives the same requests.
+    const disc = await discoverAgentSessions(codexAgent, d);
+    if (!disc.ok) throw new Error("discovery failed");
+    const t = await target(d, disc.value.sessions, "f1");
+    const own = await dropCopiedRequests({ agent: codexAgent, deps: d, targets: [t], all: disc.value.sessions });
+    expect(own.sessions[0]!.assistantTurns.map((x) => x.requestKey)).toEqual(["r3"]);
   });
 });

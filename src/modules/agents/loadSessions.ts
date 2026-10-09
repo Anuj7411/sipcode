@@ -231,10 +231,12 @@ export async function loadSessions<R>(
   let unreadable = found.unreadable;
   let scannedOnly = 0;
 
-  // Files not returned that can hold a copy of a returned session's request
-  // claim their request keys (an older original keeps its requests). They are
+  // Files not returned (outside the window, or outside --here: a Codex fork's
+  // parent can run in another folder) that can hold a copy of a returned
+  // session's request claim their request keys (an older original keeps its
+  // requests), so a session reports what it would without --here. They are
   // added before that session is analyzed, so they never change its result.
-  const claimers = claimerQueue(agent, all, (i) => !reported[i] && (!input.here || agent.matchesCwd(all[i]!, cwd)));
+  const claimers = claimerQueue(agent, all, (i) => !reported[i]);
   const addClaimers = async (target: SessionMeta, startedAt: string | undefined): Promise<void> => {
     for (const i of claimers({ meta: target, startedAt })) {
       const meta = all[i]!;
