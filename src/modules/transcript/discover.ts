@@ -133,26 +133,6 @@ export async function listAllSessions(
 }
 
 /**
- * Scope to the project dir whose name matches the current cwd's path-hash.
- * Claude Code project-hashes are derived from cwd by replacing path separators
- * with `-` and prepending the drive (Windows). We don't replicate the exact
- * algorithm; instead we look for a project dir whose name contains the cwd's
- * basename and prefer it.
- */
-export async function listSessionsHere(
-  fs: FileSystem,
-  projectsDir: string,
-  cwd: string,
-): Promise<SessionMeta[]> {
-  const all = await listAllSessions(fs, projectsDir);
-  // Match by cwd path → claude-code style hash.
-  // Windows: C:\Projects\Sipcode -> "C--Projects-Sipcode"
-  // POSIX:   /home/u/proj         -> "-home-u-proj"
-  const cwdHash = cwdToProjectHash(cwd);
-  return all.filter((s) => s.projectHash === cwdHash || cwdHash.endsWith(s.projectHash));
-}
-
-/**
  * Encode a working-directory path the way Claude Code names its project dirs:
  * EVERY character that is not a letter or digit collapses to "-". Verified
  * empirically against ~/.claude/projects — Claude Code turns
@@ -163,13 +143,4 @@ export async function listSessionsHere(
  */
 export function cwdToProjectHash(cwd: string): string {
   return cwd.replace(/[^A-Za-z0-9]/g, "-");
-}
-
-export async function findSessionById(
-  fs: FileSystem,
-  projectsDir: string,
-  idPrefix: string,
-): Promise<SessionMeta | undefined> {
-  const all = await listAllSessions(fs, projectsDir);
-  return all.find((s) => s.sessionId.startsWith(idPrefix));
 }

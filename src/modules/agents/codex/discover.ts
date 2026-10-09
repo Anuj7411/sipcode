@@ -28,8 +28,6 @@ export function resolveCodexHome(env: ProcessEnv): string {
 export interface CodexDiscovery {
   readonly sessions: SessionMeta[];
   readonly skippedCompressed: number;
-  /** Paths of the skipped `.jsonl.zst` rollouts. */
-  readonly compressedFiles: string[];
   /** Rollout files that could not be read. */
   readonly unreadable: number;
   /** Folders that could not be listed. */
@@ -145,7 +143,6 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
   return {
     sessions,
     skippedCompressed: counters.compressed.length,
-    compressedFiles: counters.compressed,
     unreadable: counters.unreadable,
     unreadableFolders: counters.unreadableFolders,
   };

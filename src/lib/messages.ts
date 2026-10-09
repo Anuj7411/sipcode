@@ -39,9 +39,6 @@ export const CODEX_IMPACT_LABEL = "Sipcode does not act inside Codex yet, so thi
 export const MESSAGES = {
   tagline: "sip your tokens. don't gulp them.",
 
-  notImplemented: (cmd: string, milestone: string) =>
-    `sipcode ${cmd} — not yet implemented (planned for ${milestone}).`,
-
   noTranscriptsDir: (path: string) =>
     [
       `[E003] no claude code transcripts found at ${path}`,
@@ -526,9 +523,6 @@ export const MESSAGES = {
 
   hygieneCheckNoTranscript: (path: string) =>
     `no claude code transcripts at ${path} — nothing to check yet.`,
-
-  hygieneMcpDeferred:
-    "[planned] S033 mcp-server pruning detector lands in v1.1+. hooks shipped today cover S030/S031/S032.",
 
   benchmarkAllFailed: () =>
     [

@@ -53,9 +53,6 @@ describe("Codex discovery", () => {
     const r = await listCodexSessions(fs, "/c");
     expect(r.sessions.map((s) => [s.sessionId, s.cwd])).toEqual([["aaa", "C:\\p"], ["bbb", "C:\\q"]]);
     expect(r.skippedCompressed).toBe(1);
-    expect(r.compressedFiles.map((f) => f.replace(/\\/g, "/"))).toEqual([
-      "/c/sessions/2026/10/01/rollout-2026-10-01T11-00-00-ccc.jsonl.zst",
-    ]);
     expect(r.unreadable).toBe(0);
   });
 

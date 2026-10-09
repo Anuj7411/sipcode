@@ -141,17 +141,6 @@ function isEmpty(session: ParsedSession, deps: AgentDeps): boolean {
   return isEmptySession(analyzeTokens(session, loadPricingForDate(date)));
 }
 
-export async function pickLatestSession(i: {
-  agents: ReadonlyArray<Agent>;
-  deps: AgentDeps;
-  cwd: string;
-  here?: boolean | undefined;
-  sessionIdPrefix?: string | undefined;
-  skipEmpty?: boolean | undefined;
-}): Promise<PickResult | undefined> {
-  return pickFrom(await listAgentSessions(i), i.deps, i);
-}
-
 /**
  * The chosen session's own requests: those a resumed Claude Code session or
  * a Codex fork copied from another file are dropped (dropCopiedRequests), so

@@ -8,8 +8,14 @@ import {
   listAgentSessions,
   otherAgentHint,
   pickFrom,
-  pickLatestSession,
+  type PickOptions,
 } from "../../../src/modules/agents/latest.js";
+import type { Agent, AgentDeps } from "../../../src/modules/agents/types.js";
+
+/** What why / receipt / drift do: list each tool's sessions, then pick. */
+async function pickLatestSession(i: { agents: Agent[]; deps: AgentDeps; cwd: string; here?: boolean } & PickOptions) {
+  return pickFrom(await listAgentSessions(i), i.deps, i);
+}
 
 const claudeReq = (sessionId: string, requestId = "q1", tokens = 5) =>
   JSON.stringify({ type: "assistant", requestId, timestamp: "2026-10-01T10:00:00Z", sessionId,
