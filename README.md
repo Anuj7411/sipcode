@@ -177,7 +177,7 @@ Sipcode works on Mac, Linux, and Windows. You need Node.js 20 or newer.
 Skip this step if you already have Node.js. Otherwise:
 
 - **Mac:** `brew install node`
-- **Linux (Ubuntu / Debian):** `sudo apt install nodejs npm`
+- **Linux:** open [nodejs.org/en/download](https://nodejs.org/en/download), choose the LTS version, Linux and nvm, and run the commands shown there. (The `nodejs` package in Ubuntu's and Debian's own repositories is often older than Node 20.)
 - **Windows:** Download from [nodejs.org](https://nodejs.org/)
 
 Verify it worked:
