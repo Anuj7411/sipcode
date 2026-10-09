@@ -35,9 +35,12 @@ import {
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import {
+  daysSinceAsOf,
   loadPricingForDate,
+  newestPricingAsOf,
   pricingAgeDays,
 } from "../lib/pricing/load.js";
+import { priceProvider } from "../modules/agents/latest.js";
 import { anchorAllWindow, parseSince, isInWindow } from "../modules/stats/window.js";
 import { aggregateSession } from "../modules/stats/aggregate.js";
 import { renderStats } from "../modules/stats/render.js";
@@ -330,9 +333,14 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
     }
   }
 
-  if (ageDays > 30 && !opts.json) {
+  // The newest table of the provider this section is priced with (a Codex
+  // section warns about the OpenAI table, not the Anthropic one).
+  const provider = priceProvider(agent);
+  const newestAsOf = newestPricingAsOf(provider);
+  const newestAgeDays = daysSinceAsOf(newestAsOf, clock.now());
+  if (newestAgeDays > 30 && !opts.json) {
     stderr("");
-    stderr(MESSAGES.pricingStale(pricing.as_of, ageDays));
+    stderr(MESSAGES.pricingStale(newestAsOf, newestAgeDays, provider));
   }
 
   return o.result(0, {

@@ -467,6 +467,27 @@ describe("runStats: Claude Code and Codex sections", () => {
     expect(json.err).toBe("");
   });
 
+  it("a Codex section's stale-price warning is about the OpenAI table", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "cx-late", [solTurn("2026-12-20T10:00:00Z")]);
+    const err: string[] = [];
+    await runStats(
+      { since: "30d" },
+      {
+        fs,
+        env: makeEnv(),
+        // Both bundled tables are >30 days old here.
+        clock: new FakeClock(new Date("2027-01-01T12:00:00Z")),
+        stdout: () => {},
+        stderr: (s) => err.push(s),
+      },
+    );
+    const text = err.join("\n");
+    expect(text).toContain("[E004]");
+    expect(text).toContain("openai's pricing");
+    expect(text).not.toContain("anthropic's pricing");
+  });
+
   it("Cursor alone keeps its E009 (unchanged)", async () => {
     const fs = new InMemoryFs();
     fs.mkdir("/home/u/.cursor");

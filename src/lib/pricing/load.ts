@@ -106,6 +106,24 @@ export function pricingAsOf(pricing: PricingFile, provider: PriceProvider): stri
 }
 
 /**
+ * The date of the NEWEST bundled table for a provider. The stale-price
+ * warning (E004) keys off this, not off the table an older session is priced
+ * with: an old session correctly uses an old table, which says nothing about
+ * whether Sipcode's own prices are out of date.
+ */
+export function newestPricingAsOf(provider: PriceProvider): string {
+  if (provider === "openai") {
+    const openai = listOpenAiPricingFiles().at(-1);
+    if (openai) {
+      return PricingFileSchema.parse(JSON.parse(readFileSync(openai, "utf-8")) as unknown).as_of;
+    }
+  }
+  const files = listBundledPricingFiles();
+  if (files.length === 0) throw new Error("no pricing files bundled with sipcode");
+  return files[files.length - 1]!.date;
+}
+
+/**
  * Days between today and the pricing file. Negative if pricing is in future.
  */
 export function pricingAgeDays(pricing: PricingFile, now: Date): number {

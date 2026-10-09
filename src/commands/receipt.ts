@@ -36,7 +36,12 @@ import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.
 import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
 import { analyzeCounterfactual } from "../modules/transcript/analyzers/counterfactual.js";
 import { renderReport } from "../modules/why/render.js";
-import { daysSinceAsOf, loadPricingForDate, pricingAsOf } from "../lib/pricing/load.js";
+import {
+  daysSinceAsOf,
+  loadPricingForDate,
+  newestPricingAsOf,
+  pricingAsOf,
+} from "../lib/pricing/load.js";
 import { resolveDisplayAgents, sectionHeader } from "../modules/agents/multi.js";
 import {
   listAgentSessions,
@@ -353,9 +358,13 @@ export async function runReceipt(
     stderr("");
     stderr(pngWarning);
   }
-  if (ageDays > 30) {
+  // Warn when Sipcode's newest table is old, not when an older session is
+  // (correctly) priced with the table of its own date.
+  const newestAsOf = newestPricingAsOf(provider);
+  const newestAgeDays = daysSinceAsOf(newestAsOf, clock.now());
+  if (newestAgeDays > 30) {
     stderr("");
-    stderr(MESSAGES.pricingStale(asOf, ageDays, provider));
+    stderr(MESSAGES.pricingStale(newestAsOf, newestAgeDays, provider));
   }
 
   return {
