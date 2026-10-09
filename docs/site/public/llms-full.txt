@@ -8,7 +8,7 @@ On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pai
 
 Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet.
 
-Sipcode is solo-maintained, MIT licensed, has 1,931 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode is solo-maintained, MIT licensed, has 2,014 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
