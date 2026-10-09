@@ -29,6 +29,7 @@ Sipcode now reads OpenAI Codex CLI session logs for spend analytics, and Claude 
 - **`why` and `receipt` on a resumed session included the parent's copied requests.** Worst real case: a session shown as $218.00 whose own spend was $10.20. They now report the session's own requests, and skip a resumed session that holds nothing but copied history.
 - **`verify_sipcode_impact` (MCP) output now parses as JSON.** A note used to be appended after the JSON.
 - **`stats --since all`** counted days from 1970 ("20735 days"). The window now starts at your earliest session.
+- **`why` and `receipt` warned that pricing was out of date (E004) for any older session**, because an older session is priced with the price table of its own date. The warning now checks the newest table Sipcode ships, and a Codex section of `stats` checks the OpenAI table.
 - **Cursor and Codex on one machine:** with no `--agent` flag, a Cursor pick next to Codex now shows Codex, instead of a Cursor section that could only report error E009.
 
 ### Changed
@@ -44,7 +45,7 @@ Sipcode now reads OpenAI Codex CLI session logs for spend analytics, and Claude 
 ### Internal
 - `scripts/verify-counts.mjs` (dev only, not shipped): an independent token counter that imports nothing from Sipcode and cross-checks every period command, cold and warm cache, against the same Claude Code and Codex logs. On the maintainer's real logs: 213 checks match, 0 mismatches (Claude Code: 181 files, 26,747 requests, 3,182 copied requests dropped across 8 files; Codex: 15 files, 930 requests).
 - Three slow tests got their own timeouts after measuring past or near vitest's 5s default under full-suite load. Snapshot files are pinned to LF line endings (`.gitattributes`), so a test run on Windows no longer leaves them modified.
-- Test count: 1,404 to 1,925 (`npx vitest run`, which includes the 19 e2e tests).
+- Test count: 1,404 to 1,931 (`npx vitest run`, which includes the 19 e2e tests).
 
 ## [1.6.21] — 2026-10-08
 
