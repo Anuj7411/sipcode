@@ -48,6 +48,21 @@ readHeadCases("RealFileSystem", async (content) => {
   return { fs: new RealFileSystem(), p, done: () => rmSync(dir, { recursive: true, force: true }) };
 });
 
+describe("RealFileSystem.readFile", () => {
+  it("decodes UTF-8 exactly as readFile(p, 'utf-8') does (multi-byte, BOM, invalid bytes)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const dir = mkdtempSync(path.join(tmpdir(), "sipcode-fs-"));
+    try {
+      const p = path.join(dir, "t.jsonl");
+      const bytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(`${MIXED}\n{"x":"\u{1F600}"}\n`, "utf8"), Buffer.from([0xff, 0xfe, 0x41])]);
+      writeFileSync(p, bytes);
+      expect(await new RealFileSystem().readFile(p)).toBe(readFileSync(p, "utf-8"));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("InMemoryFs", () => {
   it("write/read roundtrip", async () => {
     const fs = new InMemoryFs();
