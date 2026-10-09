@@ -1,7 +1,7 @@
 /**
- * loadUsageSessions: the same sessions, dedupe and totals as loadSessions,
- * with tool calls only where the caller needs them, and a per-file cache that
- * skips reading unchanged transcripts.
+ * loadSessions with the usage cache: the same sessions, dedupe and totals as
+ * without it, with tool calls only where the caller needs them, and a
+ * per-file cache that skips reading unchanged transcripts.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -12,12 +12,14 @@ import { FakeClock } from "../../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../../src/lib/process.js";
 import { claudeCodeAgent } from "../../../src/modules/agents/claude-code/adapter.js";
 import { codexAgent } from "../../../src/modules/agents/codex/adapter.js";
-import { loadSessions } from "../../../src/modules/agents/loadSessions.js";
+import { loadSessions, type LoadedSession, type LoadSessionsInput } from "../../../src/modules/agents/loadSessions.js";
 import {
-  loadUsageSessions,
+  cacheHeader,
+  entryFile,
+  fileUsageCacheIO,
   usageOnly,
-  type UsageCacheIO,
 } from "../../../src/modules/agents/usageSessions.js";
+import { memCache, type MemCache } from "./memCache.js";
 import type { ParsedSession } from "../../../src/modules/agents/shared.js";
 import { addCodexRollout, solTurn } from "../../integration/codex-fixtures.js";
 
@@ -55,20 +57,6 @@ function logs(): InMemoryFs {
 
 function deps(fs: InMemoryFs) {
   return { fs, env: new FakeProcessEnv({ homeDir: "/home/u" }), clock: new FakeClock(new Date("2026-10-01T00:00:00Z")) };
-}
-
-function memCache(): UsageCacheIO & { text: string | null; writes: number } {
-  return {
-    text: null,
-    writes: 0,
-    async read() {
-      return this.text;
-    },
-    async write(c: string) {
-      this.text = c;
-      this.writes++;
-    },
-  };
 }
 
 /** Records every transcript the loader reads. */
@@ -109,33 +97,52 @@ describe("usageOnly", () => {
   });
 });
 
-describe("loadUsageSessions", () => {
-  it("matches loadSessions: same sessions, order, dedupe (incl. the larger copied usage) and counts", async () => {
-    const full = await loadSessions({ agent: claudeCodeAgent, deps: deps(logs()), cwd: "/" });
-    const usage = await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(logs()), cwd: "/", cache: null });
-    if (!full.ok || !usage.ok) throw new Error("load failed");
-    expect(usage.value.sessions.map((s) => s.meta.filePath)).toEqual(full.value.sessions.map((s) => s.meta.filePath));
-    expect(usage.value.sessions.map((s) => usageView(s.parsed))).toEqual(full.value.sessions.map((s) => usageView(s.parsed)));
-    expect(usage.value.droppedDuplicateRequests).toBe(1);
-    expect(usage.value.droppedDuplicateRequests).toBe(full.value.droppedDuplicateRequests);
+const parsed = (s: LoadedSession) => s.parsed;
+
+/** loadSessions with the usage cache, returning each session as loaded. */
+function load(fs: InMemoryFs, cache: MemCache | null, extra: Partial<LoadSessionsInput<ParsedSession>> = {}) {
+  return loadSessions({ agent: claudeCodeAgent, deps: deps(fs), cwd: "/", cache, analyze: parsed, ...extra });
+}
+
+const cachedFiles = (c: MemCache) =>
+  c.text!
+    .split("\n")
+    .slice(1)
+    .filter(Boolean)
+    .map((l) => path.basename(entryFile(l)!))
+    .sort();
+
+describe("loadSessions with the usage cache", () => {
+  it("matches a load without a cache: same sessions, order, dedupe (incl. the larger copied usage) and counts", async () => {
+    const full = await load(logs(), null);
+    const cache = memCache();
+    const cold = await load(logs(), cache);
+    const warm = await load(logs(), cache);
+    if (!full.ok || !cold.ok || !warm.ok) throw new Error("load failed");
+    for (const usage of [cold, warm]) {
+      if (!usage.ok) throw new Error("load failed");
+      expect(usage.value.sessions.map((s) => s.meta.filePath)).toEqual(full.value.sessions.map((s) => s.meta.filePath));
+      expect(usage.value.sessions.map((s) => usageView(s.value))).toEqual(full.value.sessions.map((s) => usageView(s.value)));
+      expect(usage.value.droppedDuplicateRequests).toBe(1);
+    }
     // a keeps request 1, carrying b's larger usage.
-    const a = usage.value.sessions.find((s) => s.meta.filePath.endsWith("a.jsonl"))!;
-    expect(a.parsed.assistantTurns[0]!.cacheReadTokens).toBe(5000);
-    // No tool calls unless asked for.
-    expect(usage.value.sessions.every((s) => s.parsed.toolCalls.length === 0)).toBe(true);
+    const a = warm.value.sessions.find((s) => s.meta.filePath.endsWith("a.jsonl"))!;
+    expect(a.value.assistantTurns[0]!.cacheReadTokens).toBe(5000);
+    // Served from the cache: no tool calls unless asked for.
+    expect(warm.value.sessions.every((s) => s.value.toolCalls.length === 0)).toBe(true);
   });
 
   it("a warm run reads only changed files and returns the same sessions", async () => {
     const cache = memCache();
     const fs = logs();
-    const cold = await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(fs), cwd: "/", cache });
+    const cold = await load(fs, cache);
     expect(cache.writes).toBe(1);
     const s = spy(fs);
-    const warm = await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(s.fs), cwd: "/", cache });
+    const warm = await load(s.fs, cache);
     expect(s.reads).toEqual([]);
     expect(cache.writes).toBe(1); // nothing changed, nothing written
     if (!cold.ok || !warm.ok) throw new Error("load failed");
-    expect(warm.value).toEqual(cold.value);
+    expect(warm.value.sessions.map((x) => usageView(x.value))).toEqual(cold.value.sessions.map((x) => usageView(x.value)));
 
     // b grows (a new request): only b is read again, and dedupe still applies.
     fs.writeFile(
@@ -144,61 +151,86 @@ describe("loadUsageSessions", () => {
       Date.parse("2026-09-02T11:01:00Z"),
     );
     s.reads.length = 0;
-    const after = await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(s.fs), cwd: "/", cache });
-    const ref = await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(fs), cwd: "/", cache: null });
+    const after = await load(s.fs, cache);
+    const ref = await load(fs, null);
     expect(s.reads).toEqual(["b.jsonl"]);
     if (!after.ok || !ref.ok) throw new Error("load failed");
-    expect(after.value).toEqual(ref.value);
+    expect(after.value.sessions.map((x) => usageView(x.value))).toEqual(ref.value.sessions.map((x) => usageView(x.value)));
     expect(after.value.droppedDuplicateRequests).toBe(1);
+    expect(cachedFiles(cache)).toEqual(["a.jsonl", "b.jsonl", "c.jsonl"]);
   });
 
   it("sessions that need tool calls come back fully parsed, from a cached file too", async () => {
     const cache = memCache();
     const fs = logs();
-    await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(fs), cwd: "/", cache });
+    await load(fs, cache);
     const s = spy(fs);
-    const r = await loadUsageSessions({
-      agent: claudeCodeAgent,
-      deps: deps(s.fs),
-      cwd: "/",
-      cache,
-      needsToolCalls: (x) => x.meta.filePath.endsWith("c.jsonl"),
-    });
+    const r = await load(s.fs, cache, { needsToolCalls: (x) => x.meta.filePath.endsWith("c.jsonl") });
     if (!r.ok) throw new Error("load failed");
     expect(s.reads).toEqual(["c.jsonl"]);
-    const full = await loadSessions({ agent: claudeCodeAgent, deps: deps(logs()), cwd: "/" });
+    const full = await load(logs(), null);
     if (!full.ok) throw new Error("load failed");
-    const c = (o: typeof r) => o.ok && o.value.sessions.find((x) => x.meta.filePath.endsWith("c.jsonl"))!.parsed;
+    const c = (o: typeof r) => o.ok && o.value.sessions.find((x) => x.meta.filePath.endsWith("c.jsonl"))!.value;
     expect(c(r)).toEqual(c(full));
     expect((c(r) as ParsedSession).toolCalls.length).toBeGreaterThan(0);
+  });
+
+  it("a cached session dedupe rewrites is rebuilt from the cache, with tool calls when asked", async () => {
+    const cache = memCache();
+    const fs = logs();
+    await load(fs, cache);
+    const s = spy(fs);
+    const r = await load(s.fs, cache, { needsToolCalls: (x) => x.meta.filePath.endsWith("b.jsonl") });
+    if (!r.ok) throw new Error("load failed");
+    expect(s.reads).toEqual(["b.jsonl"]);
+    const full = await load(logs(), null);
+    if (!full.ok) throw new Error("load failed");
+    const b = (o: typeof r) => o.ok && o.value.sessions.find((x) => x.meta.filePath.endsWith("b.jsonl"))!.value;
+    expect(b(r)).toEqual(b(full));
+    expect((b(r) as ParsedSession).assistantTurns.map((t) => t.requestKey)).toEqual(["msg_2|req_2"]);
+    expect((b(r) as ParsedSession).priorReads?.size).toBe(1);
   });
 
   it("drops entries of deleted files, keeps entries --here did not look at", async () => {
     const cache = memCache();
     const fs = logs();
     fs.writeFile("/home/u/.claude/projects/C--q/d.jsonl", req("9", "2026-09-04T10:00:00Z"), Date.parse("2026-09-04T10:01:00Z"));
-    await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(fs), cwd: "/", cache });
-    const files = () => Object.keys((JSON.parse(cache.text!) as { entries: object }).entries).map((f) => path.basename(f)).sort();
-    expect(files()).toEqual(["a.jsonl", "b.jsonl", "c.jsonl", "d.jsonl"]);
+    await load(fs, cache);
+    expect(cachedFiles(cache)).toEqual(["a.jsonl", "b.jsonl", "c.jsonl", "d.jsonl"]);
     // --here in C:\p: d (another project) keeps its entry.
     fs.writeFile(`${DIR}/c.jsonl`, fixture("minimal-2turn.jsonl"), Date.parse("2026-09-05T10:01:00Z"));
-    await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(fs), cwd: "C:\\p", here: true, cache });
-    expect(files()).toEqual(["a.jsonl", "b.jsonl", "c.jsonl", "d.jsonl"]);
+    await load(fs, cache, { cwd: "C:\\p", here: true });
+    expect(cachedFiles(cache)).toEqual(["a.jsonl", "b.jsonl", "c.jsonl", "d.jsonl"]);
     const fresh = new InMemoryFs();
     fresh.writeFile(`${DIR}/a.jsonl`, req("1", "2026-09-01T10:00:00Z"), Date.parse("2026-09-01T10:01:00Z"));
-    await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(fresh), cwd: "/", cache });
-    expect(files()).toEqual(["a.jsonl"]);
+    await load(fresh, cache);
+    expect(cachedFiles(cache)).toEqual(["a.jsonl"]);
   });
 
-  it("ignores a damaged cache or one from another version", async () => {
-    for (const text of ["{not json", JSON.stringify({ schema: "sipcode-usage-cache/1", version: "0.0.0", entries: {} })]) {
+  it("ignores a damaged cache, one from another version, and the 1.6 single-object cache", async () => {
+    const old = JSON.stringify({ schema: "sipcode-usage-cache/1", version: "1.7.0", entries: {} });
+    const otherVersion = JSON.stringify({ schema: "sipcode-usage-cache/2", version: "0.0.0" });
+    for (const text of ["{not json", old, `${otherVersion}\n`]) {
       const cache = memCache();
       cache.text = text;
       const s = spy(logs());
-      const r = await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(s.fs), cwd: "/", cache });
+      const r = await load(s.fs, cache);
       expect(r.ok).toBe(true);
-      expect(s.reads.sort()).toEqual(["a.jsonl", "b.jsonl", "c.jsonl"]);
+      // Every file is parsed; a twice, as b (read after it) raises a's copy of request 1.
+      expect(s.reads.sort()).toEqual(["a.jsonl", "a.jsonl", "b.jsonl", "c.jsonl"]);
+      expect(cache.text!.split("\n")[0]).toBe(cacheHeader());
+      expect(cachedFiles(cache)).toEqual(["a.jsonl", "b.jsonl", "c.jsonl"]);
     }
+    // A damaged entry line: that file is parsed again, the others still come from the cache.
+    const cache = memCache();
+    await load(logs(), cache);
+    cache.text = cache.text!
+      .split("\n")
+      .map((l) => (l.includes("a.jsonl") ? l.slice(0, 40) : l))
+      .join("\n");
+    const s = spy(logs());
+    await load(s.fs, cache);
+    expect(s.reads).toEqual(["a.jsonl"]);
   });
 
   it("does not cache a file whose text is not the size discovery saw (it grew mid-read)", async () => {
@@ -209,32 +241,69 @@ describe("loadUsageSessions", () => {
         value: async (p: string) => (await fs.readFile(p)) + (p.endsWith("a.jsonl") ? "\n" : ""),
       },
     }) as InMemoryFs;
-    await loadUsageSessions({ agent: claudeCodeAgent, deps: deps(grown), cwd: "/", cache });
-    const files = Object.keys((JSON.parse(cache.text!) as { entries: object }).entries).map((f) => path.basename(f)).sort();
-    expect(files).toEqual(["b.jsonl", "c.jsonl"]);
+    await load(grown, cache);
+    expect(cachedFiles(cache)).toEqual(["b.jsonl", "c.jsonl"]);
+  });
+
+  it("a cache that fails mid-way: the rest is parsed, results unchanged", async () => {
+    const cache = memCache();
+    await load(logs(), cache);
+    const lines = cache.text!.split("\n").filter(Boolean);
+    const broken: MemCache = {
+      ...cache,
+      async *lines() {
+        yield lines[0]!;
+        yield lines[1]!;
+        throw new Error("EIO");
+      },
+    };
+    const s = spy(logs());
+    const r = await load(s.fs, broken);
+    const ref = await load(logs(), null);
+    if (!r.ok || !ref.ok) throw new Error("load failed");
+    expect(s.reads.length).toBeGreaterThan(0);
+    expect(r.value.sessions.map((x) => usageView(x.value))).toEqual(ref.value.sessions.map((x) => usageView(x.value)));
   });
 });
 
 describe("fileUsageCacheIO", () => {
-  it("concurrent writes in one process (MCP tools in parallel) leave a whole file", async () => {
+  it("concurrent writers in one process (MCP tools in parallel) leave a whole file, read back line by line", async () => {
     const { mkdtempSync, readFileSync: read, readdirSync, rmSync } = await import("node:fs");
     const os = await import("node:os");
-    const { fileUsageCacheIO } = await import("../../../src/modules/agents/usageSessions.js");
     const dir = mkdtempSync(path.join(os.tmpdir(), "sipcode-usage-cache-"));
     try {
       const file = path.join(dir, "claude-code.json");
       const io = fileUsageCacheIO(file);
-      const big = (tag: string, n: number) => JSON.stringify({ tag, pad: tag.repeat(n) });
+      const big = (tag: string, n: number) => [tag, tag.repeat(n), tag.repeat(n >> 1)];
       const contents = [big("a", 3_000_000), big("b", 1_000_000), big("c", 2_000_000), big("d", 500_000)];
       for (let round = 0; round < 3; round++) {
-        await Promise.all(contents.map((c) => io.write(c)));
+        await Promise.all(
+          contents.map(async (lines) => {
+            const w = io.writer();
+            for (const l of lines) await w.add(l);
+            await w.commit();
+          }),
+        );
         const text = read(file, "utf-8");
-        expect(contents).toContain(text);
+        expect(contents.map((c) => c.join("\n") + "\n")).toContain(text);
+        const back: string[] = [];
+        for await (const l of io.lines()) back.push(l);
+        expect(back.join("\n") + "\n").toBe(text);
       }
-      // No temp files left behind.
+      // A discarded writer leaves nothing; no temp files left behind.
+      const w = io.writer();
+      await w.add("x");
+      await w.discard();
       expect(readdirSync(dir)).toEqual(["claude-code.json"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it("no cache file: no lines", async () => {
+    const io = fileUsageCacheIO(path.join(process.cwd(), "no-such-dir", "x.json"));
+    const back: string[] = [];
+    for await (const l of io.lines()) back.push(l);
+    expect(back).toEqual([]);
   });
 });

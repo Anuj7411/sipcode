@@ -30,57 +30,196 @@ export interface DedupeResult {
 export function dedupeAcrossSessions(
   sessions: ReadonlyArray<ParsedSession>,
 ): DedupeResult {
-  const order = sessions
-    .map((s, i) => ({
-      s,
-      i,
-      start: parseTime(s.startedAt) ?? Number.POSITIVE_INFINITY,
-      end: parseTime(s.endedAt) ?? Number.POSITIVE_INFINITY,
-    }))
-    .sort(
-      (a, b) =>
-        cmp(a.start, b.start) ||
-        cmp(a.end, b.end) ||
-        cmp(a.s.assistantTurns.length, b.s.assistantTurns.length) ||
-        a.i - b.i,
-    );
-  // Resumed files re-log some copied requests with the top-level usage zeroed.
-  // Whichever copy wins the ordering must carry the largest value per field
-  // across all copies (same rule as the within-file merge in parseTranscript).
-  // cacheCreationTokens and cacheCreation1hTokens are raised independently;
-  // that is safe because pricing caps the 1h part at the total (tokens.ts).
-  const maxUsage = new Map<string, Usage>();
-  for (const s of sessions) {
-    for (const t of s.assistantTurns) {
-      if (!t.requestKey) continue;
-      const m = maxUsage.get(t.requestKey);
-      if (!m) maxUsage.set(t.requestKey, usageOf(t));
-      else
-        for (const f of USAGE_FIELDS) if (t[f] > m[f]) m[f] = t[f];
-    }
-  }
-  const seen = new Set<string>();
-  const out: ParsedSession[] = sessions.slice();
+  const ix = new DedupeIndex(sessions.length);
+  sessions.forEach((s, i) => ix.add(i, s));
   let dropped = 0;
-  for (const { s, i } of order) {
+  const out = sessions.map((s, i) => {
+    const r = ix.apply(i, s);
+    dropped += r.dropped;
+    return r.session;
+  });
+  return { sessions: out, droppedRequests: dropped };
+}
+
+/** What ordering needs from a session: its time span (as parsed) and turn count. */
+export interface DedupeOrder {
+  readonly startedAt: string | undefined;
+  readonly endedAt: string | undefined;
+  readonly turns: number;
+}
+
+/**
+ * dedupeAcrossSessions without holding the sessions: each session is added
+ * once (its request keys, usage and order) and can be passed to apply() at
+ * any time to get its deduped form given the sessions added so far. Memory is
+ * per request key (owner, largest usage), not per session, so callers can
+ * read, add, analyze and drop one file at a time. Session numbers are the
+ * input index of dedupeAcrossSessions (the order tie-break); they need not be
+ * added in order.
+ *
+ * Exact by construction: the owner of a key is the first of its holders in
+ * the order above (a running minimum), the kept turn is the owner's first
+ * turn with that key, and it carries the largest value per field across all
+ * copies. Once every session is added, apply(i) is what dedupeAcrossSessions
+ * returns for i, and changed(i) is true exactly when apply(i) rewrites it.
+ *
+ * settle(i) records that the caller used apply(i) now; isSettled(i) stays
+ * true while later additions leave that result as it is (they take none of
+ * i's keys and raise none of the copies i keeps). Callers that add files
+ * oldest first rarely see a settled session unsettle.
+ */
+export class DedupeIndex {
+  private readonly slots = new KeyTable();
+  /** Per key: the session that keeps it. */
+  private owner = new Int32Array(1024);
+  /** Per key: the largest value per USAGE_FIELDS field across all copies (5 numbers per key). */
+  private max = new Float64Array(1024 * 5);
+  private readonly start: Float64Array;
+  private readonly end: Float64Array;
+  private readonly turns: Float64Array;
+  private readonly rewritten: Uint8Array;
+  private readonly settled: Uint8Array;
+  /** The session being added (its own claims never unsettle it). */
+  private adding = -1;
+
+  constructor(sessions: number) {
+    this.start = new Float64Array(sessions);
+    this.end = new Float64Array(sessions);
+    this.turns = new Float64Array(sessions);
+    this.rewritten = new Uint8Array(sessions);
+    this.settled = new Uint8Array(sessions);
+  }
+
+  /** Session i with every turn (its usage counts toward each key's largest value). */
+  add(i: number, s: ParsedSession): void {
+    this.order(i, { startedAt: s.startedAt, endedAt: s.endedAt, turns: s.assistantTurns.length });
+    const local = new Set<string>();
+    this.adding = i;
+    for (const t of s.assistantTurns) {
+      if (t.requestKey) this.claim(i, t.requestKey, t, local);
+    }
+    this.adding = -1;
+  }
+
+  /** Session i known only by its request keys (a key scan): it claims them with zero usage. */
+  addKeys(i: number, order: DedupeOrder, keys: Iterable<string>): void {
+    this.order(i, order);
+    const local = new Set<string>();
+    this.adding = i;
+    for (const k of keys) if (k) this.claim(i, k, ZERO, local);
+    this.adding = -1;
+  }
+
+  /** Does dedupe rewrite session i (drop or raise any of its turns), given the sessions added so far? */
+  changed(i: number): boolean {
+    return this.rewritten[i] === 1;
+  }
+
+  /** The caller used apply(i) as of now. */
+  settle(i: number): void {
+    this.settled[i] = 1;
+  }
+
+  /** Is apply(i) still what it was at settle(i)? */
+  isSettled(i: number): boolean {
+    return this.settled[i] === 1;
+  }
+
+  /**
+   * Session i deduped: the same object when nothing changes. `s` must be the
+   * session added as i (a key this index never saw is kept as is).
+   */
+  apply(i: number, s: ParsedSession): { session: ParsedSession; dropped: number } {
+    if (!this.changed(i)) return { session: s, dropped: 0 };
     const keep: number[] = [];
     const maxed = new Map<number, AssistantTurn>();
+    const local = new Set<string>();
     s.assistantTurns.forEach((t, idx) => {
-      if (t.requestKey) {
-        if (seen.has(t.requestKey)) {
-          dropped++;
-          return;
+      const k = t.requestKey;
+      if (k) {
+        if (local.has(k)) return;
+        local.add(k);
+        const slot = this.slots.get(k);
+        if (slot !== undefined) {
+          if (this.owner[slot] !== i) return;
+          const at = slot * 5;
+          if (USAGE_FIELDS.some((f, n) => t[f] < this.max[at + n]!)) {
+            const m = {} as Usage;
+            USAGE_FIELDS.forEach((f, n) => (m[f] = this.max[at + n]!));
+            maxed.set(idx, withUsage(t, m));
+          }
         }
-        seen.add(t.requestKey);
-        const m = maxUsage.get(t.requestKey)!;
-        if (USAGE_FIELDS.some((f) => t[f] < m[f])) maxed.set(idx, withUsage(t, m));
       }
       keep.push(idx);
     });
-    out[i] =
+    const dropped = s.assistantTurns.length - keep.length;
+    const session =
       keep.length === s.assistantTurns.length && maxed.size === 0 ? s : rebuild(s, keep, maxed);
+    return { session, dropped };
   }
-  return { sessions: out, droppedRequests: dropped };
+
+  private order(i: number, o: DedupeOrder): void {
+    this.start[i] = parseTime(o.startedAt) ?? Number.POSITIVE_INFINITY;
+    this.end[i] = parseTime(o.endedAt) ?? Number.POSITIVE_INFINITY;
+    this.turns[i] = o.turns;
+  }
+
+  /** Does session a come before session b in the dedupe order? */
+  private before(a: number, b: number): boolean {
+    return (
+      (cmp(this.start[a]!, this.start[b]!) ||
+        cmp(this.end[a]!, this.end[b]!) ||
+        cmp(this.turns[a]!, this.turns[b]!) ||
+        a - b) < 0
+    );
+  }
+
+  /** Session o's result changes (it loses a key, or a copy it keeps is raised). */
+  private touch(o: number): void {
+    this.rewritten[o] = 1;
+    if (o !== this.adding) this.settled[o] = 0;
+  }
+
+  private claim(i: number, k: string, u: Usage, local: Set<string>): void {
+    let slot = this.slots.get(k);
+    if (slot === undefined) {
+      slot = this.slots.add(k);
+      if (slot === this.owner.length) {
+        const owner = new Int32Array(slot * 2);
+        owner.set(this.owner);
+        this.owner = owner;
+        const max = new Float64Array(slot * 2 * 5);
+        max.set(this.max);
+        this.max = max;
+      }
+      this.owner[slot] = i;
+      USAGE_FIELDS.forEach((f, n) => (this.max[slot! * 5 + n] = u[f]));
+      local.add(k);
+      return;
+    }
+    const at = slot * 5;
+    const exceedsMax = USAGE_FIELDS.some((f, n) => u[f] > this.max[at + n]!);
+    if (local.has(k)) {
+      // Repeated inside session i: the repeat is dropped; a larger value raises the kept copy.
+      this.rewritten[i] = 1;
+      if (exceedsMax) this.touch(this.owner[slot]!);
+    } else {
+      local.add(k);
+      const o = this.owner[slot]!;
+      if (this.before(i, o)) {
+        // i keeps the key now: o drops its copy; i's copy is raised if an earlier copy was larger.
+        this.touch(o);
+        this.owner[slot] = i;
+        if (USAGE_FIELDS.some((f, n) => this.max[at + n]! > u[f])) this.rewritten[i] = 1;
+      } else {
+        this.rewritten[i] = 1;
+        if (exceedsMax) this.touch(o);
+      }
+    }
+    USAGE_FIELDS.forEach((f, n) => {
+      if (u[f] > this.max[at + n]!) this.max[at + n] = u[f];
+    });
+  }
 }
 
 const USAGE_FIELDS = [
@@ -91,16 +230,7 @@ const USAGE_FIELDS = [
   "cacheCreation1hTokens",
 ] as const;
 type Usage = { -readonly [K in (typeof USAGE_FIELDS)[number]]: number };
-
-function usageOf(t: AssistantTurn): Usage {
-  return {
-    inputTokens: t.inputTokens,
-    outputTokens: t.outputTokens,
-    cacheReadTokens: t.cacheReadTokens,
-    cacheCreationTokens: t.cacheCreationTokens,
-    cacheCreation1hTokens: t.cacheCreation1hTokens,
-  };
-}
+const ZERO: Usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0, cacheCreation1hTokens: 0 };
 
 /** Copy of the turn carrying `u`; its tool calls mirror the turn's usage like parseTranscript stamps them. */
 function withUsage(t: AssistantTurn, u: Usage): AssistantTurn {
@@ -201,4 +331,102 @@ function rebuild(
     durationSec,
     priorReads,
   };
+}
+
+/**
+ * Request key → slot number (0, 1, 2, … in insertion order). Keys are kept
+ * as UTF-8 bytes in one growing buffer with an open-addressing table over
+ * them: about a third of the memory of a Map of strings, which matters with
+ * hundreds of thousands of keys held while every log is read.
+ */
+export class KeyTable {
+  private bytes = new Uint8Array(1 << 16);
+  private used = 0;
+  private offs = new Int32Array(1024);
+  private lens = new Int32Array(1024);
+  /** slot + 1 per bucket; 0 = empty. Size is a power of two, at most half full. */
+  private buckets = new Int32Array(2048);
+  private count = 0;
+  private scratch = Buffer.alloc(256);
+
+  get size(): number {
+    return this.count;
+  }
+
+  /** The key's slot, or undefined. */
+  get(k: string): number | undefined {
+    const len = this.encode(k);
+    const mask = this.buckets.length - 1;
+    for (let b = hash(this.scratch, len) & mask; ; b = (b + 1) & mask) {
+      const v = this.buckets[b]!;
+      if (v === 0) return undefined;
+      if (this.equals(v - 1, len)) return v - 1;
+    }
+  }
+
+  /** Adds a key not in the table; returns its slot. */
+  add(k: string): number {
+    const len = this.encode(k);
+    const slot = this.count++;
+    if (slot === this.offs.length) {
+      this.offs = grow(this.offs, slot * 2);
+      this.lens = grow(this.lens, slot * 2);
+    }
+    if (this.used + len > this.bytes.length) {
+      const next = new Uint8Array(Math.max(this.bytes.length * 2, this.used + len));
+      next.set(this.bytes.subarray(0, this.used));
+      this.bytes = next;
+    }
+    this.bytes.set(this.scratch.subarray(0, len), this.used);
+    this.offs[slot] = this.used;
+    this.lens[slot] = len;
+    this.used += len;
+    if (this.count * 2 > this.buckets.length) this.rehash(this.buckets.length * 2);
+    else this.place(slot, hash(this.scratch, len));
+    return slot;
+  }
+
+  /** UTF-8 bytes of k into scratch; returns their count. */
+  private encode(k: string): number {
+    if (k.length * 3 > this.scratch.length) this.scratch = Buffer.alloc(k.length * 3);
+    return this.scratch.write(k, 0, "utf8");
+  }
+
+  private equals(slot: number, len: number): boolean {
+    if (this.lens[slot] !== len) return false;
+    const off = this.offs[slot]!;
+    for (let j = 0; j < len; j++) if (this.bytes[off + j] !== this.scratch[j]) return false;
+    return true;
+  }
+
+  private place(slot: number, h: number): void {
+    const mask = this.buckets.length - 1;
+    let b = h & mask;
+    while (this.buckets[b] !== 0) b = (b + 1) & mask;
+    this.buckets[b] = slot + 1;
+  }
+
+  private rehash(size: number): void {
+    this.buckets = new Int32Array(size);
+    for (let s = 0; s < this.count; s++) {
+      const off = this.offs[s]!;
+      this.place(s, hash(this.bytes.subarray(off, off + this.lens[s]!), this.lens[s]!));
+    }
+  }
+}
+
+function grow(a: Int32Array<ArrayBuffer>, size: number): Int32Array<ArrayBuffer> {
+  const next = new Int32Array(size);
+  next.set(a);
+  return next;
+}
+
+/** FNV-1a over the first `len` bytes. */
+function hash(b: Uint8Array, len: number): number {
+  let h = 0x811c9dc5;
+  for (let j = 0; j < len; j++) {
+    h ^= b[j]!;
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
 }

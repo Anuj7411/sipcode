@@ -150,7 +150,7 @@ describe("codex agent", () => {
         return mem.readDir(p);
       },
     };
-    const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/" });
+    const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/", analyze: (x) => x.parsed });
     if (!r.ok) throw new Error("load failed");
     expect(r.value.sessions.map((s) => s.meta.sessionId)).toEqual(["a"]);
     // A folder is not a file: counted apart. Compressed logs are one count, not one issue each.
@@ -163,7 +163,7 @@ describe("codex agent", () => {
   it("a missing archived_sessions folder is not reported", async () => {
     const fs = new InMemoryFs();
     fs.writeFile("/c/sessions/2026/10/01/rollout-a.jsonl", rollout("a", "/p", record("r1", 100, 10)), 1);
-    const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/" });
+    const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/", analyze: (x) => x.parsed });
     if (!r.ok) throw new Error("load failed");
     expect(r.value.unreadable).toBe(0);
     expect(r.value.unreadableFolders).toBe(0);
@@ -177,16 +177,16 @@ describe("codex agent", () => {
     fs.writeFile("/c/sessions/2026/10/01/rollout-b.jsonl", rollout("b", "C:\\Projects\\Sipcode2", record("r2", 50, 5)), 2);
     fs.writeFile("/c/sessions/2026/10/01/rollout-e.jsonl", rollout("e", "C:\\Projects\\Sipcode"), 1);
 
-    const all = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/" });
+    const all = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/", analyze: (x) => x.parsed });
     if (!all.ok) throw new Error("load failed");
     expect(all.value.discovered).toBe(3);
     const pricing = loadPricingForDate(new Date("2026-10-08"));
-    const nonEmpty = all.value.sessions.filter((s) => !isEmptySession(analyzeTokens(s.parsed, pricing)));
+    const nonEmpty = all.value.sessions.filter((s) => !isEmptySession(analyzeTokens(s.value, pricing)));
     expect(nonEmpty.map((s) => s.meta.sessionId)).toEqual(["a", "b"]);
-    const totals = analyzeTokens(nonEmpty[0]!.parsed, pricing);
+    const totals = analyzeTokens(nonEmpty[0]!.value, pricing);
     expect(totals.inputTokens + totals.outputTokens).toBe(110);
 
-    const here = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "C:\\Projects\\Sipcode", here: true });
+    const here = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "C:\\Projects\\Sipcode", here: true, analyze: (x) => x.parsed });
     if (!here.ok) throw new Error("load failed");
     expect(here.value.sessions.map((s) => s.meta.sessionId)).toEqual(["a", "e"]);
   });

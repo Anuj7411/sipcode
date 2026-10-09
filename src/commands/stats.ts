@@ -204,16 +204,40 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
     }
   }
 
+  // Pricing — keyed off the window's upper-bound (best snapshot of "today").
+  const pricing = loadPricingForDate(new Date(window.untilIso));
+  const ageDays = pricingAgeDays(pricing, clock.now());
+
   // Discover, scope (--here), parse and de-duplicate requests that a resumed
-  // session file repeats from its original.
+  // session file repeats from its original; each session is analyzed as it is
+  // loaded and only its summary kept.
   const loaded = await loadSessions({
     agent,
     deps: { fs, env, clock },
     cwd,
     here: opts.here,
-    // Files last modified before the window are only key-scanned: they still
-    // remove their copies from newer resumed files, but are not parsed.
+    // Files last modified before the window are only key-scanned (those that
+    // can hold copies): they still remove their copies from newer resumed
+    // files, but are not parsed.
     windowSinceMs: Date.parse(window.sinceIso),
+    analyze: ({ meta, parsed }) => {
+      const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
+      if (!isInWindow(window, startedAt)) return null;
+      const totals = analyzeTokens(parsed, pricing);
+      if (isEmptySession(totals)) return null;
+      return {
+        unpriced: analyzeUnpriced(parsed, pricing),
+        session: aggregateSession({
+          sessionId: meta.sessionId,
+          projectHash: meta.projectHash,
+          fallbackStartedAtMs: meta.mtimeMs,
+          parsed,
+          totals,
+          duplicates: analyzeDuplicateReads(parsed),
+          idle: analyzeIdleContext(parsed),
+        }),
+      };
+    },
   });
   if (!loaded.ok) {
     for (const i of loaded.error) stderr(i.message);
@@ -223,11 +247,7 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
   // (zero transcripts anywhere) from "none in this window/cwd".
   const totalDiscovered = loaded.value.discovered;
 
-  // Pricing — keyed off the window's upper-bound (best snapshot of "today").
-  const pricing = loadPricingForDate(new Date(window.untilIso));
-  const ageDays = pricingAgeDays(pricing, clock.now());
-
-  // Walk each session: analyze → aggregate, keeping those inside the window.
+  // Sessions inside the window with usage.
   const aggregated: AggregatedSession[] = [];
   const warnings: { code: string; message: string }[] = [];
   if (loaded.value.unreadable > 0) {
@@ -249,27 +269,10 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
   for (const i of loaded.value.issues) warnings.push({ code: i.code, message: i.message });
 
   let unpriced = NO_UNPRICED;
-  for (const { meta, parsed } of loaded.value.sessions) {
-    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
-    if (!isInWindow(window, startedAt)) continue;
-
-    const totals = analyzeTokens(parsed, pricing);
-    if (isEmptySession(totals)) continue;
-    const dups = analyzeDuplicateReads(parsed);
-    const idle = analyzeIdleContext(parsed);
-    unpriced = addUnpriced(unpriced, analyzeUnpriced(parsed, pricing));
-
-    aggregated.push(
-      aggregateSession({
-        sessionId: meta.sessionId,
-        projectHash: meta.projectHash,
-        fallbackStartedAtMs: meta.mtimeMs,
-        parsed,
-        totals,
-        duplicates: dups,
-        idle,
-      }),
-    );
+  for (const { value } of loaded.value.sessions) {
+    if (!value) continue;
+    unpriced = addUnpriced(unpriced, value.unpriced);
+    aggregated.push(value.session);
   }
 
   // Stable sort: most recent first.

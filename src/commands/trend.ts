@@ -155,6 +155,27 @@ async function trendForAgent(agent: Agent, ctx: TrendContext): Promise<SectionRe
     cwd: ctx.cwd,
     here: opts.here,
     windowSinceMs: Date.parse(sinceIso),
+    analyze: ({ meta, parsed }) => {
+      const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
+      const startedDay = startedAt.slice(0, 10);
+      if (startedDay < sinceIso || startedDay > untilIso) return null;
+      const totals = analyzeTokens(parsed, pricing);
+      if (isEmptySession(totals)) return null;
+      const dups = analyzeDuplicateReads(parsed);
+      const totalTokens =
+        totals.inputTokens +
+        totals.outputTokens +
+        totals.cacheReadTokens +
+        totals.cacheCreationTokens;
+      const session: TrendSession = {
+        startedAt,
+        totalTokens,
+        outputTokens: totals.outputTokens,
+        estCostUSD: totals.estCostUSD,
+        duplicateReadTokens: dups.duplicateReadTokenCost,
+      };
+      return { session, unpriced: analyzeUnpriced(parsed, pricing) };
+    },
   });
   if (!loaded.ok) {
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
@@ -164,27 +185,10 @@ async function trendForAgent(agent: Agent, ctx: TrendContext): Promise<SectionRe
 
   const sessions: TrendSession[] = [];
   let unpriced = NO_UNPRICED;
-  for (const { meta, parsed } of loaded.value.sessions) {
-    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
-    const startedDay = startedAt.slice(0, 10);
-    if (startedDay < sinceIso || startedDay > untilIso) continue;
-
-    const totals = analyzeTokens(parsed, pricing);
-    if (isEmptySession(totals)) continue;
-    unpriced = addUnpriced(unpriced, analyzeUnpriced(parsed, pricing));
-    const dups = analyzeDuplicateReads(parsed);
-    const totalTokens =
-      totals.inputTokens +
-      totals.outputTokens +
-      totals.cacheReadTokens +
-      totals.cacheCreationTokens;
-    sessions.push({
-      startedAt,
-      totalTokens,
-      outputTokens: totals.outputTokens,
-      estCostUSD: totals.estCostUSD,
-      duplicateReadTokens: dups.duplicateReadTokenCost,
-    });
+  for (const { value } of loaded.value.sessions) {
+    if (!value) continue;
+    unpriced = addUnpriced(unpriced, value.unpriced);
+    sessions.push(value.session);
   }
 
   const result = computeTrend(sessions, metric, sinceIso, untilIso);

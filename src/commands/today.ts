@@ -9,12 +9,8 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes, type LoadedSession } from "../modules/agents/loadSessions.js";
-import {
-  defaultUsageCaches,
-  loadUsageSessions,
-  type UsageCaches,
-} from "../modules/agents/usageSessions.js";
+import { discoveryNotes, loadSessions, type LoadedSession } from "../modules/agents/loadSessions.js";
+import { defaultUsageCaches, type UsageCaches } from "../modules/agents/usageSessions.js";
 import {
   agentLabel,
   resolveDisplayAgents,
@@ -31,6 +27,7 @@ import {
   analyzeUnpriced,
   isEmptySession,
   NO_UNPRICED,
+  type UnpricedUsage,
 } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { runToday, toLocalDay, type TodaySession } from "../modules/today/runToday.js";
@@ -127,18 +124,16 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
   // only its token usage; tool calls (duplicate reads) only for today's
   // sessions. Unchanged files come from the usage cache.
   const todayLocal = toLocalDay(now);
-  const dayStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const isToday = (s: LoadedSession): boolean =>
     toLocalDay(new Date(s.parsed.startedAt ?? new Date(s.meta.mtimeMs).toISOString())) === todayLocal;
-  const loaded = await loadUsageSessions({
+  const loaded = await loadSessions({
     agent,
     deps: { fs, env, clock },
     cwd: ctx.cwd,
     here: opts.here,
     cache: ctx.usageCaches(agent.id),
     needsToolCalls: isToday,
-    // A file last written before today cannot hold a session that started today.
-    keepFull: (meta) => meta.mtimeMs >= dayStartMs,
+    analyze: (s) => todaySession(s, isToday(s), pricing),
   });
   if (!loaded.ok) {
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
@@ -149,41 +144,10 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
   const sessions: TodaySession[] = [];
   // Unpriced tokens behind "spend so far": today's sessions only.
   let unpriced = NO_UNPRICED;
-  for (const { meta, parsed } of loaded.value.sessions) {
-    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
-
-    const tokens = analyzeTokens(parsed, pricing);
-    if (isEmptySession(tokens)) continue;
-    const startedToday = toLocalDay(new Date(startedAt)) === todayLocal;
-    if (startedToday) {
-      unpriced = addUnpriced(unpriced, analyzeUnpriced(parsed, pricing));
-    }
-    // Duplicate reads feed only today's top leak; earlier sessions are
-    // usage-only (no tool calls), so they are not analyzed.
-    const dups = startedToday ? analyzeDuplicateReads(parsed) : NO_DUPLICATES;
-    const totalTokens =
-      tokens.inputTokens +
-      tokens.outputTokens +
-      tokens.cacheReadTokens +
-      tokens.cacheCreationTokens;
-    const top = dups.topOffenders[0];
-    const session: TodaySession = {
-      sessionId: meta.sessionId,
-      startedAt,
-      totalTokens,
-      outputTokens: tokens.outputTokens,
-      estCostUSD: tokens.estCostUSD,
-      duplicateReadTokenCost: dups.duplicateReadTokenCost,
-      topDuplicateReadFile: top
-        ? {
-            path: top.filePath,
-            count: top.readCount,
-            // Convert tokens to USD using session's average $/token (rough but fine for a "top leak" headline).
-            costUSD: totalTokens > 0 ? (top.duplicateTokenCost / totalTokens) * tokens.estCostUSD : 0,
-          }
-        : undefined,
-    };
-    sessions.push(session);
+  for (const { value } of loaded.value.sessions) {
+    if (!value) continue;
+    if (value.unpriced) unpriced = addUnpriced(unpriced, value.unpriced);
+    sessions.push(value.session);
   }
 
   const report = runToday({ sessions, now, agent: agentLabel(agent) });
@@ -203,4 +167,43 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
         ? undefined
         : { tokens: report.today.totalTokens, usd: report.today.totalSpendUSD, unpriced: hasUnpriced },
   });
+}
+
+/** One session's row for runToday; null when it has no usage. Unpriced tokens only for today's sessions. */
+function todaySession(
+  { meta, parsed }: LoadedSession,
+  startedToday: boolean,
+  pricing: ReturnType<typeof loadPricingForDate>,
+): { session: TodaySession; unpriced: UnpricedUsage | undefined } | null {
+  const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
+  const tokens = analyzeTokens(parsed, pricing);
+  if (isEmptySession(tokens)) return null;
+  // Duplicate reads feed only today's top leak; earlier sessions are
+  // usage-only (no tool calls), so they are not analyzed.
+  const dups = startedToday ? analyzeDuplicateReads(parsed) : NO_DUPLICATES;
+  const totalTokens =
+    tokens.inputTokens +
+    tokens.outputTokens +
+    tokens.cacheReadTokens +
+    tokens.cacheCreationTokens;
+  const top = dups.topOffenders[0];
+  return {
+    unpriced: startedToday ? analyzeUnpriced(parsed, pricing) : undefined,
+    session: {
+      sessionId: meta.sessionId,
+      startedAt,
+      totalTokens,
+      outputTokens: tokens.outputTokens,
+      estCostUSD: tokens.estCostUSD,
+      duplicateReadTokenCost: dups.duplicateReadTokenCost,
+      topDuplicateReadFile: top
+        ? {
+            path: top.filePath,
+            count: top.readCount,
+            // Convert tokens to USD using session's average $/token (rough but fine for a "top leak" headline).
+            costUSD: totalTokens > 0 ? (top.duplicateTokenCost / totalTokens) * tokens.estCostUSD : 0,
+          }
+        : undefined,
+    },
+  };
 }

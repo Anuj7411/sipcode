@@ -12,7 +12,8 @@ import { runForecastCmd } from "../../src/commands/forecast.js";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
-import type { UsageCacheIO, UsageCaches } from "../../src/modules/agents/usageSessions.js";
+import type { UsageCaches } from "../../src/modules/agents/usageSessions.js";
+import { memCache, type MemCache } from "../modules/agents/memCache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (n: string) => readFileSync(path.resolve(__dirname, "../fixtures/transcripts", n), "utf-8");
@@ -55,17 +56,10 @@ function logs(): InMemoryFs {
 }
 
 function memCaches(): UsageCaches {
-  const files = new Map<string, string>();
+  const files = new Map<string, MemCache>();
   return (id) => {
-    const io: UsageCacheIO = {
-      async read() {
-        return files.get(id) ?? null;
-      },
-      async write(c) {
-        files.set(id, c);
-      },
-    };
-    return io;
+    if (!files.has(id)) files.set(id, memCache());
+    return files.get(id)!;
   };
 }
 

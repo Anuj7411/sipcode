@@ -7,12 +7,8 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes } from "../modules/agents/loadSessions.js";
-import {
-  defaultUsageCaches,
-  loadUsageSessions,
-  type UsageCaches,
-} from "../modules/agents/usageSessions.js";
+import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import { defaultUsageCaches, type UsageCaches } from "../modules/agents/usageSessions.js";
 import {
   agentLabel,
   resolveDisplayAgents,
@@ -121,12 +117,18 @@ async function forecastForAgent(agent: Agent, ctx: ForecastContext): Promise<Sec
 
   // Every session counts (forecast eligibility comes from the EARLIEST one),
   // but only its token usage: unchanged files come from the usage cache.
-  const loaded = await loadUsageSessions({
+  const loaded = await loadSessions({
     agent,
     deps: { fs, env, clock },
     cwd: ctx.cwd,
     here: opts.here,
     cache: ctx.usageCaches(agent.id),
+    analyze: ({ meta, parsed }) => {
+      const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
+      const tokens = analyzeTokens(parsed, pricing);
+      if (isEmptySession(tokens)) return null;
+      return { startedAt, estCostUSD: tokens.estCostUSD, unpriced: analyzeUnpriced(parsed, pricing) };
+    },
   });
   if (!loaded.ok) {
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
@@ -136,12 +138,10 @@ async function forecastForAgent(agent: Agent, ctx: ForecastContext): Promise<Sec
 
   const sessions: ForecastSession[] = [];
   const unpricedBySession: { startedAt: string; unpriced: UnpricedUsage }[] = [];
-  for (const { meta, parsed } of loaded.value.sessions) {
-    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
-    const tokens = analyzeTokens(parsed, pricing);
-    if (isEmptySession(tokens)) continue;
-    sessions.push({ startedAt, estCostUSD: tokens.estCostUSD });
-    unpricedBySession.push({ startedAt, unpriced: analyzeUnpriced(parsed, pricing) });
+  for (const { value } of loaded.value.sessions) {
+    if (!value) continue;
+    sessions.push({ startedAt: value.startedAt, estCostUSD: value.estCostUSD });
+    unpricedBySession.push({ startedAt: value.startedAt, unpriced: value.unpriced });
   }
 
   const report = runForecast({ sessions, now, agent: agentLabel(agent) });

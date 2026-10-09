@@ -3,7 +3,10 @@ import { InMemoryFs, type FileSystem } from "../../../src/lib/fs.js";
 import { FakeClock } from "../../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../../src/lib/process.js";
 import { claudeCodeAgent } from "../../../src/modules/agents/claude-code/adapter.js";
-import { loadSessions } from "../../../src/modules/agents/loadSessions.js";
+import { loadSessions, type LoadedSession } from "../../../src/modules/agents/loadSessions.js";
+import { dedupeAcrossSessions } from "../../../src/modules/transcript/dedupe.js";
+
+const analyze = (s: LoadedSession) => s.parsed;
 
 const req = (id: string, ts: string) =>
   JSON.stringify({
@@ -52,9 +55,9 @@ function deps() {
 
 describe("loadSessions", () => {
   it("counts a request repeated in a resumed file once", async () => {
-    const r = await loadSessions({ agent: claudeCodeAgent, deps: deps(), cwd: "/" });
+    const r = await loadSessions({ analyze, agent: claudeCodeAgent, deps: deps(), cwd: "/" });
     if (!r.ok) throw new Error("load failed");
-    const turns = r.value.sessions.reduce((n, s) => n + s.parsed.assistantTurns.length, 0);
+    const turns = r.value.sessions.reduce((n, s) => n + s.value.assistantTurns.length, 0);
     expect(turns).toBe(3);
     expect(r.value.droppedDuplicateRequests).toBe(1);
     expect(r.value.discovered).toBe(3);
@@ -62,6 +65,7 @@ describe("loadSessions", () => {
 
   it("applies --here through the agent", async () => {
     const r = await loadSessions({
+      analyze,
       agent: claudeCodeAgent,
       deps: deps(),
       cwd: "C:\\q",
@@ -72,11 +76,11 @@ describe("loadSessions", () => {
   });
 
   it("dedupes across ALL discovered sessions (no time pre-filter), so windows stay consistent", async () => {
-    const r = await loadSessions({ agent: claudeCodeAgent, deps: deps(), cwd: "/" });
+    const r = await loadSessions({ analyze, agent: claudeCodeAgent, deps: deps(), cwd: "/" });
     if (!r.ok) throw new Error("load failed");
     const b = r.value.sessions.find((s) => s.meta.sessionId === "b")!;
-    expect(b.parsed.assistantTurns.map((t) => t.requestKey)).toEqual(["msg_2|req_2"]);
-    expect(b.parsed.startedAt).toBe("2026-09-02T10:00:00Z");
+    expect(b.value.assistantTurns.map((t) => t.requestKey)).toEqual(["msg_2|req_2"]);
+    expect(b.value.startedAt).toBe("2026-09-02T10:00:00Z");
   });
 
   it("counts unreadable files instead of silently dropping them", async () => {
@@ -93,6 +97,7 @@ describe("loadSessions", () => {
       },
     };
     const r = await loadSessions({
+      analyze,
       agent: claudeCodeAgent,
       deps: { ...d, fs: failingFs },
       cwd: "/",
@@ -104,6 +109,7 @@ describe("loadSessions", () => {
 
   it("windowSinceMs: out-of-window files are scanned for dedupe only, not returned", async () => {
     const r = await loadSessions({
+      analyze,
       agent: claudeCodeAgent,
       deps: deps(),
       cwd: "/",
@@ -115,8 +121,8 @@ describe("loadSessions", () => {
     expect(r.value.discovered).toBe(3);
     expect(r.value.sessions.map((s) => s.meta.sessionId).sort()).toEqual(["b", "c"]);
     const b = r.value.sessions.find((s) => s.meta.sessionId === "b")!;
-    expect(b.parsed.assistantTurns.map((t) => t.requestKey)).toEqual(["msg_2|req_2"]);
-    expect(b.parsed.startedAt).toBe("2026-09-02T10:00:00Z");
+    expect(b.value.assistantTurns.map((t) => t.requestKey)).toEqual(["msg_2|req_2"]);
+    expect(b.value.startedAt).toBe("2026-09-02T10:00:00Z");
   });
 
   it("windowSinceMs: scanned stubs keep tie-break order (start, end, turn count)", async () => {
@@ -136,8 +142,9 @@ describe("loadSessions", () => {
         clock: new FakeClock(new Date("2026-10-01T00:00:00Z")),
       };
     };
-    const full = await loadSessions({ agent: claudeCodeAgent, deps: build(), cwd: "/" });
+    const full = await loadSessions({ analyze, agent: claudeCodeAgent, deps: build(), cwd: "/" });
     const win = await loadSessions({
+      analyze,
       agent: claudeCodeAgent,
       deps: build(),
       cwd: "/",
@@ -147,12 +154,12 @@ describe("loadSessions", () => {
     expect(win.value.scannedOnly).toBe(1);
     const fullNew = full.value.sessions.find((s) => s.meta.sessionId === "new")!;
     const winNew = win.value.sessions.find((s) => s.meta.sessionId === "new")!;
-    expect(winNew.parsed.assistantTurns.map((t) => t.requestKey)).toEqual(
-      fullNew.parsed.assistantTurns.map((t) => t.requestKey),
+    expect(winNew.value.assistantTurns.map((t) => t.requestKey)).toEqual(
+      fullNew.value.assistantTurns.map((t) => t.requestKey),
     );
-    expect(winNew.parsed.assistantTurns).toHaveLength(2);
-    expect(winNew.parsed.startedAt).toBe(fullNew.parsed.startedAt);
-    expect(winNew.parsed.endedAt).toBe(fullNew.parsed.endedAt);
+    expect(winNew.value.assistantTurns).toHaveLength(2);
+    expect(winNew.value.startedAt).toBe(fullNew.value.startedAt);
+    expect(winNew.value.endedAt).toBe(fullNew.value.endedAt);
   });
 
   it("windowSinceMs: unreadable out-of-window file is counted, not scanned", async () => {
@@ -169,6 +176,7 @@ describe("loadSessions", () => {
       },
     };
     const r = await loadSessions({
+      analyze,
       agent: claudeCodeAgent,
       deps: { ...d, fs: failingFs },
       cwd: "/",
@@ -183,6 +191,7 @@ describe("loadSessions", () => {
     const { scanRequestKeys: _unused, ...rest } = claudeCodeAgent;
     void _unused;
     const r = await loadSessions({
+      analyze,
       agent: rest as typeof claudeCodeAgent,
       deps: deps(),
       cwd: "/",
@@ -191,5 +200,74 @@ describe("loadSessions", () => {
     if (!r.ok) throw new Error("load failed");
     expect(r.value.scannedOnly).toBe(0);
     expect(r.value.sessions).toHaveLength(3);
+  });
+
+  it("windowSinceMs: reads only the out-of-window files that can hold a copy (same project, written after the window's sessions started)", async () => {
+    const fs = new InMemoryFs();
+    const P = "/home/u/.claude/projects";
+    // In the window: n.jsonl (project p), a resume of o1's request 1.
+    fs.writeFile(`${P}/C--p/n.jsonl`, [req("1", "2026-09-20T10:00:00Z"), req("5", "2026-09-25T10:00:00Z")].join("\n"), Date.parse("2026-09-25T10:01:00Z"));
+    // Out of the window: o1 (same project, written after n started) can hold a copy;
+    // o2 (same project, last written months before n started) and q1 (another project) cannot.
+    fs.writeFile(`${P}/C--p/o1.jsonl`, req("1", "2026-09-20T10:00:00Z"), Date.parse("2026-09-20T10:01:00Z"));
+    fs.writeFile(`${P}/C--p/o2.jsonl`, req("7", "2026-06-01T10:00:00Z"), Date.parse("2026-06-01T10:01:00Z"));
+    fs.writeFile(`${P}/C--q/q1.jsonl`, req("8", "2026-09-21T10:00:00Z"), Date.parse("2026-09-21T10:01:00Z"));
+    const reads: string[] = [];
+    const spyFs = Object.create(fs, {
+      readFile: { value: async (f: string) => (reads.push(f.replace(/^.*[\\/]|\.jsonl$/g, "")), fs.readFile(f)) },
+    }) as InMemoryFs;
+    const d = { fs: spyFs, env: new FakeProcessEnv({ homeDir: "/home/u" }), clock: new FakeClock(new Date("2026-10-01T00:00:00Z")) };
+    const r = await loadSessions({ analyze, agent: claudeCodeAgent, deps: d, cwd: "/", windowSinceMs: Date.parse("2026-09-24T00:00:00Z") });
+    if (!r.ok) throw new Error("load failed");
+    // o1 is scanned before n is analyzed, so n is read once.
+    expect(reads.sort()).toEqual(["n", "o1"]);
+    expect(r.value.scannedOnly).toBe(1);
+    expect(r.value.sessions.map((s) => s.meta.sessionId)).toEqual(["n"]);
+    expect(r.value.sessions[0]!.value.assistantTurns.map((t) => t.requestKey)).toEqual(["msg_5|req_5"]);
+  });
+
+  it("returns exactly what deduping every parsed session in memory gives (random resumed chains)", async () => {
+    let seed = 7;
+    const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+    for (let round = 0; round < 60; round++) {
+      const fs = new InMemoryFs();
+      const files: string[] = [];
+      let nextReq = 1;
+      const count = 2 + Math.floor(rand() * 6);
+      const texts: string[][] = [];
+      for (let f = 0; f < count; f++) {
+        const lines: string[] = [];
+        // Resume an earlier file: copy some of its lines (original timestamps).
+        if (texts.length && rand() < 0.6) {
+          const src = texts[Math.floor(rand() * texts.length)]!;
+          lines.push(...src.slice(0, 1 + Math.floor(rand() * src.length)));
+        }
+        const own = 1 + Math.floor(rand() * 3);
+        for (let k = 0; k < own; k++) {
+          const day = 1 + Math.floor(rand() * 28);
+          lines.push(req(String(nextReq++), `2026-09-${String(day).padStart(2, "0")}T10:00:00Z`));
+        }
+        texts.push(lines);
+        const proj = rand() < 0.8 ? "C--p" : "C--q";
+        const file = `/home/u/.claude/projects/${proj}/f${f}.jsonl`;
+        fs.writeFile(file, lines.join("\n"), Date.parse("2026-09-29T00:00:00Z") + f * 1000);
+        files.push(file);
+      }
+      const d = { fs, env: new FakeProcessEnv({ homeDir: "/home/u" }), clock: new FakeClock(new Date("2026-10-01T00:00:00Z")) };
+      const r = await loadSessions({ analyze, agent: claudeCodeAgent, deps: d, cwd: "/" });
+      if (!r.ok) throw new Error("load failed");
+      // Reference: parse every discovered file (newest first, as discovery orders them), dedupe in memory.
+      const order = r.value.sessions.map((s) => s.meta.filePath);
+      const parsed = await Promise.all(
+        order.map(async (f) => {
+          const p = claudeCodeAgent.parseTranscript(await fs.readFile(f));
+          if (!p.ok) throw new Error("parse failed");
+          return p.value;
+        }),
+      );
+      const ref = dedupeAcrossSessions(parsed);
+      expect(r.value.sessions.map((s) => s.value), `round ${round}`).toEqual(ref.sessions);
+      expect(r.value.droppedDuplicateRequests, `round ${round}`).toBe(ref.droppedRequests);
+    }
   });
 });

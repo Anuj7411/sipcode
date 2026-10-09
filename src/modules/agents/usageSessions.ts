@@ -1,45 +1,50 @@
 /**
- * Session loading for commands that only need token usage (today, forecast),
- * with a per-file cache so unchanged transcripts are not read again.
+ * The usage cache: what a session holds without its tool calls, per
+ * transcript file, so commands that only need token usage (today, forecast)
+ * do not read unchanged transcripts again.
  *
  * Why: today / forecast derive "days of history" from the earliest session, so
  * they load every transcript. Fully parsing a 2.3 GB log folder took 30-45 s,
- * past the MCP tools' 10 s limit. What they read from a session is its token
- * usage; tool calls only for today's sessions (duplicate reads).
+ * past the MCP tools' 10 s limit.
  *
  * A usage-only session is the full parse without tool calls: same turns
  * (request key, model, timestamp, every token count), same start / end /
- * duration, same turn count. Cross-file dedupe (dedupeAcrossSessions) reads
- * only those, so over usage-only and full sessions together it keeps, drops
- * and maxes exactly the requests it would over full parses, and analyzeTokens
- * gives the same totals. The sessions a caller needs tool calls for
- * (`needsToolCalls`, judged on the deduped session) are parsed in full and
- * deduped again; nothing else changes between the two passes.
+ * duration, same turn count. Cross-file dedupe reads only those, so a cached
+ * session dedupes exactly like a parsed one (loadSessions).
  *
- * The cache (~/.sipcode/usage-cache/<agent>.json) holds the usage-only form of
- * each parsed file, keyed by its path, size and mtime: a file that changed is
- * parsed again. It is stored only when the text read has the size discovery
- * saw (a file growing mid-read is parsed again next time), and is ignored when
- * written by another Sipcode version. Errors reading or writing it never fail
+ * The cache (~/.sipcode/usage-cache/<agent>.json) is JSON Lines: a header
+ * line (schema + Sipcode version), then one line per transcript with its
+ * path, size, mtime and usage-only session. Commands read it line by line and
+ * write a new one beside it (renamed into place), so neither holds the whole
+ * cache in memory. An entry is used only while its file's size and mtime are
+ * unchanged, and is stored only when the text read has the size discovery saw
+ * (a file growing mid-read is parsed again next time). A cache written by
+ * another Sipcode version is ignored. Errors reading or writing it never fail
  * the command: it is a speed-up only.
  */
 import { promises as nodeFs, readFileSync } from "node:fs";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { RealFileSystem, type FileSystem } from "../../lib/fs.js";
 import type { ProcessEnv } from "../../lib/process.js";
-import { ok, type Result } from "../../lib/result.js";
-import type { SipcodeIssue } from "../../lib/errors.js";
-import { dedupeAcrossSessions } from "../transcript/dedupe.js";
 import type { AssistantTurn } from "../transcript/parse.js";
-import { discoverAgentSessions, type LoadedSession, type LoadSessionsOutput } from "./loadSessions.js";
-import type { ParsedSession, SessionMeta } from "./shared.js";
-import type { Agent, AgentDeps, AgentId } from "./types.js";
+import type { ParsedSession } from "./shared.js";
+import type { AgentId } from "./types.js";
 
 /** Read / write one agent's cache file. */
 export interface UsageCacheIO {
-  /** The cache text, or null when there is none (or it cannot be read). */
-  read(): Promise<string | null>;
-  write(content: string): Promise<void>;
+  /** The cache's lines in order; none when there is no cache. May throw mid-way (treated as the end). */
+  lines(): AsyncIterable<string>;
+  /** A new cache, filled line by line, that replaces the current one on commit. */
+  writer(): UsageCacheWriter;
+}
+
+export interface UsageCacheWriter {
+  add(line: string): Promise<void>;
+  /** Replace the cache with the lines added. Never throws. */
+  commit(): Promise<void>;
+  /** Drop the lines added. Never throws. */
+  discard(): Promise<void>;
 }
 
 /** Where commands keep each agent's cache. */
@@ -63,35 +68,87 @@ export function defaultUsageCaches(fs: FileSystem, env: ProcessEnv): UsageCaches
 /** Distinguishes temp files of writes in flight in one process (MCP tools run in parallel). */
 let tmpSeq = 0;
 
+/** Lines buffered before a write to the temp file. */
+const FLUSH_CHARS = 1 << 20;
+
 /** The cache on disk. Writes go to a temp file renamed into place. */
 export function fileUsageCacheIO(file: string): UsageCacheIO {
   return {
-    async read() {
+    async *lines() {
+      let handle: nodeFs.FileHandle;
       try {
-        return await nodeFs.readFile(file, "utf-8");
+        handle = await nodeFs.open(file, "r");
       } catch {
-        return null;
+        return;
+      }
+      const input = handle.createReadStream({ encoding: "utf-8" });
+      const rl = createInterface({ input, crlfDelay: Infinity });
+      try {
+        for await (const line of rl) yield line;
+      } finally {
+        rl.close();
+        input.destroy();
+        await handle.close().catch(() => {});
       }
     },
-    async write(content) {
+    writer() {
       const tmp = `${file}.${process.pid}.${tmpSeq++}.tmp`;
-      try {
-        await nodeFs.mkdir(path.dirname(file), { recursive: true });
-        await nodeFs.writeFile(tmp, content, "utf-8");
-        await nodeFs.rename(tmp, file);
-      } catch {
-        await nodeFs.rm(tmp, { force: true }).catch(() => {});
-      }
+      let handle: nodeFs.FileHandle | undefined;
+      let failed = false;
+      let buf: string[] = [];
+      let size = 0;
+      const flush = async (): Promise<void> => {
+        if (failed || buf.length === 0) return;
+        const text = buf.join("");
+        buf = [];
+        size = 0;
+        try {
+          if (!handle) {
+            await nodeFs.mkdir(path.dirname(file), { recursive: true });
+            handle = await nodeFs.open(tmp, "w");
+          }
+          await handle.write(text);
+        } catch {
+          failed = true;
+        }
+      };
+      const close = async (): Promise<void> => {
+        const h = handle;
+        handle = undefined;
+        if (h) await h.close().catch(() => {});
+      };
+      return {
+        async add(line) {
+          buf.push(line, "\n");
+          size += line.length + 1;
+          if (size >= FLUSH_CHARS) await flush();
+        },
+        async commit() {
+          await flush();
+          await close();
+          try {
+            if (failed) throw new Error("cache write failed");
+            await nodeFs.rename(tmp, file);
+          } catch {
+            await nodeFs.rm(tmp, { force: true }).catch(() => {});
+          }
+        },
+        async discard() {
+          buf = [];
+          await close();
+          await nodeFs.rm(tmp, { force: true }).catch(() => {});
+        },
+      };
     },
   };
 }
 
 /**
  * Bump when parseTranscript (either agent) changes what a usage-only session
- * holds. The Sipcode version is part of the key too, so every release starts
- * a fresh cache.
+ * holds, or when the file layout changes. The Sipcode version is part of the
+ * header too, so every release starts a fresh cache.
  */
-const CACHE_SCHEMA = "sipcode-usage-cache/1";
+const CACHE_SCHEMA = "sipcode-usage-cache/2";
 
 let versionMemo: string | undefined;
 function sipcodeVersion(): string {
@@ -109,6 +166,11 @@ function sipcodeVersion(): string {
   return versionMemo;
 }
 
+/** The first line of a cache this Sipcode can use (compared as text, so an old cache is never parsed). */
+export function cacheHeader(): string {
+  return JSON.stringify({ schema: CACHE_SCHEMA, version: sipcodeVersion() });
+}
+
 type TurnJson = Omit<AssistantTurn, "toolCalls">;
 type SessionJson = Omit<ParsedSession, "assistantTurns" | "toolCalls" | "models" | "priorReads"> & {
   readonly models: string[];
@@ -116,16 +178,11 @@ type SessionJson = Omit<ParsedSession, "assistantTurns" | "toolCalls" | "models"
   readonly turns: TurnJson[];
 };
 
-interface CacheEntry {
+export interface CacheEntry {
+  readonly file: string;
   readonly mtimeMs: number;
   readonly size: number;
-  readonly session: SessionJson;
-}
-
-interface CacheFile {
-  readonly schema: string;
-  readonly version: string;
-  readonly entries: Record<string, CacheEntry>;
+  readonly session: ParsedSession;
 }
 
 function toJson(s: ParsedSession): SessionJson {
@@ -155,150 +212,40 @@ export function usageOnly(s: ParsedSession): ParsedSession {
   return fromJson(toJson(s));
 }
 
-async function readCache(io: UsageCacheIO): Promise<Record<string, CacheEntry>> {
-  const raw = await io.read();
-  if (raw === null) return {};
+/** One cache line. `file` comes first so entryFile can read it without parsing the line. */
+export function encodeEntry(file: string, mtimeMs: number, size: number, s: ParsedSession): string {
+  return JSON.stringify({ file, mtimeMs, size, session: toJson(s) });
+}
+
+const FILE_PREFIX = '{"file":"';
+
+/** The transcript path a cache line is for, read without parsing the rest of the line. */
+export function entryFile(line: string): string | undefined {
+  if (!line.startsWith(FILE_PREFIX)) return undefined;
+  for (let i = FILE_PREFIX.length; i < line.length; i++) {
+    const c = line.charCodeAt(i);
+    if (c === 92 /* \ */) i++;
+    else if (c === 34 /* " */) {
+      try {
+        const v = JSON.parse(line.slice(FILE_PREFIX.length - 1, i + 1)) as unknown;
+        return typeof v === "string" ? v : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** A cache line read back, or undefined when it is damaged. */
+export function decodeEntry(line: string): CacheEntry | undefined {
   try {
-    const c = JSON.parse(raw) as Partial<CacheFile>;
-    if (c.schema !== CACHE_SCHEMA || c.version !== sipcodeVersion()) return {};
-    return c.entries && typeof c.entries === "object" ? c.entries : {};
+    const e = JSON.parse(line) as { file?: unknown; mtimeMs?: unknown; size?: unknown; session?: SessionJson };
+    if (typeof e.file !== "string" || typeof e.mtimeMs !== "number" || typeof e.size !== "number" || !e.session) {
+      return undefined;
+    }
+    return { file: e.file, mtimeMs: e.mtimeMs, size: e.size, session: fromJson(e.session) };
   } catch {
-    return {};
+    return undefined;
   }
-}
-
-export interface LoadUsageSessionsInput {
-  readonly agent: Agent;
-  readonly deps: AgentDeps;
-  readonly cwd: string;
-  readonly here?: boolean | undefined;
-  /** null: no cache, every file is parsed. */
-  readonly cache: UsageCacheIO | null;
-  /**
-   * Sessions (after dedupe) whose tool calls the caller reads. They come back
-   * fully parsed; every other session is usage-only (no tool calls).
-   */
-  readonly needsToolCalls?: ((s: LoadedSession) => boolean) | undefined;
-  /**
-   * For a file this run parses anyway: keep its full parse, as it will likely
-   * pass needsToolCalls (saves reading it twice). Default: never.
-   */
-  readonly keepFull?: ((meta: SessionMeta) => boolean) | undefined;
-}
-
-interface Slot {
-  readonly meta: SessionMeta;
-  session: ParsedSession;
-  full: boolean;
-}
-
-/**
- * Same sessions, order, dedupe and counters as loadSessions without a window,
- * except that sessions not picked by needsToolCalls have no tool calls, and a
- * file served from the cache is not read (so not counted unreadable).
- */
-export async function loadUsageSessions(
-  input: LoadUsageSessionsInput,
-): Promise<Result<LoadSessionsOutput, SipcodeIssue[]>> {
-  const { agent, deps, cwd } = input;
-  const discovery = await discoverAgentSessions(agent, deps);
-  if (!discovery.ok) return discovery;
-  const found = discovery.value;
-  let metas = found.sessions;
-  // --here before dedupe is safe: a resumed session stays in its project.
-  if (input.here) metas = metas.filter((m) => agent.matchesCwd(m, cwd));
-
-  const cached = input.cache ? await readCache(input.cache) : {};
-  const next: Record<string, CacheEntry> = {};
-  let changed = false;
-  // Entries of files this run does not look at (--here) stay while the file exists.
-  const present = new Set(found.sessions.map((m) => m.filePath));
-  for (const [file, e] of Object.entries(cached)) {
-    if (present.has(file)) next[file] = e;
-    else changed = true;
-  }
-
-  const issues: SipcodeIssue[] = [...found.issues];
-  let unreadable = found.unreadable;
-  const slots: Slot[] = [];
-  for (const meta of metas) {
-    const hit = cached[meta.filePath];
-    if (hit && hit.mtimeMs === meta.mtimeMs && hit.size === meta.size) {
-      let session: ParsedSession | undefined;
-      try {
-        session = fromJson(hit.session);
-      } catch {
-        // A damaged entry: parse the file instead.
-      }
-      if (session) {
-        slots.push({ meta, session, full: false });
-        continue;
-      }
-    }
-    let content: string;
-    try {
-      content = await deps.fs.readFile(meta.filePath);
-    } catch {
-      unreadable++;
-      continue;
-    }
-    const parsed = agent.parseTranscript(content);
-    if (!parsed.ok) {
-      issues.push(...parsed.error);
-      continue;
-    }
-    const json = toJson(parsed.value);
-    if (input.cache && Buffer.byteLength(content, "utf8") === meta.size) {
-      next[meta.filePath] = { mtimeMs: meta.mtimeMs, size: meta.size, session: json };
-      changed = true;
-    } else if (next[meta.filePath]) {
-      delete next[meta.filePath];
-      changed = true;
-    }
-    const full = input.keepFull?.(meta) ?? false;
-    slots.push({ meta, session: full ? parsed.value : fromJson(json), full });
-  }
-
-  let d = dedupeAcrossSessions(slots.map((s) => s.session));
-  const needs = input.needsToolCalls;
-  if (needs) {
-    let reparsed = false;
-    for (const [i, slot] of slots.entries()) {
-      if (slot.full || !needs({ meta: slot.meta, parsed: d.sessions[i]! })) continue;
-      let content: string;
-      try {
-        content = await deps.fs.readFile(slot.meta.filePath);
-      } catch {
-        continue; // keep the usage-only session: totals stay right, no duplicate reads
-      }
-      const parsed = agent.parseTranscript(content);
-      if (!parsed.ok) continue;
-      slot.session = parsed.value;
-      slot.full = true;
-      reparsed = true;
-    }
-    if (reparsed) d = dedupeAcrossSessions(slots.map((s) => s.session));
-  }
-
-  if (input.cache && changed) {
-    const file: CacheFile = { schema: CACHE_SCHEMA, version: sipcodeVersion(), entries: next };
-    let text: string | undefined;
-    try {
-      text = JSON.stringify(file);
-    } catch {
-      // Past the maximum string length: run without the cache rather than fail.
-    }
-    if (text !== undefined) await input.cache.write(text);
-  }
-
-  return ok({
-    sessions: slots.map((s, i) => ({ meta: s.meta, parsed: d.sessions[i]! })),
-    discovered: found.sessions.length,
-    unreadable,
-    unreadableFolders: found.unreadableFolders,
-    skippedCompressed: found.skippedCompressed,
-    scannedOnly: 0,
-    droppedDuplicateRequests: d.droppedRequests,
-    issues,
-  });
 }

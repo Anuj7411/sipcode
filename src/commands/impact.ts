@@ -143,36 +143,39 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
   const aggregated: AggregatedSession[] = [];
   let unpriced = NO_UNPRICED;
   if (projectsExists) {
+    const pricing = loadPricingForDate(clock.now());
     // No windowSinceMs: impact compares before/after install and needs all history.
     const loaded = await loadSessions({
       agent,
       deps: { fs: fileSys, env, clock },
       cwd,
       here: opts.here,
+      analyze: ({ meta, parsed }) => {
+        const totals = analyzeTokens(parsed, pricing);
+        if (isEmptySession(totals)) return null;
+        return {
+          unpriced: analyzeUnpriced(parsed, pricing),
+          session: aggregateSession({
+            sessionId: meta.sessionId,
+            projectHash: meta.projectHash,
+            fallbackStartedAtMs: meta.mtimeMs,
+            parsed,
+            totals,
+            duplicates: analyzeDuplicateReads(parsed),
+            idle: analyzeIdleContext(parsed),
+          }),
+        };
+      },
     });
     if (!loaded.ok) {
       for (const i of loaded.error) stderr(i.message);
       return o.result(1);
     }
     if (!opts.json) for (const n of discoveryNotes(loaded.value)) stderr(n);
-    const pricing = loadPricingForDate(clock.now());
-    for (const { meta, parsed } of loaded.value.sessions) {
-      const totals = analyzeTokens(parsed, pricing);
-      if (isEmptySession(totals)) continue;
-      unpriced = addUnpriced(unpriced, analyzeUnpriced(parsed, pricing));
-      const dups = analyzeDuplicateReads(parsed);
-      const idle = analyzeIdleContext(parsed);
-      aggregated.push(
-        aggregateSession({
-          sessionId: meta.sessionId,
-          projectHash: meta.projectHash,
-          fallbackStartedAtMs: meta.mtimeMs,
-          parsed,
-          totals,
-          duplicates: dups,
-          idle,
-        }),
-      );
+    for (const { value } of loaded.value.sessions) {
+      if (!value) continue;
+      unpriced = addUnpriced(unpriced, value.unpriced);
+      aggregated.push(value.session);
     }
   }
 
