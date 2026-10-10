@@ -6,7 +6,9 @@ Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/c
 
 On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pairs, not recordings of live sessions), Sipcode's mechanisms remove 62.6% of tokens at the median (range 37.4% to 80.6%), totalling 3,567,170 tokens and $22.48 priced as Claude Opus 4.7. Anyone can reproduce these numbers with `sipcode benchmark`. Real-world savings depend on the workload. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode is solo-maintained, MIT licensed, has 1,404 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet.
+
+Sipcode is solo-maintained, MIT licensed, has 1,996 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
@@ -124,7 +126,7 @@ projected month-end   $17,674   (range $14,139 to $21,208)
 
 ## How to install (more detail)
 
-Sipcode works on Mac, Linux, and Windows. Node.js 18 or newer is required.
+Sipcode works on Mac, Linux, and Windows. Node.js 20 or newer is required.
 
 ### Step 1. Install Node.js
 
@@ -132,7 +134,7 @@ Sipcode works on Mac, Linux, and Windows. Node.js 18 or newer is required.
 - Linux (Ubuntu / Debian): `sudo apt install nodejs npm`
 - Windows: Download from [nodejs.org](https://nodejs.org/)
 
-Verify: `node --version` should show v18.0.0 or higher.
+Verify: `node --version` should show v20.0.0 or higher.
 
 ### Step 2. Install Sipcode globally
 
@@ -140,7 +142,7 @@ Verify: `node --version` should show v18.0.0 or higher.
 npm i -g sipcode
 ```
 
-Verify: `sipcode --version` should show 1.6.21 or higher.
+Verify: `sipcode --version` should show 1.7.0 or higher.
 
 ### Step 3. Run `sipcode init`
 
@@ -175,7 +177,7 @@ If drift says "no drift" and proxy --stats shows a few dozen rewrites with savin
 | Context-rot detection | Warns when a Claude Code session is starting to behave worse than the norm |
 | Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
-| Spend telemetry | Daily, monthly, projected. All from local transcripts, no cloud upload |
+| Spend telemetry | Daily, monthly, projected. All from local Claude Code and Codex logs, no cloud upload |
 | MCP server | 15 tools registered for Claude Desktop, so Claude itself can read usage stats |
 | Reproducible benchmark | A locked 20-task corpus anyone can run and verify |
 
@@ -199,7 +201,7 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 ### Does it work with Cursor or other AI tools?
 
-Today, only with Claude Code (since Claude Code is the only tool that exposes the hooks Sipcode needs). Support for other CLIs is being explored.
+The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
 
 ### How do I uninstall?
 
@@ -225,7 +227,7 @@ npm uninstall -g sipcode
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 20 or newer
 - Claude Code installed (for the proxy hook). Sipcode also works as standalone CLI tools (benchmark, score, etc.) without Claude Code installed.
 
 ## License
@@ -240,13 +242,15 @@ Sipcode ships a Model Context Protocol (MCP) server with 15 tools so Claude Code
 
 ## Tools
 
+The session tools take an optional `agent` input (`"claude-code"` or `"codex"`).
+
 - `get_sipcode_info`: version, install location, hook status
 - `get_project_manifest`: the `.sipcode/manifest.md` for the current project
 - `get_proxy_status`: is the PreToolUse hook installed and active
 - `get_proxy_stats`: rewriter breakdown, tokens saved, integrity score for the current session
 - `get_drift_report`: bloat, rot, and re-read pressure for the live session
 - `get_session_stats`: per-session token totals and rewriter activity
-- `list_recent_sessions`: paginated list of recent Claude Code sessions
+- `list_recent_sessions`: paginated list of recent Claude Code or Codex sessions
 - `get_today_summary`: today's spend, sessions, output ratio
 - `forecast_monthly_spend`: month-end projection with confidence range
 - `estimate_task_cost`: predicted cost of a task before running it
@@ -273,4 +277,4 @@ The MCP server is registered automatically by `sipcode init`. To register manual
 
 ## Privacy
 
-The MCP server reads only local files: Claude Code transcripts, `.sipcode/` state, the current repo. It makes zero network calls.
+The MCP server reads only local files: Claude Code and Codex session logs, `.sipcode/` state, the current repo. It makes zero network calls.

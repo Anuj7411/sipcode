@@ -3,9 +3,10 @@ import { getAgentById, listAgents, REGISTRY } from "../../../src/modules/agents/
 import { ALL_AGENT_IDS } from "../../../src/modules/agents/types.js";
 
 describe("agent registry", () => {
-  it("exposes claude-code and cursor", () => {
+  it("exposes claude-code, cursor and codex", () => {
     expect(getAgentById("claude-code").id).toBe("claude-code");
     expect(getAgentById("cursor").id).toBe("cursor");
+    expect(getAgentById("codex").id).toBe("codex");
   });
 
   it("listAgents returns all registered agents", () => {
@@ -19,6 +20,10 @@ describe("agent registry", () => {
 
   it("claude-code declares transcript parsing supported", () => {
     expect(getAgentById("claude-code").transcriptParsingSupported).toBe(true);
+  });
+
+  it("codex declares transcript parsing supported", () => {
+    expect(getAgentById("codex").transcriptParsingSupported).toBe(true);
   });
 
   it("cursor declares transcript parsing unsupported (E009 stub)", () => {

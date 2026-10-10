@@ -28,6 +28,8 @@ export interface TodaySession {
 export interface RunTodayInput {
   readonly sessions: ReadonlyArray<TodaySession>;
   readonly now: Date;
+  /** Agent named in the empty-state headline. Default: Claude Code / `claude`. */
+  readonly agent?: { readonly name: string; readonly command: string } | undefined;
 }
 
 /** Minimum sessions today to render the full headline. */
@@ -35,6 +37,7 @@ const MIN_SESSIONS_FOR_OK = 1;
 
 export function runToday(input: RunTodayInput): TodayReport {
   const { sessions, now } = input;
+  const agent = input.agent ?? { name: "Claude Code", command: "claude" };
 
   if (sessions.length === 0) {
     return {
@@ -43,8 +46,7 @@ export function runToday(input: RunTodayInput): TodayReport {
       today: null,
       baseline: null,
       comparison: null,
-      headline:
-        "No Claude Code sessions found yet. Run `claude` in any project to start.",
+      headline: `No ${agent.name} sessions found yet. Run \`${agent.command}\` in any project to start.`,
     };
   }
 
@@ -129,7 +131,8 @@ function buildTodayBlock(
     ) {
       topLeak = {
         kind: "duplicate-reads",
-        description: `${s.topDuplicateReadFile.count} re-reads of ${shortPath(s.topDuplicateReadFile.path)}`,
+        // count is every read of the file (the first one included); the rest are re-reads.
+        description: `${reReads(s.topDuplicateReadFile.count)} of ${shortPath(s.topDuplicateReadFile.path)}`,
         costUSD: s.topDuplicateReadFile.costUSD,
       };
     }
@@ -205,7 +208,8 @@ function buildHeadline(
   return parts.join(" ");
 }
 
-function toLocalDay(d: Date): string {
+/** YYYY-MM-DD in local time: the day "today" means. */
+export function toLocalDay(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -231,4 +235,9 @@ function fmtUsd(v: number): string {
 function shortPath(p: string): string {
   const parts = p.split(/[\\/]/);
   return parts.slice(-2).join("/");
+}
+
+function reReads(reads: number): string {
+  const n = Math.max(0, reads - 1);
+  return `${n} re-read${n === 1 ? "" : "s"}`;
 }

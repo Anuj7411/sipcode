@@ -64,6 +64,7 @@ function renderBucketTable(
   before: ImpactBucket,
   after: ImpactBucket,
   delta: ImpactDelta,
+  unpricedNote: string | undefined,
 ): string {
   const lines: string[] = [];
   lines.push(row("", "BEFORE", "AFTER", "Δ"));
@@ -122,6 +123,7 @@ function renderBucketTable(
     ),
   );
   lines.push("─".repeat(74));
+  if (unpricedNote) lines.push(unpricedNote);
   return lines.join("\n");
 }
 
@@ -134,23 +136,34 @@ function renderNotes(report: ImpactReport): string {
   return "\n" + report.notes.map((n) => `  • ${n}`).join("\n") + "\n";
 }
 
-function renderAllTimeBlock(allTime: ImpactBucket): string {
+function renderAllTimeBlock(allTime: ImpactBucket, opts: FormatOptions): string {
   // Surface the user's total session count + total cost when no marker
   // exists. Closes the "0 sessions in both windows" UX confusion.
   const lines: string[] = [];
-  lines.push("all-time totals (across every Claude Code session on disk):");
+  lines.push(`all-time totals (across every ${opts.agentName ?? "Claude Code"} session on disk):`);
   lines.push("─".repeat(74));
   lines.push(`  sessions:       ${allTime.sessionCount}`);
   lines.push(`  total tokens:   ${fmtTokens(allTime.totalTokens)}`);
   lines.push(`  total spend:    ${fmtUSDPlain(allTime.estCostUSD)}`);
+  if (opts.unpricedNote) lines.push(`  ${opts.unpricedNote}`);
   lines.push(`  output ratio:   ${allTime.outputRatioPct.toFixed(1)}%`);
   lines.push("─".repeat(74));
   lines.push("(no install marker = no before/after split possible)");
   return lines.join("\n");
 }
 
-export function formatTerminal(report: ImpactReport): string {
+export interface FormatOptions {
+  /** One line shown under the pivot whenever there is a before/after (Codex: not caused by Sipcode). */
+  readonly beforeAfterLabel?: string | undefined;
+  /** Agent named in the all-time block. Default: Claude Code. */
+  readonly agentName?: string | undefined;
+  /** One line under the spend naming tokens on models with no known price. */
+  readonly unpricedNote?: string | undefined;
+}
+
+export function formatTerminal(report: ImpactReport, opts: FormatOptions = {}): string {
   const parts = [renderHeader(report)];
+  if (opts.beforeAfterLabel && report.installedAtIso) parts.push(`${opts.beforeAfterLabel}\n`);
   if (
     report.status === "no-install-marker"
     || report.status === "no-baseline"
@@ -160,7 +173,7 @@ export function formatTerminal(report: ImpactReport): string {
     // Show the all-time bucket when available (no-install-marker case)
     // so the user sees their data even when no comparison is possible.
     if (report.allTime !== null && report.allTime.sessionCount > 0) {
-      parts.push(renderAllTimeBlock(report.allTime));
+      parts.push(renderAllTimeBlock(report.allTime, opts));
     }
     parts.push(renderHeadline(report));
     parts.push(renderNotes(report));
@@ -175,7 +188,7 @@ export function formatTerminal(report: ImpactReport): string {
     parts.push(renderNotes(report));
     return parts.filter((p) => p.length > 0).join("\n");
   }
-  parts.push(renderBucketTable(report.before, report.after, report.delta));
+  parts.push(renderBucketTable(report.before, report.after, report.delta, opts.unpricedNote));
   parts.push(renderHeadline(report));
   parts.push(renderNotes(report));
   return parts.filter((p) => p.length > 0).join("\n");

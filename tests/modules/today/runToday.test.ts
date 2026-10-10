@@ -114,6 +114,16 @@ describe("runToday — math", () => {
     expect(r.today?.topLeak?.costUSD).toBeCloseTo(0.11, 5);
   });
 
+  it("counts re-reads, not reads: 4 reads of a file are 3 re-reads (2 reads: 1 re-read)", () => {
+    const leak = (count: number) =>
+      runToday({
+        sessions: [session({ startedAt: now.toISOString(), topDuplicateReadFile: { path: "src/b.ts", count, costUSD: 0.1 } })],
+        now,
+      }).today?.topLeak?.description;
+    expect(leak(4)).toBe("3 re-reads of src/b.ts");
+    expect(leak(2)).toBe("1 re-read of src/b.ts");
+  });
+
   it("topLeak is null when no session has a topDuplicateReadFile", () => {
     const r = runToday({
       sessions: [session({ startedAt: now.toISOString() })],

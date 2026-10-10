@@ -188,7 +188,7 @@ describe("runManifest — integration", () => {
     expect(content).not.toContain("## Hot files");
   });
 
-  it("--delta is stubbed (prints v1.1+ message)", async () => {
+  it("--delta says it is not supported (no version promise)", async () => {
     const out: string[] = [];
     const r = await runManifest(
       { delta: true },
@@ -204,6 +204,7 @@ describe("runManifest — integration", () => {
       },
     );
     expect(r.exitCode).toBe(0);
-    expect(out.join("\n")).toContain("v1.1+");
+    expect(out.join("\n")).toContain("--delta is not supported.");
+    expect(out.join("\n")).not.toContain("v1.1");
   });
 });

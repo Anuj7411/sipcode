@@ -1,12 +1,14 @@
 /**
- * Filesystem seam — the ONLY place in src/ that imports node:fs.
+ * Filesystem seam for reading session logs and project files.
  *
- * Everything else takes a `FileSystem` instance so InMemoryFs can replace
- * the real disk in tests.
+ * The transcript pipeline and the commands built on it take a `FileSystem`
+ * instance, so InMemoryFs can replace the real disk in tests. Some modules
+ * still use node:fs directly (writers, caches, the CLI's own files).
  */
 import * as nodeFs from "node:fs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 
 export interface DirEntry {
   readonly name: string;
@@ -22,8 +24,19 @@ export interface FileStat {
 export interface FileSystem {
   exists(p: string): Promise<boolean>;
   readFile(p: string): Promise<string>;
+  /**
+   * The first `maxBytes` bytes of a file as UTF-8 text. A multi-byte
+   * character cut at the limit is dropped, never decoded as U+FFFD.
+   */
+  readHead(p: string, maxBytes: number): Promise<string>;
   readDir(p: string): Promise<DirEntry[]>;
   stat(p: string): Promise<FileStat>;
+}
+
+/** Decode a byte prefix, dropping a trailing incomplete UTF-8 sequence. */
+function decodeUtf8Prefix(buf: Buffer): string {
+  // StringDecoder.write holds back an incomplete trailing character; we never call end().
+  return new StringDecoder("utf8").write(buf);
 }
 
 export class RealFileSystem implements FileSystem {
@@ -36,7 +49,25 @@ export class RealFileSystem implements FileSystem {
     }
   }
   async readFile(p: string): Promise<string> {
-    return fs.readFile(p, "utf-8");
+    // Read bytes, then decode: the same text as readFile(p, "utf-8"), but
+    // with "utf-8" Node kept the previous large file alive while the next one
+    // was read (a 467 MB log needed 1.6 GB of heap instead of 0.9 GB).
+    return (await fs.readFile(p)).toString("utf8");
+  }
+  async readHead(p: string, maxBytes: number): Promise<string> {
+    const handle = await fs.open(p, "r");
+    try {
+      const buf = Buffer.alloc(Math.max(0, maxBytes));
+      let filled = 0;
+      while (filled < buf.length) {
+        const { bytesRead } = await handle.read(buf, filled, buf.length - filled, filled);
+        if (bytesRead === 0) break;
+        filled += bytesRead;
+      }
+      return decodeUtf8Prefix(buf.subarray(0, filled));
+    } finally {
+      await handle.close();
+    }
   }
   async readDir(p: string): Promise<DirEntry[]> {
     const entries = await fs.readdir(p, { withFileTypes: true });
@@ -103,6 +134,10 @@ export class InMemoryFs implements FileSystem {
       throw Object.assign(new Error(`ENOENT: ${p}`), { code: "ENOENT" });
     }
     return n.content;
+  }
+  async readHead(p: string, maxBytes: number): Promise<string> {
+    const content = await this.readFile(p);
+    return decodeUtf8Prefix(Buffer.from(content, "utf-8").subarray(0, Math.max(0, maxBytes)));
   }
   async readDir(p: string): Promise<DirEntry[]> {
     const norm = this.norm(p);

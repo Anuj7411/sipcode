@@ -1,7 +1,7 @@
 /**
  * Persistent drift cache. Stores parsed `SessionMetrics` as JSONL at
- * `~/.sipcode/drift/sessions.jsonl`. Survives Claude Code's transcript GC and
- * skips reparsing on repeat runs.
+ * `~/.sipcode/drift/sessions-v3.jsonl` (the file name is the caller's, see
+ * commands/drift.ts). Skips reparsing unchanged transcripts on repeat runs.
  *
  * Storage shape: one JSON object per line. Dedupe-on-read by `sessionId`
  * (last write wins). Pruned to KEEP_MAX entries once total exceeds PRUNE_AT.
@@ -42,7 +42,8 @@ export const realStoreIO: StoreIO = {
   },
 };
 
-const KEEP_MAX = 50;
+// Room for two agents' drift windows (Claude Code and Codex, 30 sessions each).
+const KEEP_MAX = 100;
 const PRUNE_AT = 200;
 
 /** Parse JSONL, dedupe by sessionId (last wins), return newest-first. */
@@ -86,15 +87,20 @@ export async function persistNewSessions(
 }
 
 /**
- * Rewrite the cache keeping only the newest KEEP_MAX entries once total
- * exceeds PRUNE_AT. Idempotent; safe to call after every persist.
+ * Rewrite the cache keeping only the newest KEEP_MAX entries once the file
+ * holds more than PRUNE_AT lines. Lines, not distinct sessions: a session that
+ * changed since it was cached is appended again, so a live session adds a line
+ * per run. Idempotent; safe to call after every persist.
  */
 export async function pruneIfLarge(
   filePath: string,
   io: StoreIO = realStoreIO,
 ): Promise<void> {
+  const raw = await io.read(filePath);
+  if (raw === null) return;
+  const lines = raw.split("\n").filter((l) => l.trim().length > 0).length;
+  if (lines <= PRUNE_AT) return;
   const all = await loadCachedSessions(filePath, io);
-  if (all.length <= PRUNE_AT) return;
   const kept = all.slice(0, KEEP_MAX);
   const body = kept.map((m) => JSON.stringify(m)).join("\n") + "\n";
   await io.write(filePath, body);

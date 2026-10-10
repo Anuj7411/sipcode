@@ -11,6 +11,7 @@ import type { TokenTotals } from "../transcript/analyzers/tokens.js";
 import type { DuplicateReadsResult } from "../transcript/analyzers/duplicateReads.js";
 import type { IdleContextResult } from "../transcript/analyzers/idleContext.js";
 import type { AggregatedSession } from "./types.js";
+import { shortSessionId } from "../../lib/session-id.js";
 
 export interface AggregateInput {
   readonly sessionId: string;
@@ -52,10 +53,6 @@ export function projectNameFromCwd(
   return parts[parts.length - 1] ?? projectHash;
 }
 
-function shortId(id: string): string {
-  return id.slice(0, 8);
-}
-
 export function aggregateSession(input: AggregateInput): AggregatedSession {
   const { parsed, totals, duplicates, idle, projectHash } = input;
   const startedAtIso = parsed.startedAt
@@ -72,7 +69,7 @@ export function aggregateSession(input: AggregateInput): AggregatedSession {
   const projectName = projectNameFromCwd(parsed.cwd, projectHash);
   return {
     sessionId: input.sessionId,
-    sessionIdShort: shortId(input.sessionId),
+    sessionIdShort: shortSessionId(input.sessionId, parsed.agent),
     projectHash,
     projectName,
     startedAt: startedAtIso,

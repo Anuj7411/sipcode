@@ -202,4 +202,29 @@ describe("runReceipt integration", () => {
     const b = await once();
     expect(a).toBe(b);
   });
+
+  it("E004 follows the newest bundled table, not the old session's table", async () => {
+    async function errFor(now: string): Promise<string> {
+      const err: string[] = [];
+      await runReceipt(
+        { htmlOnly: true, noShare: true, cwd: "/work" },
+        {
+          fs: makeFs(),
+          env: makeEnv(),
+          clock: new FakeClock(new Date(now)),
+          clipboard: new FakeClipboard(),
+          stdout: () => {},
+          stderr: (s) => err.push(s),
+          writeFile: async () => {},
+        },
+      );
+      return err.join("\n");
+    }
+    // 2026-05 session, 2026-05-01 table (>30 days old), newest table fresh: no warning.
+    expect(await errFor("2026-10-20T00:00:00Z")).not.toContain("[E004]");
+    // Newest table itself old: warning, dated with the newest table.
+    const stale = await errFor("2027-01-01T00:00:00Z");
+    expect(stale).toContain("[E004]");
+    expect(stale).toContain("file dated 2026-10-08");
+  });
 });

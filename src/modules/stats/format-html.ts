@@ -116,7 +116,10 @@ const TABLE_SORT_JS = `(function(){
   document.querySelectorAll('table.sortable th').forEach(function(th,idx){th.style.cursor='pointer';var dir=1;th.addEventListener('click',function(){sortBy(th.closest('table'),idx,dir);dir*=-1;});});
 })();`;
 
-export function formatHtml(report: StatsResult): string {
+export function formatHtml(
+  report: StatsResult,
+  opts: { unpricedNote?: string | undefined } = {},
+): string {
   const css = [
     `body{margin:0;background:${PALETTE.ink};color:${PALETTE.paper};font-family:ui-monospace,Menlo,Consolas,monospace;padding:32px;line-height:1.5;}`,
     `.wrap{max-width:760px;margin:0 auto;}`,
@@ -203,7 +206,8 @@ export function formatHtml(report: StatsResult): string {
 <h1>sipcode stats</h1>
 <div class="subtitle">${escapeHtml(windowLabel(report.window.raw))} · ${escapeHtml(`${report.sessionCount} sessions`)} · ${escapeHtml(report.primaryModel)} · agent: ${escapeHtml(report.agent)}</div>
 
-<section class="cards">${cards}</section>
+<section class="cards">${cards}</section>${opts.unpricedNote ? `
+<p class="dim">${escapeHtml(opts.unpricedNote)}</p>` : ""}
 
 <section>
 <h2>trend · token spend per day</h2>

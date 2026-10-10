@@ -15,14 +15,23 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { resolveAgentFromOpts } from "../modules/agents/cli.js";
+import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
 import {
-  resolveProjectsDir,
-  cwdToProjectHash,
-} from "../modules/transcript/discover.js";
+  agentLabel,
+  resolveDisplayAgents,
+  runSections,
+  SectionOutput,
+  type SectionResult,
+} from "../modules/agents/multi.js";
+import type { Agent } from "../modules/agents/types.js";
+import { CODEX_IMPACT_LABEL, MESSAGES } from "../lib/messages.js";
+import { resolveProjectsDir } from "../modules/transcript/discover.js";
 import {
+  addUnpriced,
   analyzeTokens,
+  analyzeUnpriced,
   isEmptySession,
+  NO_UNPRICED,
 } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
@@ -75,28 +84,54 @@ export async function runImpactCommand(
   const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
   const cwd = opts.cwd ?? process.cwd();
 
-  const agentResolve = await resolveAgentFromOpts({
+  const shown = await resolveDisplayAgents({
     agent: opts.agent,
     fs: fileSys,
     env,
+    clock,
     cwd,
-    stdout: opts.json ? () => {} : stdout,
+    json: opts.json ?? false,
     stderr,
-    quiet: opts.json ?? false,
   });
-  if (!agentResolve.ok) return { exitCode: 1 };
-  const agent = agentResolve.agent;
+  if (!shown.ok) return { exitCode: 1 };
+  const exitCode = await runSections({
+    agents: shown.agents,
+    detect: shown.detect,
+    banner: !opts.json,
+    combined: false,
+    stdout,
+    stderr,
+    run: (agent) => impactForAgent(agent, { opts, fs: fileSys, env, clock, cwd }),
+  });
+  return { exitCode };
+}
+
+interface ImpactContext {
+  readonly opts: ImpactOptions;
+  readonly fs: FileSystem;
+  readonly env: ProcessEnv;
+  readonly clock: Clock;
+  readonly cwd: string;
+}
+
+/** One agent's before/after report, returned as ordered output instead of printed. */
+async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<SectionResult> {
+  const { opts, fs: fileSys, env, clock, cwd } = ctx;
+  const o = new SectionOutput();
+  const stdout = o.out;
+  const stderr = o.err;
   if (!agent.transcriptParsingSupported) {
-    stderr("Impact requires Claude Code transcripts. Cursor adapter doesn't yet parse transcripts.");
-    return { exitCode: 1 };
+    stderr(MESSAGES.cursorTranscriptNotSupported());
+    return o.result(1);
   }
-  const projectsDir = resolveProjectsDir(env);
-  const projectsExists = await fileSys.exists(projectsDir);
+  // Only Claude Code's logs live under the projects dir; other agents always load.
+  const projectsExists =
+    agent.id !== "claude-code" || (await fileSys.exists(resolveProjectsDir(env)));
 
   const sinceIso = parseSinceFlag(opts.since);
   if (opts.since && !sinceIso) {
     stderr(`Invalid --since "${opts.since}". Expected YYYY-MM-DD.`);
-    return { exitCode: 1 };
+    return o.result(1);
   }
   const installState = await readInstallState(cwd);
   const stateMarker = pickMarker(installState);
@@ -106,45 +141,42 @@ export async function runImpactCommand(
     : stateMarker?.source ?? "none";
 
   const aggregated: AggregatedSession[] = [];
+  let unpriced = NO_UNPRICED;
   if (projectsExists) {
-    const discovery = await agent.discoverSessions({ fs: fileSys, env, clock });
-    if (!discovery.ok) {
-      for (const i of discovery.error) stderr(i.message);
-      return { exitCode: 1 };
-    }
-    let metas = discovery.value;
-    if (opts.here) {
-      const cwdHash = cwdToProjectHash(cwd);
-      metas = metas.filter(
-        (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
-      );
-    }
     const pricing = loadPricingForDate(clock.now());
-    for (const meta of metas) {
-      let content: string;
-      try {
-        content = await fileSys.readFile(meta.filePath);
-      } catch {
-        continue;
-      }
-      const parseResult = agent.parseTranscript(content);
-      if (!parseResult.ok) continue;
-      const parsed = parseResult.value;
-      const totals = analyzeTokens(parsed, pricing);
-      if (isEmptySession(totals)) continue;
-      const dups = analyzeDuplicateReads(parsed);
-      const idle = analyzeIdleContext(parsed);
-      aggregated.push(
-        aggregateSession({
-          sessionId: meta.sessionId,
-          projectHash: meta.projectHash,
-          fallbackStartedAtMs: meta.mtimeMs,
-          parsed,
-          totals,
-          duplicates: dups,
-          idle,
-        }),
-      );
+    // No windowSinceMs: impact compares before/after install and needs all history.
+    const loaded = await loadSessions({
+      agent,
+      deps: { fs: fileSys, env, clock },
+      cwd,
+      here: opts.here,
+      analyze: ({ meta, parsed }) => {
+        const totals = analyzeTokens(parsed, pricing);
+        if (isEmptySession(totals)) return null;
+        return {
+          unpriced: analyzeUnpriced(parsed, pricing),
+          session: aggregateSession({
+            sessionId: meta.sessionId,
+            projectHash: meta.projectHash,
+            fallbackStartedAtMs: meta.mtimeMs,
+            parsed,
+            totals,
+            duplicates: analyzeDuplicateReads(parsed),
+            idle: analyzeIdleContext(parsed),
+          }),
+        };
+      },
+    });
+    if (!loaded.ok) {
+      for (const i of loaded.error) stderr(i.message);
+      return o.result(1);
+    }
+    // JSON too (on stderr, as stats does): the totals leave these logs out.
+    for (const n of discoveryNotes(loaded.value)) stderr(n);
+    for (const { value } of loaded.value.sessions) {
+      if (!value) continue;
+      unpriced = addUnpriced(unpriced, value.unpriced);
+      aggregated.push(value.session);
     }
   }
 
@@ -153,14 +185,28 @@ export async function runImpactCommand(
     installedAtIso,
     markerSource,
     nowIso: clock.now().toISOString(),
+    agent: agentLabel(agent),
+    // rules --install returns E009 for Codex: never suggest it there.
+    setupSupported: agent.id !== "codex",
   });
 
+  // A Codex before/after is not Sipcode's doing: it does not act inside Codex.
+  const beforeAfterLabel = agent.id === "codex" && report.installedAtIso ? CODEX_IMPACT_LABEL : undefined;
   if (opts.json) {
     stdout(formatJson(report));
+    // JSON has no field for these: they go to stderr.
+    if (beforeAfterLabel) stderr(beforeAfterLabel);
+    if (unpriced.requests > 0) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
-    stdout(formatTerminal(report));
+    stdout(
+      formatTerminal(report, {
+        beforeAfterLabel,
+        agentName: agent.displayName,
+        unpricedNote: unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined,
+      }),
+    );
   }
-  return { exitCode: 0 };
+  return o.result(0);
 }
 
 export { runImpactCommand as default };

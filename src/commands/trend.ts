@@ -13,11 +13,23 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { resolveAgentFromOpts } from "../modules/agents/cli.js";
-import { cwdToProjectHash } from "../modules/transcript/discover.js";
+import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import {
+  resolveDisplayAgents,
+  runSections,
+  SectionOutput,
+  type SectionResult,
+} from "../modules/agents/multi.js";
+import type { Agent } from "../modules/agents/types.js";
 import { MESSAGES } from "../lib/messages.js";
 import { loadPricingForDate } from "../lib/pricing/load.js";
-import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
+import {
+  addUnpriced,
+  analyzeTokens,
+  analyzeUnpriced,
+  isEmptySession,
+  NO_UNPRICED,
+} from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import {
   computeTrend,
@@ -85,82 +97,114 @@ export async function runTrend(
   const sinceIso = since.toISOString().slice(0, 10);
   const untilIso = until.toISOString().slice(0, 10);
 
-  const agentResolve = await resolveAgentFromOpts({
+  const cwd = opts.cwd ?? process.cwd();
+  const shown = await resolveDisplayAgents({
     agent: opts.agent,
     fs,
     env,
-    cwd: opts.cwd ?? process.cwd(),
+    clock,
+    cwd,
+    json: opts.json ?? false,
+    stderr,
+  });
+  if (!shown.ok) return { exitCode: 1 };
+  const exitCode = await runSections({
+    agents: shown.agents,
+    detect: shown.detect,
+    banner: false,
+    combined: false,
     stdout,
     stderr,
-    quiet: true,
+    run: (agent) =>
+      trendForAgent(agent, { opts, fs, env, clock, cwd, metric, until, sinceIso, untilIso }),
   });
-  if (!agentResolve.ok) return { exitCode: 1 };
-  const agent = agentResolve.agent;
+  return { exitCode };
+}
+
+interface TrendContext {
+  readonly opts: TrendOptions;
+  readonly fs: FileSystem;
+  readonly env: ProcessEnv;
+  readonly clock: Clock;
+  readonly cwd: string;
+  readonly metric: TrendMetric;
+  readonly until: Date;
+  readonly sinceIso: string;
+  readonly untilIso: string;
+}
+
+/** One agent's trend, returned as ordered output instead of printed. */
+async function trendForAgent(agent: Agent, ctx: TrendContext): Promise<SectionResult> {
+  const { opts, fs, env, clock, metric, until, sinceIso, untilIso } = ctx;
+  const o = new SectionOutput();
+  const stdout = o.out;
+  const stderr = o.err;
   if (!agent.transcriptParsingSupported) {
     stderr(MESSAGES.cursorTranscriptNotSupported());
-    return { exitCode: 1 };
+    return o.result(1);
   }
 
   // Pricing — keyed off the window upper bound.
   const pricing = loadPricingForDate(until);
 
-  // Discover transcripts via the agent layer (mirrors stats).
-  const metasResult = await agent.discoverSessions({ fs, env, clock });
-  if (!metasResult.ok) {
-    stderr(metasResult.error.map((e: { message: string }) => e.message).join("\n"));
-    return { exitCode: 1 };
+  // Discover, scope (--here), parse and de-duplicate resumed-session copies.
+  // Files last written before the window are key-scanned only (see loadSessions).
+  const loaded = await loadSessions({
+    agent,
+    deps: { fs, env, clock },
+    cwd: ctx.cwd,
+    here: opts.here,
+    windowSinceMs: Date.parse(sinceIso),
+    analyze: ({ meta, parsed }) => {
+      const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
+      const startedDay = startedAt.slice(0, 10);
+      if (startedDay < sinceIso || startedDay > untilIso) return null;
+      const totals = analyzeTokens(parsed, pricing);
+      if (isEmptySession(totals)) return null;
+      const dups = analyzeDuplicateReads(parsed);
+      const totalTokens =
+        totals.inputTokens +
+        totals.outputTokens +
+        totals.cacheReadTokens +
+        totals.cacheCreationTokens;
+      const session: TrendSession = {
+        startedAt,
+        totalTokens,
+        outputTokens: totals.outputTokens,
+        estCostUSD: totals.estCostUSD,
+        duplicateReadTokens: dups.duplicateReadTokenCost,
+      };
+      return { session, unpriced: analyzeUnpriced(parsed, pricing) };
+    },
+  });
+  if (!loaded.ok) {
+    stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
+    return o.result(1);
   }
-  let metas = metasResult.value;
-  if (opts.here) {
-    const cwdHash = cwdToProjectHash(opts.cwd ?? process.cwd());
-    metas = metas.filter(
-      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
-    );
-  }
+  // JSON too (on stderr, as stats does): the totals leave these logs out.
+  for (const n of discoveryNotes(loaded.value)) stderr(n);
 
-  // Pre-filter by mtime then parse and aggregate.
   const sessions: TrendSession[] = [];
-  for (const meta of metas) {
-    const mtimeIso = new Date(meta.mtimeMs).toISOString().slice(0, 10);
-    if (mtimeIso < sinceIso) continue;
-
-    let content: string;
-    try {
-      content = await fs.readFile(meta.filePath);
-    } catch {
-      continue;
-    }
-    const parseResult = agent.parseTranscript(content);
-    if (!parseResult.ok) continue;
-    const parsed = parseResult.value;
-    const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
-    const startedDay = startedAt.slice(0, 10);
-    if (startedDay < sinceIso || startedDay > untilIso) continue;
-
-    const totals = analyzeTokens(parsed, pricing);
-    if (isEmptySession(totals)) continue;
-    const dups = analyzeDuplicateReads(parsed);
-    const totalTokens =
-      totals.inputTokens +
-      totals.outputTokens +
-      totals.cacheReadTokens +
-      totals.cacheCreationTokens;
-    sessions.push({
-      startedAt,
-      totalTokens,
-      outputTokens: totals.outputTokens,
-      estCostUSD: totals.estCostUSD,
-      duplicateReadTokens: dups.duplicateReadTokenCost,
-    });
+  let unpriced = NO_UNPRICED;
+  for (const { value } of loaded.value.sessions) {
+    if (!value) continue;
+    unpriced = addUnpriced(unpriced, value.unpriced);
+    sessions.push(value.session);
   }
 
   const result = computeTrend(sessions, metric, sinceIso, untilIso);
   if (opts.json) {
     stdout(formatTrendJson(result));
+    // JSON has no field for it: say on stderr that the costs leave tokens out.
+    if (unpriced.requests > 0) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
-    stdout(formatTrendTerminal(result));
+    stdout(
+      formatTrendTerminal(result, {
+        unpricedNote: unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined,
+      }),
+    );
   }
-  return { exitCode: 0 };
+  return o.result(0);
 }
 
 /** Parse "30d" / "4w" / "3m" into a day count. Returns null on invalid input. */

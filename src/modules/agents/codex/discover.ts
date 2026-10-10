@@ -1,0 +1,149 @@
+/**
+ * Codex rollout discovery: $CODEX_HOME/{sessions,archived_sessions}/**\/rollout-*.jsonl.
+ *
+ * Only line 1 (`session_meta`) is read here, for the session id and cwd; the
+ * full file is read once, later, by loadSessions. `.jsonl.zst` (Codex's
+ * optional compression of old rollouts) is listed as skipped, and folders or
+ * files that cannot be read are counted: neither is ever silently dropped.
+ * A missing sessions/ or archived_sessions/ folder is normal, not an error.
+ */
+import path from "node:path";
+import type { FileSystem } from "../../../lib/fs.js";
+import type { ProcessEnv } from "../../../lib/process.js";
+import type { SessionMeta } from "../../transcript/discover.js";
+import { cwdToProjectHash } from "../../transcript/discover.js";
+import { parseCodexMeta } from "./parse.js";
+
+/**
+ * Line 1 carries Codex's base instructions, typically 14-41 KB. Start small and
+ * double until line 1 ends; past the cap, read the whole file.
+ */
+const HEAD_START_BYTES = 64 * 1024;
+const HEAD_MAX_BYTES = 4 * 1024 * 1024;
+
+export function resolveCodexHome(env: ProcessEnv): string {
+  return env.get("CODEX_HOME") || path.join(env.homeDir(), ".codex");
+}
+
+export interface CodexDiscovery {
+  readonly sessions: SessionMeta[];
+  readonly skippedCompressed: number;
+  /** Rollout files that could not be read. */
+  readonly unreadable: number;
+  /** Folders that could not be listed. */
+  readonly unreadableFolders: number;
+}
+
+interface Found {
+  readonly file: string;
+  readonly mtimeMs: number;
+  readonly size: number;
+}
+
+interface Counters {
+  compressed: string[];
+  unreadable: number;
+  unreadableFolders: number;
+}
+
+async function walk(fs: FileSystem, dir: string, out: Found[], counters: Counters): Promise<void> {
+  let entries;
+  try {
+    entries = await fs.readDir(dir);
+  } catch {
+    counters.unreadableFolders++;
+    return;
+  }
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory) await walk(fs, p, out, counters);
+    else if (e.isFile && e.name.startsWith("rollout-")) {
+      if (e.name.endsWith(".jsonl.zst")) counters.compressed.push(p);
+      else if (e.name.endsWith(".jsonl")) {
+        try {
+          const s = await fs.stat(p);
+          out.push({ file: p, mtimeMs: s.mtimeMs, size: s.size });
+        } catch {
+          counters.unreadable++;
+        }
+      }
+    }
+  }
+}
+
+/** Line 1 of a rollout, reading the whole file only when line 1 outgrows the largest head window. */
+async function readFirstLine(fs: FileSystem, file: string): Promise<string> {
+  for (let n = HEAD_START_BYTES; n <= HEAD_MAX_BYTES; n *= 2) {
+    const head = await fs.readHead(file, n);
+    const nl = head.indexOf("\n");
+    if (nl >= 0) return head.slice(0, nl);
+    // A full window decodes to at least n-3 bytes (a split UTF-8 character is
+    // held back), so anything shorter means the file ended: a one-line rollout.
+    if (Buffer.byteLength(head) < n - 3) return head;
+  }
+  const full = await fs.readFile(file);
+  const fullNl = full.indexOf("\n");
+  return fullNl >= 0 ? full.slice(0, fullNl) : full;
+}
+
+/** True as soon as one `rollout-*.jsonl` is found under `dir` (stops walking there). */
+export async function hasCodexRollout(fs: FileSystem, dir: string): Promise<boolean> {
+  let entries;
+  try {
+    entries = await fs.readDir(dir);
+  } catch {
+    return false;
+  }
+  for (const e of entries) {
+    if (e.isFile && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl")) return true;
+  }
+  for (const e of entries) {
+    if (e.isDirectory && (await hasCodexRollout(fs, path.join(dir, e.name)))) return true;
+  }
+  return false;
+}
+
+export async function listCodexSessions(fs: FileSystem, home: string): Promise<CodexDiscovery> {
+  const counters: Counters = { compressed: [], unreadable: 0, unreadableFolders: 0 };
+  const byName = new Map<string, Found>();
+  for (const sub of ["sessions", "archived_sessions"]) {
+    const dir = path.join(home, sub);
+    if (!(await fs.exists(dir))) continue;
+    const found: Found[] = [];
+    await walk(fs, dir, found, counters);
+    for (const f of found) {
+      const name = path.basename(f.file);
+      if (!byName.has(name)) byName.set(name, f); // sessions/ is walked first and wins
+    }
+  }
+  const sessions: SessionMeta[] = [];
+  for (const f of byName.values()) {
+    let line1: string;
+    try {
+      line1 = await readFirstLine(fs, f.file);
+    } catch {
+      counters.unreadable++;
+      continue;
+    }
+    // Subagent status: the parser owns it (ParsedSession.isSubagent); this copy marks listings.
+    const m = parseCodexMeta(line1);
+    const id = m.id ?? path.basename(f.file).replace(/\.jsonl$/, "");
+    sessions.push({
+      sessionId: id,
+      filePath: f.file,
+      projectHash: m.cwd ? cwdToProjectHash(m.cwd) : "(unknown)",
+      mtimeMs: f.mtimeMs,
+      size: f.size,
+      cwd: m.cwd,
+      ...(m.isSubagent ? { isSubagent: true } : {}),
+      ...(m.id ? { lineage: { id: m.id, linkedIds: m.linkedIds } } : {}),
+    });
+  }
+  sessions.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return {
+    sessions,
+    skippedCompressed: counters.compressed.length,
+    unreadable: counters.unreadable,
+    unreadableFolders: counters.unreadableFolders,
+  };
+}

@@ -8,10 +8,20 @@
 import chalk from "chalk";
 import { formatNum, formatUSD } from "../../lib/format.js";
 import type { RenderedReport } from "./render.js";
+import type { AgentId } from "../agents/types.js";
 
 interface FormatOptions {
   readonly useColor: boolean;
   readonly verbose: boolean;
+  /** Which tool the session came from (wording only). Default claude-code. */
+  readonly agentId?: AgentId | undefined;
+}
+
+/** How to start capturing the recoverable tokens (Sipcode cannot set Codex up yet). */
+function captureHint(agentId: AgentId | undefined): string {
+  return agentId === undefined || agentId === "claude-code"
+    ? "(Run `sipcode rules --install` to start capturing this for real, then `sipcode impact` to measure.)"
+    : "(Sipcode cannot capture this: setup is not supported for Codex yet.)";
 }
 
 export function formatTerminal(
@@ -44,7 +54,7 @@ export function formatTerminal(
   const saved = report.estimatedSavings.totalTokens;
   lines.push(
     c.bold(
-      `sipcode estimates ~${formatNum(saved)} tokens were RECOVERABLE this session — potential, not yet realized. (Run \`sipcode rules --install\` to start capturing this for real, then \`sipcode impact\` to measure.)`,
+      `sipcode estimates ~${formatNum(saved)} tokens were RECOVERABLE this session (potential, not yet realized). ${captureHint(opts.agentId)}`,
     ),
   );
   const b = report.estimatedSavings.breakdown;
