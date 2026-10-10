@@ -21,7 +21,7 @@ interface FormatOptions {
 function captureHint(agentId: AgentId | undefined): string {
   return agentId === undefined || agentId === "claude-code"
     ? "(Run `sipcode rules --install` to start capturing this for real, then `sipcode impact` to measure.)"
-    : "(Sipcode cannot capture this inside Codex: setup is not supported for Codex yet.)";
+    : "(Sipcode cannot capture this: setup is not supported for Codex yet.)";
 }
 
 export function formatTerminal(

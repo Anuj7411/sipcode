@@ -34,7 +34,7 @@ export interface RunImpactInput {
 
 /** What to say when Sipcode cannot be set up inside the agent (Codex). */
 const SETUP_NOT_SUPPORTED =
-  "Setting Sipcode up inside Codex (rules, MCP, proxy) is not supported for Codex yet";
+  "Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet";
 
 type AgentLabel = { readonly name: string; readonly command: string };
 const CLAUDE_CODE: AgentLabel = { name: "Claude Code", command: "claude" };
