@@ -167,16 +167,18 @@ jobs:
         run: npm publish
 
       - name: smoke-test (runs whether skipped or just-published)
-        # Retries because npm's CDN takes 15-45s to propagate a fresh publish.
+        # Retries because npm takes a while to make a fresh publish visible.
         # Without the retry, the smoke test 404'd v1.1.2 the moment after
-        # publish even though the package was live within 30 seconds.
+        # publish even though the package was live within 30 seconds. v1.7.0
+        # took about 2 minutes ("Your package is being processed"), so a 60s
+        # window failed a good release: wait up to 5 minutes.
         run: |
           TAG_REF="${{ inputs.tag || github.ref }}"
           TAG="${TAG_REF#refs/tags/}"
           TAG_VERSION="${TAG#v}"
           echo "verifying sipcode@$TAG_VERSION is reachable on the registry..."
           set +e
-          for i in 1 2 3 4 5 6; do
+          for i in $(seq 1 30); do
             OUT="$(npm view "sipcode@$TAG_VERSION" version 2>/dev/null)"
             if [ -n "$OUT" ]; then
               echo "✓ found sipcode@$OUT on attempt $i"
@@ -186,5 +188,5 @@ jobs:
             echo "  attempt $i: not yet on CDN — sleeping 10s..."
             sleep 10
           done
-          echo "::error::sipcode@$TAG_VERSION never appeared on the registry after 60s — investigate."
+          echo "::error::sipcode@$TAG_VERSION never appeared on the registry after 5 minutes. Investigate."
           exit 1
