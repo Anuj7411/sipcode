@@ -27,21 +27,30 @@ import {
 } from "../lib/clipboard.js";
 import { MESSAGES } from "../lib/messages.js";
 
-import {
-  findSessionById,
-  listAllSessions,
-  listSessionsHere,
-  resolveProjectsDir,
-  type SessionMeta,
-} from "../modules/transcript/discover.js";
-import { parseTranscriptVerbose } from "../modules/transcript/parse.js";
-import { analyzeTokens } from "../modules/transcript/analyzers/tokens.js";
+import type { SipcodeIssue } from "../lib/errors.js";
+import { resolveProjectsDir } from "../modules/transcript/discover.js";
+import { parseTranscriptVerbose, type ParsedSession } from "../modules/transcript/parse.js";
+import { analyzeTokens, analyzeUnpriced } from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import { analyzeTopExpensive } from "../modules/transcript/analyzers/topExpensive.js";
 import { analyzeCounterfactual } from "../modules/transcript/analyzers/counterfactual.js";
 import { renderReport } from "../modules/why/render.js";
-import { loadPricingForDate, pricingAgeDays } from "../lib/pricing/load.js";
+import {
+  daysSinceAsOf,
+  loadPricingForDate,
+  newestPricingAsOf,
+  pricingAsOf,
+} from "../lib/pricing/load.js";
+import { resolveDisplayAgents, sectionHeader } from "../modules/agents/multi.js";
+import {
+  listAgentSessions,
+  otherAgentHint,
+  parseIssues,
+  pickFrom,
+  priceProvider,
+  sessionPickError,
+} from "../modules/agents/latest.js";
 
 import { renderReceipt } from "../modules/receipt/render.js";
 import { detectVariant } from "../modules/receipt/detect-variant.js";
@@ -60,7 +69,7 @@ export interface ReceiptOptions {
   htmlOnly?: boolean;
   noShare?: boolean;
   cwd?: string;
-  /** Which agent to source transcripts from. Default: claude-code. */
+  /** Which agent to source transcripts from. Default: auto (Claude Code and/or Codex). */
   agent?: string;
 }
 
@@ -116,67 +125,97 @@ export async function runReceipt(
   const writeFile = deps.writeFile ?? realWriteFile;
   const clipboard = deps.clipboard ?? new RealClipboard(env);
 
-  // Resolve agent: receipt sources transcripts from claude-code only in this
-  // milestone. Explicit --agent cursor exits cleanly with E009.
-  if (opts.agent !== undefined && opts.agent !== "auto") {
-    const { parseAgentFlag } = await import("../modules/agents/cli.js");
-    const parsed = parseAgentFlag(opts.agent);
-    if (!parsed.ok) {
-      stderr(parsed.message);
-      return { exitCode: 1 };
-    }
-    if (parsed.selector === "cursor") {
-      stderr(MESSAGES.cursorTranscriptNotSupported());
-      return { exitCode: 1 };
-    }
+  const cwd = opts.cwd ?? process.cwd();
+
+  // Resolve agents: Claude Code and/or Codex (JSON: one tool). Explicit
+  // --agent cursor exits cleanly with E009.
+  const shown = await resolveDisplayAgents({
+    agent: opts.agent,
+    fs,
+    env,
+    clock,
+    cwd,
+    json: opts.json ?? false,
+    stderr,
+    singleSession: true,
+    sessionLookup: opts.session !== undefined,
+  });
+  if (!shown.ok) return { exitCode: 1 };
+  const agents = shown.agents;
+  if (agents.length === 1 && !agents[0]!.transcriptParsingSupported) {
+    stderr(MESSAGES.cursorTranscriptNotSupported());
+    return { exitCode: 1 };
   }
+  // Claude Code alone keeps its original messages, byte for byte.
+  const claudeOnly = agents.length === 1 && agents[0]!.id === "claude-code";
 
   // --- 1. discover ---
   const projectsDir = resolveProjectsDir(env);
-  if (!(await fs.exists(projectsDir))) {
+  if (claudeOnly && !(await fs.exists(projectsDir))) {
     stderr(MESSAGES.noTranscriptsDir(projectsDir));
     return { exitCode: 1 };
   }
-  const cwd = opts.cwd ?? process.cwd();
-  const sessions: SessionMeta[] = opts.here
-    ? await listSessionsHere(fs, projectsDir, cwd)
-    : await listAllSessions(fs, projectsDir);
+  const agentDeps = { fs, env, clock };
+  const lists = await listAgentSessions({ agents, deps: agentDeps, cwd, here: opts.here });
 
-  if (sessions.length === 0) {
-    stderr(MESSAGES.noSessionsFound(projectsDir));
+  if (lists.every((l) => l.scoped.length === 0)) {
+    stderr(
+      claudeOnly
+        ? MESSAGES.noSessionsFound(projectsDir)
+        : MESSAGES.noAgentSessions("receipt", agents.map((a) => a.displayName), opts.here ?? false),
+    );
     return { exitCode: 1 };
   }
 
-  let chosen: SessionMeta | undefined;
-  if (opts.session) {
-    chosen = await findSessionById(fs, projectsDir, opts.session);
-    if (!chosen) {
-      stderr(MESSAGES.sessionNotFound(opts.session));
-      return { exitCode: 1 };
-    }
-  } else {
-    chosen = sessions[0];
-  }
-  if (!chosen) {
-    stderr(MESSAGES.noSessionsFound(projectsDir));
+  // The newest session (empty ones included, as before), or --session <prefix>.
+  // Only this session's own requests: a resumed session (or a Codex fork)
+  // repeats requests another file holds, and one with nothing of its own
+  // yet is not auto-picked.
+  const picked = await pickFrom(lists, agentDeps, {
+    sessionIdPrefix: opts.session,
+    skipEmpty: false,
+    ownRequests: true,
+  });
+  const pickError = sessionPickError({
+    command: "receipt",
+    picked,
+    agents,
+    sessionIdPrefix: opts.session,
+    here: opts.here ?? false,
+    projectsDir,
+  });
+  if (pickError !== undefined || !picked) {
+    stderr(pickError ?? MESSAGES.noSessionsFound(projectsDir));
     return { exitCode: 1 };
   }
+  const { agent, meta: chosen } = picked.chosen;
 
   // --- 2. parse ---
-  let contents: string;
-  try {
-    contents = await fs.readFile(chosen.filePath);
-  } catch {
-    stderr(MESSAGES.malformedTranscript(path.basename(chosen.filePath), 0));
-    return { exitCode: 1 };
+  const session: ParsedSession = picked.chosen.parsed;
+  let issues: SipcodeIssue[];
+  if (agent.id === "claude-code") {
+    let contents: string;
+    try {
+      contents = await fs.readFile(chosen.filePath);
+    } catch {
+      stderr(MESSAGES.malformedTranscript(path.basename(chosen.filePath), 0));
+      return { exitCode: 1 };
+    }
+    ({ issues } = parseTranscriptVerbose(contents));
+  } else {
+    issues = parseIssues(session);
   }
-  const { session, issues } = parseTranscriptVerbose(contents);
 
   // --- 3. analyze ---
   const sessionDate = session.startedAt ? new Date(session.startedAt) : clock.now();
   const pricing = loadPricingForDate(sessionDate);
-  const ageDays = pricingAgeDays(pricing, clock.now());
+  const provider = priceProvider(agent);
+  const asOf = pricingAsOf(pricing, provider);
+  const ageDays = daysSinceAsOf(asOf, clock.now());
   const totals = analyzeTokens(session, pricing);
+  // Tokens on a model with no known price are left out of the cost: say so.
+  const unpriced = analyzeUnpriced(session, pricing);
+  const unpricedNote = unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined;
   const dups = analyzeDuplicateReads(session);
   const idle = analyzeIdleContext(session);
   const topEx = analyzeTopExpensive(session);
@@ -192,19 +231,26 @@ export async function runReceipt(
     counterfactual: counter,
     issues,
     projectHash: chosen.projectHash,
-    pricingMeta: { asOf: pricing.as_of, ageDays },
+    pricingMeta: { asOf, ageDays },
+    agentId: agent.id,
   });
 
   // --- 5. detect variant + render receipt model ---
+  // Sipcode's savings features run inside Claude Code only, so a session from
+  // another tool never gets the "sipped" (post-install) receipt.
   const projectRoot = pickSessionRoot(session);
-  const variant = await detectVariant(fs, {
-    projectRoot,
-    sessionStartedAt: session.startedAt,
-  });
+  const variant =
+    agent.id === "claude-code"
+      ? await detectVariant(fs, {
+          projectRoot,
+          sessionStartedAt: session.startedAt,
+        })
+      : "pre-install";
   const model = renderReceipt({
     report,
     variant,
     sessionStartedAt: session.startedAt,
+    agentId: agent.id,
   });
 
   // --- 6. write artifacts (idempotent: bytes are deterministic) ---
@@ -253,6 +299,7 @@ export async function runReceipt(
       dateDisplay: model.header.dateDisplay,
     };
     stdout(JSON.stringify(payload, null, 2));
+    if (unpricedNote) stderr(unpricedNote);
     return {
       exitCode: 0,
       htmlPath: posix(htmlAbs),
@@ -263,7 +310,10 @@ export async function runReceipt(
   // --- 8. terminal summary ---
   const useColor =
     env.get("NO_COLOR") === undefined && (process.stdout?.isTTY ?? false);
+  // With both tools shown, name the tool the receipt is about.
+  if (agents.length > 1) stdout(sectionHeader(agent.displayName));
   stdout(formatTerminal(model, { useColor }));
+  if (unpricedNote) stdout(unpricedNote);
 
   // wrote ... + file:// link
   if (pngWritten) {
@@ -303,14 +353,23 @@ export async function runReceipt(
     }
   }
 
+  if (picked.others.length > 0) {
+    stdout("");
+    for (const o of picked.others) stdout(otherAgentHint(o, opts.here ?? false));
+  }
+
   // --- 10. warnings ---
   if (pngWarning) {
     stderr("");
     stderr(pngWarning);
   }
-  if (ageDays > 30) {
+  // Warn when Sipcode's newest table is old, not when an older session is
+  // (correctly) priced with the table of its own date.
+  const newestAsOf = newestPricingAsOf(provider);
+  const newestAgeDays = daysSinceAsOf(newestAsOf, clock.now());
+  if (newestAgeDays > 30) {
     stderr("");
-    stderr(MESSAGES.pricingStale(pricing.as_of, ageDays));
+    stderr(MESSAGES.pricingStale(newestAsOf, newestAgeDays, provider));
   }
 
   return {

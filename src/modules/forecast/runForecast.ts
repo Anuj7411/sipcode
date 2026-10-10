@@ -26,17 +26,20 @@ export interface ForecastSession {
 export interface RunForecastInput {
   readonly sessions: ReadonlyArray<ForecastSession>;
   readonly now: Date;
+  /** Agent named in the empty-state headline. Default: Claude Code / `claude`. */
+  readonly agent?: { readonly name: string; readonly command: string } | undefined;
 }
 
 const FORECAST_MIN_DAYS_HISTORY = 7;
 
 export function runForecast(input: RunForecastInput): ForecastReport {
   const { sessions, now } = input;
+  const agent = input.agent ?? { name: "Claude Code", command: "claude" };
 
   if (sessions.length === 0) {
     return empty(
       "no-data",
-      "No Claude Code sessions found yet. Run `claude` in any project to start.",
+      `No ${agent.name} sessions found yet. Run \`${agent.command}\` in any project to start.`,
     );
   }
 

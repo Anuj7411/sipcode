@@ -26,6 +26,12 @@ export interface SessionMetrics {
   readonly projectHash?: string;
 }
 
+/** The tool a drift report is about (wording only). Absent = Claude Code. */
+export interface DriftAgent {
+  readonly id: string;
+  readonly displayName: string;
+}
+
 /** Rolling baseline (medians) over the recent history window. */
 export interface Baseline {
   readonly count: number;

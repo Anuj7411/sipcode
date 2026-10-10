@@ -18,3 +18,11 @@ export const formatUSD = (n: number): string =>
 /** Format a percentage with 1 decimal (e.g. 0.9%). */
 export const formatPct = (n: number): string =>
   `${n.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+/** Compact token count (e.g. 13.1B, 25.5M, 3.0k). */
+export const formatTokensShort = (n: number): string => {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return `${n}`;
+};

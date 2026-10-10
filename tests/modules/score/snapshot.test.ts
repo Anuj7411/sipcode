@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { loadFixtureSnapshot } from "./_helpers.js";
 
-describe("buildSnapshot", () => {
+// every test walks a fixture repo on disk and tree-sitter-parses its
+// source. ~70ms alone, but measured past 5s while the full suite runs in
+// parallel, so the file gets its own budget instead of vitest's 5s default.
+describe("buildSnapshot", { timeout: 20_000 }, () => {
   it("reads CLAUDE.md, README, AGENTS.md from the excellent fixture", async () => {
     const snap = await loadFixtureSnapshot("excellent");
     expect(snap.claudeMd).toBeDefined();

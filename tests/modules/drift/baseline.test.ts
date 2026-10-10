@@ -78,3 +78,30 @@ describe("detectRegression", () => {
     expect(r.hasRegression).toBe(false);
   });
 });
+
+describe("detectRegression wording per agent", () => {
+  const baseline = computeBaseline([
+    m({ tokensPerTurn: 100, cacheHitRate: 0.7, duplicateReadTokens: 1000 }),
+    m({ tokensPerTurn: 100, cacheHitRate: 0.7, duplicateReadTokens: 1000 }),
+    m({ tokensPerTurn: 100, cacheHitRate: 0.7, duplicateReadTokens: 1000 }),
+  ]);
+  const all = m({ tokensPerTurn: 999, cacheHitRate: 0.1, duplicateReadTokens: 50_000 });
+
+  it("Claude Code wording is unchanged with or without the agent", () => {
+    const plain = detectRegression(all, baseline);
+    expect(detectRegression(all, baseline, { id: "claude-code", displayName: "Claude Code" })).toEqual(plain);
+    expect(plain.causes.map((c) => c.meaning).join(" ")).toContain("~5-minute cache window");
+    expect(plain.causes.map((c) => c.fix).join(" ")).toContain("sipcode proxy --install");
+  });
+
+  it("Codex gets no Claude-only advice", () => {
+    const r = detectRegression(all, baseline, { id: "codex", displayName: "Codex" });
+    expect(r.causes).toHaveLength(3);
+    const text = r.causes.map((c) => `${c.meaning} ${c.fix}`).join(" ");
+    expect(text).not.toContain("Claude");
+    expect(text).not.toContain("5-minute");
+    expect(text).not.toContain("proxy --install");
+    expect(text).toContain("detail Codex needs");
+    expect(text).toContain("Codex re-read files");
+  });
+});

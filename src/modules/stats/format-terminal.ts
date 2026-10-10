@@ -5,12 +5,14 @@
  * top expensive, projects, footer.
  */
 import chalk from "chalk";
-import { formatNum } from "../../lib/format.js";
+import { formatNum, formatTokensShort } from "../../lib/format.js";
 import type { StatsResult } from "./types.js";
 import { sparkline, sparklineStats } from "./sparkline.js";
 
 interface FormatOptions {
   readonly useColor: boolean;
+  /** One line under the total cost naming tokens on models with no known price. */
+  readonly unpricedNote?: string | undefined;
 }
 
 function makeColors(useColor: boolean) {
@@ -44,12 +46,7 @@ function usd(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
-function humanTokens(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return `${n}`;
-}
+const humanTokens = formatTokensShort;
 
 function windowLabel(raw: string): string {
   if (raw === "all") return "all time";
@@ -157,6 +154,7 @@ export function formatTerminal(
 
   // Footer.
   lines.push(`est. total cost: ${c.bold(usd(report.totals.estCostUSD))}`);
+  if (opts.unpricedNote) lines.push(opts.unpricedNote);
   lines.push(
     c.dim(
       `prices from ${report.metaPricing.asOf} (${report.metaPricing.ageDays} days old)`,

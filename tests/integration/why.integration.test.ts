@@ -170,4 +170,41 @@ describe("runWhy integration", () => {
     );
     expect(err.join("\n")).toContain("[E004]");
   });
+
+  it("an old session priced with its own (old) table does not raise E004 while the newest table is fresh", async () => {
+    // Sessions are from 2026-05 and correctly use the 2026-05-01 table, which is
+    // >30 days old on 2026-10-20. Sipcode's newest table (2026-10-08) is not.
+    const err: string[] = [];
+    const out: string[] = [];
+    await runWhy(
+      { json: true },
+      {
+        fs: makeFs(),
+        env: makeEnv(),
+        clock: new FakeClock(new Date("2026-10-20T00:00:00Z")),
+        stdout: (s) => out.push(s),
+        stderr: (s) => err.push(s),
+      },
+    );
+    expect(err.join("\n")).not.toContain("[E004]");
+    // The report still names the table the session was priced with.
+    expect(JSON.parse(out.join("\n")).metaPricing.asOf).toBe("2026-05-01");
+  });
+
+  it("E004 names the newest bundled table, not the session's table", async () => {
+    const err: string[] = [];
+    await runWhy(
+      { json: true },
+      {
+        fs: makeFs(),
+        env: makeEnv(),
+        clock: new FakeClock(new Date("2027-01-01T00:00:00Z")),
+        stdout: () => {},
+        stderr: (s) => err.push(s),
+      },
+    );
+    const text = err.join("\n");
+    expect(text).toContain("[E004]");
+    expect(text).toContain("file dated 2026-10-08");
+  });
 });

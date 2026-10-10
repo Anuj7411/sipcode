@@ -69,6 +69,11 @@ export async function runEstimate(
       stderr(MESSAGES.cursorTranscriptNotSupported());
       return { exitCode: 1 };
     }
+    if (parsed.selector === "codex") {
+      const { MESSAGES } = await import("../lib/messages.js");
+      stderr(MESSAGES.codexNotSupportedYet("estimate"));
+      return { exitCode: 1 };
+    }
   }
 
   const task = (opts.task ?? "").trim();

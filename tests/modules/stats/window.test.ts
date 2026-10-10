@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { enumerateDays, isInWindow, parseSince } from "../../../src/modules/stats/window.js";
+import {
+  anchorAllWindow,
+  enumerateDays,
+  isInWindow,
+  parseSince,
+} from "../../../src/modules/stats/window.js";
 
 const NOW = new Date("2026-05-19T12:00:00.000Z");
 
@@ -106,5 +111,25 @@ describe("enumerateDays", () => {
     const days = enumerateDays(r.value);
     expect(days.length).toBe(366);
     expect(days[days.length - 1]).toBe("2026-05-19");
+  });
+});
+
+describe("anchorAllWindow", () => {
+  const now = new Date("2026-05-19T12:00:00Z");
+  it("starts an 'all' window at the earliest session's day", () => {
+    const w = parseSince("all", now);
+    if (!w.ok) throw new Error("parse");
+    const a = anchorAllWindow(w.value, "2026-05-01T10:00:45Z");
+    expect(a.sinceIso).toBe("2026-05-01T00:00:00.000Z");
+    expect(a.days).toBe(19);
+    expect(a.raw).toBe("all");
+    expect(a.untilIso).toBe(w.value.untilIso);
+  });
+  it("leaves other windows and an empty 'all' window alone", () => {
+    const d = parseSince("30d", now);
+    const all = parseSince("all", now);
+    if (!d.ok || !all.ok) throw new Error("parse");
+    expect(anchorAllWindow(d.value, "2026-05-01T10:00:00Z")).toBe(d.value);
+    expect(anchorAllWindow(all.value, undefined)).toBe(all.value);
   });
 });

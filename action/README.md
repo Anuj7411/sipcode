@@ -1,4 +1,4 @@
-# Sipcode Score — GitHub Action
+# Sipcode Score: GitHub Action
 
 score how agent-friendly your codebase is on every pr. emits a shields.io
 endpoint json so you can pin a badge to your readme.
@@ -9,7 +9,7 @@ add this step to a workflow:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: sipcode/sipcode/action@main
+- uses: Anuj7411/sipcode/action@main
   with:
     threshold: 80      # fail the job if score < 80; default 0 (no gate)
     badge-path: badge.json
@@ -24,14 +24,14 @@ upload it as an artifact. once it's at a stable url, pin it:
 
 ## what it does
 
-runs `npx @sipcode/cli@latest score --threshold <n> --badge --no-html` inside
+runs `npx --yes sipcode@latest score --threshold <n> --badge --no-html` inside
 your repo's working directory. the cli writes `.sipcode/badge.json`; this
 action copies it to `badge-path`.
 
 ## inputs
 
-- `threshold` — minimum score (0-100) required. `0` means no gate. default `0`.
-- `badge-path` — where to write the badge json. default `badge.json`.
+- `threshold`: minimum score (0-100) required. `0` means no gate. default `0`.
+- `badge-path`: where to write the badge json. default `badge.json`.
 
 ## requirements
 

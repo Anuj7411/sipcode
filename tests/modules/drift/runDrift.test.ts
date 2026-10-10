@@ -35,3 +35,12 @@ describe("buildDriftReport", () => {
     expect(r.summary).toContain("not enough");
   });
 });
+
+describe("buildDriftReport per agent", () => {
+  it("not-enough-history names the agent", () => {
+    expect(buildDriftReport(m({}), [m({})]).summary).toContain("Keep using Claude Code and re-run.");
+    expect(buildDriftReport(m({}), [m({})], { agent: { id: "codex", displayName: "Codex" } }).summary).toContain(
+      "Keep using Codex and re-run.",
+    );
+  });
+});

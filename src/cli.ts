@@ -23,14 +23,14 @@ program
 
 program
   .command("why")
-  .description("Audit past Claude Code sessions and show where tokens died.")
+  .description("Audit past Claude Code or Codex sessions and show where tokens died.")
   .option("--session <id>", "audit a specific session")
   .option("--list", "list available sessions instead of auditing")
   .option("--here", "scope to sessions for the current working directory")
   .option("--all-projects", "scan across all project hashes (default)")
   .option("--json", "machine-readable output")
   .option("--verbose", "show full token totals breakdown")
-  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runWhy } = await import("./commands/why.js");
     const result = await runWhy(opts);
@@ -47,7 +47,7 @@ program
     "--rules-mode <mode>",
     "output-compression rules mode: default | strict | verbose | skip",
   )
-  .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to target: claude-code | cursor | codex | auto")
   .option("--no-proxy", "skip the proxy hook install step (v1.6.15)")
   .option("--no-marker", "skip the install marker for sipcode impact (v1.6.15)")
   .option("--no-verify-mcp", "skip the MCP tool count verification (v1.6.15)")
@@ -73,9 +73,9 @@ program
   .description("Generate or refresh the project manifest.")
   .option("--no-budget", "skip the 2k-token budget check")
   .option("--tighten", "drop low-signal sections to fit the budget")
-  .option("--delta", "emit only changes since last manifest (v1.1+, stubbed)")
-  .option("--explain <file>", "show parse error for a specific file (v1.1+, stubbed)")
-  .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
+  .option("--delta", "not supported (regenerate with `sipcode manifest` instead)")
+  .option("--explain <file>", "not supported (the [E002] line during generation names skipped files)")
+  .option("--agent <id>", "which agent to target: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runManifest } = await import("./commands/manifest.js");
     const r = await runManifest(opts);
@@ -90,7 +90,7 @@ program
   .option("--no-share", "skip clipboard + tweet intent URL")
   .option("--here", "scope to sessions for the current working directory")
   .option("--json", "machine-readable output")
-  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | codex | auto")
   .action(async (sessionId, opts) => {
     const { runReceipt } = await import("./commands/receipt.js");
     // Commander stores --no-share as opts.share=false; runner reads opts.noShare.
@@ -109,7 +109,7 @@ program
   .option("--uninstall", "remove the output-compression block from CLAUDE.md")
   .option("--mode <mode>", "install/switch to mode: default | strict | verbose")
   .option("--diff", "show what would change without writing")
-  .option("--agent <id>", "which agent to target: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to target: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runRules } = await import("./commands/rules.js");
     const r = await runRules(opts);
@@ -124,7 +124,7 @@ program
   .option("--json", "machine-readable output")
   .option("--no-anchors", "skip historical session lookup (faster, less accurate)")
   .option("--model <model>", "show only one model's row: opus | sonnet | haiku")
-  .option("--agent <id>", "which agent to source historical anchors from: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to source historical anchors from: claude-code | cursor | codex | auto")
   .action(async (task, opts) => {
     const { runEstimate } = await import("./commands/estimate.js");
     const r = await runEstimate({ ...opts, task });
@@ -140,7 +140,7 @@ program
   .option("--json", "machine-readable output")
   .option("--group-by <how>", "group totals: none | project", "none")
   .option("--top <n>", "show top N most expensive sessions", "5")
-  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runStats } = await import("./commands/stats.js");
     const r = await runStats(opts);
@@ -151,7 +151,7 @@ program
   .command("today")
   .description("Daily dashboard: spend so far + vs your N-day median (adaptive 30/14/7/3).")
   .option("--json", "machine-readable output")
-  .option("--agent <id>", "claude-code | cursor | auto")
+  .option("--agent <id>", "claude-code | cursor | codex | auto")
   .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runTodayCmd } = await import("./commands/today.js");
@@ -163,7 +163,7 @@ program
   .command("forecast")
   .description("Projected month-end spend with confidence band + last-month comparison.")
   .option("--json", "machine-readable output")
-  .option("--agent <id>", "claude-code | cursor | auto")
+  .option("--agent <id>", "claude-code | cursor | codex | auto")
   .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runForecastCmd } = await import("./commands/forecast.js");
@@ -177,7 +177,7 @@ program
   .option("--metric <name>", "output-ratio | cost-per-session | recoverable-tokens-per-session", "output-ratio")
   .option("--since <window>", "time window: NNd | NNw | NNm (e.g. 30d, 4w, 3m)", "30d")
   .option("--json", "machine-readable output")
-  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | codex | auto")
   .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runTrend } = await import("./commands/trend.js");
@@ -240,12 +240,18 @@ program
   .description("Detect context/cost drift — flags when recent sessions get more expensive or context-bloated vs your baseline. Silent unless something regressed.")
   .option("--json", "machine-readable output")
   .option("--no-cache", "bypass the persistent baseline cache (parses every transcript fresh)")
+  .option("--session <id>", "check a specific session (id prefix) instead of the latest")
+  .option("--here", "scope to sessions for the current working directory")
+  .option("--agent <id>", "which agent to read: claude-code | cursor | codex | auto")
   .action(async (opts) => {
     const { runDriftCommand } = await import("./commands/drift.js");
     // Commander maps `--no-cache` to `opts.cache: false`; translate to noCache.
     const r = await runDriftCommand({
       json: !!opts.json,
       noCache: opts.cache === false,
+      session: opts.session,
+      here: !!opts.here,
+      agent: opts.agent,
     });
     if (r?.exitCode) process.exit(r.exitCode);
   });
@@ -275,7 +281,7 @@ program
   .description("A/B compare your token spend before vs after Sipcode was installed — on your own sessions.")
   .option("--since <YYYY-MM-DD>", "override the install date (defaults to .sipcode/install-state.json)")
   .option("--json", "machine-readable output")
-  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | auto")
+  .option("--agent <id>", "which agent to source transcripts from: claude-code | cursor | codex | auto")
   .option("--here", "scope to sessions for the current working directory")
   .action(async (opts) => {
     const { runImpactCommand } = await import("./commands/impact.js");

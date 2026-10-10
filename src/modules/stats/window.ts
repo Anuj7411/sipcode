@@ -128,3 +128,18 @@ export function enumerateDays(window: StatsWindow): string[] {
   }
   return days;
 }
+
+/**
+ * "all" starts at the epoch so every session is inside it; once the sessions
+ * are known, start the window at the earliest one's UTC day instead, so day
+ * counts ("per day (N days)") describe the data, not the time since 1970.
+ */
+export function anchorAllWindow(window: StatsWindow, earliestIso: string | undefined): StatsWindow {
+  if (window.raw !== "all" || earliestIso === undefined) return window;
+  const t = new Date(earliestIso);
+  if (Number.isNaN(t.getTime())) return window;
+  const since = startOfUtcDay(t);
+  const until = new Date(window.untilIso);
+  const days = Math.max(1, Math.round((until.getTime() - since.getTime()) / MS_PER_DAY));
+  return { ...window, sinceIso: since.toISOString(), days };
+}

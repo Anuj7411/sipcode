@@ -1,5 +1,67 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { InMemoryFs } from "../../src/lib/fs.js";
+import { InMemoryFs, RealFileSystem, type FileSystem } from "../../src/lib/fs.js";
+
+// "é" is 2 bytes and "€" is 3 bytes in UTF-8: "aé€b" = 1 + 2 + 3 + 1 = 7 bytes.
+const MIXED = "aé€b";
+
+function readHeadCases(name: string, make: (content: string) => Promise<{ fs: FileSystem; p: string; done: () => void }>) {
+  describe(`${name}.readHead`, () => {
+    it("returns at most maxBytes, dropping a trailing partial multi-byte character", async () => {
+      const { fs, p, done } = await make(MIXED);
+      try {
+        expect(await fs.readHead(p, 1)).toBe("a");
+        expect(await fs.readHead(p, 2)).toBe("a"); // half of "é"
+        expect(await fs.readHead(p, 3)).toBe("aé");
+        expect(await fs.readHead(p, 4)).toBe("aé"); // 1/3 of "€"
+        expect(await fs.readHead(p, 5)).toBe("aé"); // 2/3 of "€"
+        expect(await fs.readHead(p, 6)).toBe("aé€");
+        expect(await fs.readHead(p, 100)).toBe(MIXED);
+      } finally {
+        done();
+      }
+    });
+
+    it("rejects for a missing file", async () => {
+      const { fs, p, done } = await make("x");
+      try {
+        await expect(fs.readHead(p + ".missing", 10)).rejects.toBeTruthy();
+      } finally {
+        done();
+      }
+    });
+  });
+}
+
+readHeadCases("InMemoryFs", async (content) => {
+  const fs = new InMemoryFs();
+  fs.writeFile("/f.txt", content);
+  return { fs, p: "/f.txt", done: () => {} };
+});
+
+readHeadCases("RealFileSystem", async (content) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "sipcode-readhead-"));
+  const p = path.join(dir, "f.txt");
+  writeFileSync(p, content, "utf-8");
+  return { fs: new RealFileSystem(), p, done: () => rmSync(dir, { recursive: true, force: true }) };
+});
+
+describe("RealFileSystem.readFile", () => {
+  it("decodes UTF-8 exactly as readFile(p, 'utf-8') does (multi-byte, BOM, invalid bytes)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const dir = mkdtempSync(path.join(tmpdir(), "sipcode-fs-"));
+    try {
+      const p = path.join(dir, "t.jsonl");
+      const bytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(`${MIXED}\n{"x":"\u{1F600}"}\n`, "utf8"), Buffer.from([0xff, 0xfe, 0x41])]);
+      writeFileSync(p, bytes);
+      expect(await new RealFileSystem().readFile(p)).toBe(readFileSync(p, "utf-8"));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("InMemoryFs", () => {
   it("write/read roundtrip", async () => {

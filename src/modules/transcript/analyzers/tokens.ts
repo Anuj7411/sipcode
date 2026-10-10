@@ -53,19 +53,62 @@ function costForTurn(
 }
 
 /**
+ * Tokens on models with no price row. Cost totals leave them out (no guessing);
+ * every printed cost says so in one line instead of silently showing $0.
+ */
+export interface UnpricedUsage {
+  readonly tokens: number;
+  readonly requests: number;
+  /** Model ids, unique and sorted. A turn with no model id counts as "(unknown model)". */
+  readonly models: readonly string[];
+}
+
+export const NO_UNPRICED: UnpricedUsage = { tokens: 0, requests: 0, models: [] };
+
+export function analyzeUnpriced(session: ParsedSession, pricing: PricingFile): UnpricedUsage {
+  let tokens = 0;
+  let requests = 0;
+  const models = new Set<string>();
+  for (const t of session.assistantTurns) {
+    const n = t.inputTokens + t.outputTokens + t.cacheReadTokens + t.cacheCreationTokens;
+    if (n === 0) continue;
+    if (t.model && priceForModel(pricing, t.model)) continue;
+    tokens += n;
+    requests++;
+    models.add(t.model ?? "(unknown model)");
+  }
+  return requests === 0 ? NO_UNPRICED : { tokens, requests, models: [...models].sort() };
+}
+
+export function addUnpriced(a: UnpricedUsage, b: UnpricedUsage): UnpricedUsage {
+  if (b.requests === 0) return a;
+  if (a.requests === 0) return b;
+  return {
+    tokens: a.tokens + b.tokens,
+    requests: a.requests + b.requests,
+    models: [...new Set([...a.models, ...b.models])].sort(),
+  };
+}
+
+/**
  * True if a session has no real token activity — either usage data was entirely
  * absent (missingAllUsage) or every billable token field is zero. Used to filter
  * synthetic / observer / empty sessions out of counts and "latest session" picks.
  */
 export function isEmptySession(totals: TokenTotals): boolean {
   if (totals.missingAllUsage) return true;
-  return (
-    totals.inputTokens +
-      totals.outputTokens +
-      totals.cacheReadTokens +
-      totals.cacheCreationTokens ===
-    0
+  return !hasTokenUsage(
+    totals.inputTokens + totals.outputTokens + totals.cacheReadTokens + totals.cacheCreationTokens,
   );
+}
+
+/**
+ * The one rule for "this session has something to report": it used tokens.
+ * Assistant turns alone do not count (an in-flight or aborted request logs a
+ * turn with zero usage). isEmptySession and drift's session metrics both use it.
+ */
+export function hasTokenUsage(totalTokens: number): boolean {
+  return totalTokens > 0;
 }
 
 export function analyzeTokens(

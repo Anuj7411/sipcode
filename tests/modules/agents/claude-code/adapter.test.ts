@@ -108,3 +108,13 @@ describe("claudeCodeAgent", () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe("claudeCodeAgent.matchesCwd", () => {
+  const meta = (projectHash: string) => ({ sessionId: "s", filePath: "/x.jsonl", projectHash, mtimeMs: 0, size: 0 });
+  it("matches Claude Code's project-dir encoding of the cwd", () => {
+    expect(claudeCodeAgent.matchesCwd(meta("C--Projects-just-research"), "C:\\Projects\\just research")).toBe(true);
+  });
+  it("does not match another project", () => {
+    expect(claudeCodeAgent.matchesCwd(meta("C--Projects-other"), "C:\\Projects\\Sipcode")).toBe(false);
+  });
+});

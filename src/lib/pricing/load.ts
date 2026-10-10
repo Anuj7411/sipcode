@@ -44,6 +44,14 @@ function listBundledPricingFiles(): { date: string; absPath: string }[] {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** OpenAI (Codex) tables: openai-<YYYY-MM-DD>.json, sorted by date asc. */
+function listOpenAiPricingFiles(): string[] {
+  return readdirSync(__dirname)
+    .filter((f) => /^openai-\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .sort()
+    .map((f) => path.join(__dirname, f));
+}
+
 /**
  * Returns the latest pricing file dated ≤ sessionDate. Falls back to oldest
  * available file if session predates all bundled prices.
@@ -71,14 +79,60 @@ export function loadPricingForDate(sessionDate: Date): PricingFile {
       if (!file.models[model]) file.models[model] = row;
     }
   }
+  // OpenAI prices are not dated: the newest openai-*.json applies to all session dates.
+  // OpenAI (Codex) models live in their own table; ids never collide with claude-*.
+  const openai = listOpenAiPricingFiles().at(-1);
+  if (openai) {
+    const table = PricingFileSchema.parse(JSON.parse(readFileSync(openai, "utf-8")) as unknown);
+    for (const [model, row] of Object.entries(table.models)) {
+      if (!file.models[model]) file.models[model] = row;
+    }
+  }
   return file;
+}
+
+/** Whose price table a session's cost comes from: Claude Code → anthropic, Codex → openai. */
+export type PriceProvider = "anthropic" | "openai";
+
+/**
+ * The date of the table a provider's prices come from. `pricing.as_of` is the
+ * Anthropic table's date; OpenAI rows come from the newest openai-*.json.
+ */
+export function pricingAsOf(pricing: PricingFile, provider: PriceProvider): string {
+  if (provider === "anthropic") return pricing.as_of;
+  const openai = listOpenAiPricingFiles().at(-1);
+  if (!openai) return pricing.as_of;
+  return PricingFileSchema.parse(JSON.parse(readFileSync(openai, "utf-8")) as unknown).as_of;
+}
+
+/**
+ * The date of the NEWEST bundled table for a provider. The stale-price
+ * warning (E004) keys off this, not off the table an older session is priced
+ * with: an old session correctly uses an old table, which says nothing about
+ * whether Sipcode's own prices are out of date.
+ */
+export function newestPricingAsOf(provider: PriceProvider): string {
+  if (provider === "openai") {
+    const openai = listOpenAiPricingFiles().at(-1);
+    if (openai) {
+      return PricingFileSchema.parse(JSON.parse(readFileSync(openai, "utf-8")) as unknown).as_of;
+    }
+  }
+  const files = listBundledPricingFiles();
+  if (files.length === 0) throw new Error("no pricing files bundled with sipcode");
+  return files[files.length - 1]!.date;
 }
 
 /**
  * Days between today and the pricing file. Negative if pricing is in future.
  */
 export function pricingAgeDays(pricing: PricingFile, now: Date): number {
-  const pricingDate = new Date(pricing.as_of + "T00:00:00Z").getTime();
+  return daysSinceAsOf(pricing.as_of, now);
+}
+
+/** Days between today and a yyyy-mm-dd table date. Negative if in the future. */
+export function daysSinceAsOf(asOf: string, now: Date): number {
+  const pricingDate = new Date(asOf + "T00:00:00Z").getTime();
   const today = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   ).getTime();
@@ -92,6 +146,9 @@ const MODEL_ALIASES: Record<string, string> = {
   "claude-sonnet-4-0": "claude-sonnet-4",
 };
 
+/** What may follow a table key in a snapshot id: a date only (-20251001 or -2026-03-01), never a minor version. */
+const SNAPSHOT_SUFFIX = /^-(\d{8}|\d{4}-\d{2}-\d{2})$/;
+
 export function priceForModel(
   pricing: PricingFile,
   model: string,
@@ -100,11 +157,13 @@ export function priceForModel(
   if (direct) return direct;
   const alias = MODEL_ALIASES[model];
   if (alias && pricing.models[alias]) return pricing.models[alias];
-  // Loose match (e.g. dated ids like claude-haiku-4-5-20251001): the LONGEST
-  // matching key wins, so claude-opus-5-5 never falls back to claude-opus-5.
+  // Loose match for snapshot ids (claude-haiku-4-5-20251001, gpt-5.4-2026-03-01):
+  // a key matches only when the rest of the id is a date, so
+  // gpt-5.1-codex-mini never borrows gpt-5.1's price (unknown stays unknown).
+  // The LONGEST matching key wins, so claude-opus-5-5 never falls back to claude-opus-5.
   let best: string | undefined;
   for (const key of Object.keys(pricing.models)) {
-    if (model === key || model.startsWith(key + "-")) {
+    if (model === key || (model.startsWith(key) && SNAPSHOT_SUFFIX.test(model.slice(key.length)))) {
       if (!best || key.length > best.length) best = key;
     }
   }

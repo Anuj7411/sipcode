@@ -4,11 +4,40 @@
  * Voice: lowercase, no jargon, structured as (a) what happened (b) why
  * (c) how to fix (d) suggested next command.
  */
+import { formatNum } from "./format.js";
+import { shortSessionId } from "./session-id.js";
+
+/** The command that opens one session: receipt takes the id as an argument, why / drift take --session. */
+function sessionCommand(command: string, agentId: string, id: string): string {
+  return command === "receipt"
+    ? `npx sipcode receipt ${id} --agent ${agentId}`
+    : `npx sipcode ${command} --agent ${agentId} --session ${id}`;
+}
+
+/** The agent a message is about (structural, so this file imports no agent module). */
+export interface MessageAgent {
+  readonly id: string;
+  readonly displayName: string;
+}
+
+const CLAUDE_CODE: MessageAgent = { id: "claude-code", displayName: "Claude Code" };
+
+const UNPRICED_TAIL = "not included in the cost above.";
+
+/** Is this the unpriced-tokens note (MESSAGES.unpricedTokens)? --json prints it on stderr; MCP returns it as its own text item. */
+export function isUnpricedNote(line: string): boolean {
+  return line.includes(" tokens on models without a known price (") && line.endsWith(UNPRICED_TAIL);
+}
+
+/**
+ * The line under a Codex before/after (impact): Sipcode does not run inside
+ * Codex, so the difference is not its doing. --json prints it on stderr;
+ * MCP returns it as its own text item.
+ */
+export const CODEX_IMPACT_LABEL = "Sipcode does not act inside Codex yet, so this difference is not caused by Sipcode.";
+
 export const MESSAGES = {
   tagline: "sip your tokens. don't gulp them.",
-
-  notImplemented: (cmd: string, milestone: string) =>
-    `sipcode ${cmd} — not yet implemented (planned for ${milestone}).`,
 
   noTranscriptsDir: (path: string) =>
     [
@@ -32,11 +61,14 @@ export const MESSAGES = {
       `next: npx sipcode why --list`,
     ].join("\n"),
 
-  sessionNotFound: (id: string) =>
+  /** `agentNames` (Codex, or both tools) changes only the why: line; Claude Code alone is unchanged. */
+  sessionNotFound: (id: string, agentNames?: readonly string[]) =>
     [
       `[E003] no session matches "${id}"`,
       ``,
-      `why: sipcode couldn't find a .jsonl whose name starts with that id.`,
+      agentNames === undefined
+        ? `why: sipcode couldn't find a .jsonl whose name starts with that id.`
+        : `why: sipcode couldn't find a ${agentNames.join(" or ")} session whose id starts with that.`,
       ``,
       `fix: list available sessions and pick a real id.`,
       ``,
@@ -54,11 +86,11 @@ export const MESSAGES = {
       `next: sipcode why --list`,
     ].join("\n"),
 
-  pricingStale: (asOf: string, days: number) =>
+  pricingStale: (asOf: string, days: number, provider: "anthropic" | "openai" = "anthropic") =>
     [
       `[E004] pricing is ${days} days old (file dated ${asOf})`,
       ``,
-      `why: anthropic's pricing may have changed since this pricing file shipped. cost numbers below are an estimate, not a guarantee.`,
+      `why: ${provider}'s pricing may have changed since this pricing file shipped. cost numbers below are an estimate, not a guarantee.`,
       ``,
       `fix: update sipcode (npm i -g sipcode@latest) for the freshest pricing.`,
       ``,
@@ -171,10 +203,10 @@ export const MESSAGES = {
   receiptClipboardSkipped: (reason: string) => `clipboard: ${reason}`,
 
   manifestDeltaNotImplemented:
-    "[planned] --delta is stubbed for v1.1+. for now, re-run `sipcode manifest` to regenerate from scratch — it's idempotent on unchanged trees, so diffs against the prior version are easy to read.",
+    "--delta is not supported. re-run `sipcode manifest` to regenerate from scratch: it is idempotent on unchanged trees, so diffs against the prior version are easy to read.",
 
   manifestExplainNotImplemented: (file: string) =>
-    `[planned] --explain ${file} lands in v1.1+. for now, the [E002] line printed during generation tells you why a file was skipped.`,
+    `--explain ${file} is not supported. the [E002] line printed during generation tells you why a file was skipped.`,
 
   // ---- output compression milestone (v0.2.0) ----
 
@@ -210,6 +242,53 @@ export const MESSAGES = {
       `both claude code and cursor look configured here.`,
       `pass --agent claude-code or --agent cursor to be explicit.`,
       `defaulting to claude-code.`,
+    ].join("\n"),
+
+  codexNotSupportedYet: (command: string) =>
+    [
+      `[E009] sipcode ${command} is not supported for Codex yet.`,
+      ``,
+      `why: this command reads Claude Code logs only.`,
+      ``,
+      `fix: run it with --agent claude-code, or use stats / today / forecast / trend / impact / why / receipt / drift with --agent codex.`,
+      ``,
+      `next: npx sipcode stats --agent codex`,
+    ].join("\n"),
+
+  sessionAmbiguous: (
+    command: string,
+    prefix: string,
+    matches: ReadonlyArray<{ readonly agentId: string; readonly agentName: string; readonly sessionId: string }>,
+  ) =>
+    [
+      `[E003] "${prefix}" matches sessions in more than one tool:`,
+      ...matches.map((m) => `  ${m.agentName}: ${shortSessionId(m.sessionId, m.agentId)}`),
+      ``,
+      `why: session ids from different tools can start the same way, and sipcode won't guess which one you meant.`,
+      ``,
+      `fix: pass --agent with the tool you meant, or a longer id.`,
+      ``,
+      `next: ${sessionCommand(command, matches[0]?.agentId ?? "claude-code", matches[0] ? shortSessionId(matches[0].sessionId, matches[0].agentId) : prefix)}`,
+    ].join("\n"),
+
+  /** drift --here: nothing in this folder, though sessions exist elsewhere (a calm one-liner, exit 0). */
+  driftNothingHere: (agentNames: readonly string[]) =>
+    `no ${agentNames.join(" or ")} sessions found for this folder. Drop --here to look across all folders.`,
+
+  /** No session to report on for Codex (or both tools); Claude Code alone keeps noSessionsFound. */
+  noAgentSessions: (command: string, agentNames: readonly string[], here: boolean) =>
+    [
+      `[E003] no ${agentNames.join(" or ")} sessions found${here ? " for this folder" : ""}.`,
+      ``,
+      here
+        ? `why: none of the session logs sipcode can read ran in this folder.`
+        : `why: sipcode reads the session logs ${agentNames.join(" and ")} write${agentNames.length === 1 ? "s" : ""}, and none it can use exist yet.`,
+      ``,
+      here
+        ? `fix: drop --here to look across all folders.`
+        : `fix: open ${agentNames.join(" or ")}, run any prompt, then come back.`,
+      ``,
+      `next: npx sipcode ${command}${!here && command === "why" ? " --list" : ""}`,
     ].join("\n"),
 
   cursorTranscriptNotSupported: () =>
@@ -278,20 +357,30 @@ export const MESSAGES = {
       `     https://github.com/Anuj7411/sipcode`,
     ].join("\n"),
 
-  statsNoSessionsYet: () =>
-    [
-      `no Claude Code sessions found yet.`,
-      ``,
-      `why: sipcode reads the transcripts Claude Code writes per session, and none exist yet.`,
-      ``,
-      `fix: open Claude Code, run any prompt, then come back and run this again.`,
-    ].join("\n"),
+  statsNoSessionsYet: (agent: MessageAgent = CLAUDE_CODE) =>
+    agent.id === "claude-code"
+      ? [
+          `no Claude Code sessions found yet.`,
+          ``,
+          `why: sipcode reads the transcripts Claude Code writes per session, and none exist yet.`,
+          ``,
+          `fix: open Claude Code, run any prompt, then come back and run this again.`,
+        ].join("\n")
+      : [
+          `no ${agent.displayName} sessions found yet.`,
+          ``,
+          `why: sipcode reads the session logs ${agent.displayName} writes, and none exist yet.`,
+          ``,
+          `fix: open ${agent.displayName}, run any prompt, then come back and run this again.`,
+        ].join("\n"),
 
-  statsNoSessionsInWindow: (raw: string) =>
+  statsNoSessionsInWindow: (raw: string, agent: MessageAgent = CLAUDE_CODE) =>
     [
       `no sessions found in the last ${raw}.`,
       ``,
-      `why: claude code transcripts exist, but none of them fall inside the window you asked for.`,
+      agent.id === "claude-code"
+        ? `why: claude code transcripts exist, but none of them fall inside the window you asked for.`
+        : `why: ${agent.displayName} session logs exist, but none of them fall inside the window you asked for.`,
       ``,
       `fix: widen the window with --since all, or drop --here if you scoped to this cwd.`,
       ``,
@@ -299,6 +388,9 @@ export const MESSAGES = {
     ].join("\n"),
 
   statsHtmlWrote: (path: string) => `wrote ${path}`,
+
+  unpricedTokens: (u: { tokens: number; models: readonly string[] }) =>
+    `${formatNum(u.tokens)} tokens on models without a known price (${u.models.join(", ")}): ${UNPRICED_TAIL}`,
 
   // ---- score milestone (v0.2.0-alpha.5, S060) ----
 
@@ -333,9 +425,9 @@ export const MESSAGES = {
     [
       `unknown agent "${id}".`,
       ``,
-      `why: sipcode supports --agent claude-code and --agent cursor in this release. codex / gemini / aider are planned.`,
+      `why: sipcode supports --agent claude-code, --agent cursor and --agent codex.`,
       ``,
-      `fix: pick one of: claude-code, cursor, auto.`,
+      `fix: pick one of: claude-code, cursor, codex, auto.`,
       ``,
       `next: npx sipcode init --agent auto`,
     ].join("\n"),
@@ -431,9 +523,6 @@ export const MESSAGES = {
 
   hygieneCheckNoTranscript: (path: string) =>
     `no claude code transcripts at ${path} — nothing to check yet.`,
-
-  hygieneMcpDeferred:
-    "[planned] S033 mcp-server pruning detector lands in v1.1+. hooks shipped today cover S030/S031/S032.",
 
   benchmarkAllFailed: () =>
     [

@@ -3,7 +3,10 @@
  */
 import type { TodayReport } from "./types.js";
 
-export function formatTodayTerminal(report: TodayReport): string {
+export function formatTodayTerminal(
+  report: TodayReport,
+  opts: { unpricedNote?: string | undefined } = {},
+): string {
   const lines: string[] = [];
   const dateLabel = report.today?.dateLocal ?? "today";
   lines.push(`sipcode today · ${dateLabel}`);
@@ -19,6 +22,7 @@ export function formatTodayTerminal(report: TodayReport): string {
     lines.push(
       `  spend so far          $${fmt(t.totalSpendUSD)}  across ${t.sessionCount} session${t.sessionCount === 1 ? "" : "s"}`,
     );
+    if (opts.unpricedNote) lines.push(`  ${opts.unpricedNote}`);
     lines.push(
       `  tokens so far        ${fmtTokens(t.totalTokens)}  output ratio ${t.outputRatioPct.toFixed(1)}%`,
     );

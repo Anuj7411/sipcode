@@ -198,6 +198,9 @@ function brandVoiceError(matches: Match[]): string {
 }
 
 describe("S090 — privacy guard: no network calls in core paths", () => {
+  // reads and regex-scans every file under src/ (~1s alone, measured
+  // past 5s while the full suite runs in parallel), so it gets its own
+  // budget instead of vitest's 5s default.
   it("src/ tree contains zero forbidden network imports", async () => {
     const files = await walkTsFiles(SRC_DIR);
     const allMatches: Match[] = [];
@@ -211,7 +214,7 @@ describe("S090 — privacy guard: no network calls in core paths", () => {
       throw new Error(brandVoiceError(allMatches));
     }
     expect(allMatches).toEqual([]);
-  });
+  }, 30_000);
 
   it("hook scripts under src/modules/hygiene/hookScript.ts emit zero network calls", async () => {
     // These scripts run as separate node processes via ~/.claude/hooks/.

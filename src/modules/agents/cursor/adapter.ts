@@ -55,6 +55,10 @@ export const cursorAgent: Agent = {
     ]);
   },
 
+  matchesCwd(): boolean {
+    return false;
+  },
+
   async readRulesFile(
     deps: AgentDeps,
     cwd: string,

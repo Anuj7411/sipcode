@@ -1,5 +1,5 @@
-import type { SessionMetrics, DriftReport, DriftCause } from "./types.js";
-import { computeBaseline, detectRegression, MIN_BASELINE } from "./baseline.js";
+import type { SessionMetrics, DriftReport, DriftCause, DriftAgent } from "./types.js";
+import { computeBaseline, detectRegression, isClaudeCode, MIN_BASELINE } from "./baseline.js";
 
 const NOTE =
   "Drift compares your latest session against the median of recent ones. Conservative by design — it stays silent unless something really moved. Run `sipcode why` for a per-session forensic breakdown.";
@@ -11,6 +11,8 @@ export interface BuildOptions {
   readonly baselineScope?: "project" | "global";
   /** Per-metric attribution strings injected into matching causes. Keyed by `DriftCause.metric`. */
   readonly attributions?: Record<string, string>;
+  /** The tool the sessions came from (wording only). Default Claude Code. */
+  readonly agent?: DriftAgent;
 }
 
 export function buildDriftReport(
@@ -28,7 +30,7 @@ export function buildDriftReport(
     return {
       schemaVersion: "sipcode-drift/2",
       hasRegression: false,
-      summary: `not enough history yet${scopeNote} (${baseline.count} prior sessions; need ${MIN_BASELINE}). Keep using Claude Code and re-run.`,
+      summary: `not enough history yet${scopeNote} (${baseline.count} prior sessions; need ${MIN_BASELINE}). Keep using ${isClaudeCode(opts.agent) ? "Claude Code" : opts.agent!.displayName} and re-run.`,
       causes: [],
       latest,
       baseline,
@@ -38,7 +40,7 @@ export function buildDriftReport(
     };
   }
 
-  const reg = detectRegression(latest, baseline);
+  const reg = detectRegression(latest, baseline, opts.agent);
 
   const causes: DriftCause[] = reg.causes.map((c) => {
     const attribution = opts.attributions?.[c.metric];

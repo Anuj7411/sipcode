@@ -19,6 +19,20 @@ export interface SessionMeta {
   readonly mtimeMs: number;
   /** File size in bytes. */
   readonly size: number;
+  /** Working directory recorded in the log, when the agent records one (Codex). */
+  readonly cwd?: string | undefined;
+  /**
+   * A helper thread (Codex subagent or auto-review), when discovery can tell
+   * from line 1. Listings mark it; ParsedSession.isSubagent stays the rule.
+   */
+  readonly isSubagent?: boolean | undefined;
+  /**
+   * Codex: the thread id line 1 records, and the threads it names as its
+   * fork source, parent or root (CodexMeta.linkedIds). Absent when line 1
+   * is not a session_meta with an id. Decides which logs can hold copies of
+   * each other's requests (loadSessions' copy candidates).
+   */
+  readonly lineage?: { readonly id: string; readonly linkedIds: readonly string[] } | undefined;
 }
 
 export function resolveProjectsDir(env: ProcessEnv): string {
@@ -47,6 +61,32 @@ const OBSERVER_DIR_PATTERNS: readonly RegExp[] = [
 /** True if a project-hash dir name belongs to an observer/telemetry plugin. */
 export function isObserverProjectDir(name: string): boolean {
   return OBSERVER_DIR_PATTERNS.some((re) => re.test(name));
+}
+
+/**
+ * Does Claude Code have a transcript Sipcode can read (a `.jsonl` in a
+ * project folder that is not an observer's)? The one rule every command uses
+ * for "Claude Code has logs": an existing but empty projects folder does not
+ * count. Stops at the first transcript.
+ */
+export async function hasClaudeTranscripts(fs: FileSystem, projectsDir: string): Promise<boolean> {
+  let projectDirs;
+  try {
+    projectDirs = await fs.readDir(projectsDir);
+  } catch {
+    return false;
+  }
+  for (const proj of projectDirs) {
+    if (!proj.isDirectory || isObserverProjectDir(proj.name)) continue;
+    let entries;
+    try {
+      entries = await fs.readDir(path.join(projectsDir, proj.name));
+    } catch {
+      continue;
+    }
+    if (entries.some((e) => e.isFile && e.name.endsWith(".jsonl"))) return true;
+  }
+  return false;
 }
 
 /**
@@ -93,26 +133,6 @@ export async function listAllSessions(
 }
 
 /**
- * Scope to the project dir whose name matches the current cwd's path-hash.
- * Claude Code project-hashes are derived from cwd by replacing path separators
- * with `-` and prepending the drive (Windows). We don't replicate the exact
- * algorithm; instead we look for a project dir whose name contains the cwd's
- * basename and prefer it.
- */
-export async function listSessionsHere(
-  fs: FileSystem,
-  projectsDir: string,
-  cwd: string,
-): Promise<SessionMeta[]> {
-  const all = await listAllSessions(fs, projectsDir);
-  // Match by cwd path → claude-code style hash.
-  // Windows: C:\Projects\Sipcode -> "C--Projects-Sipcode"
-  // POSIX:   /home/u/proj         -> "-home-u-proj"
-  const cwdHash = cwdToProjectHash(cwd);
-  return all.filter((s) => s.projectHash === cwdHash || cwdHash.endsWith(s.projectHash));
-}
-
-/**
  * Encode a working-directory path the way Claude Code names its project dirs:
  * EVERY character that is not a letter or digit collapses to "-". Verified
  * empirically against ~/.claude/projects — Claude Code turns
@@ -123,13 +143,4 @@ export async function listSessionsHere(
  */
 export function cwdToProjectHash(cwd: string): string {
   return cwd.replace(/[^A-Za-z0-9]/g, "-");
-}
-
-export async function findSessionById(
-  fs: FileSystem,
-  projectsDir: string,
-  idPrefix: string,
-): Promise<SessionMeta | undefined> {
-  const all = await listAllSessions(fs, projectsDir);
-  return all.find((s) => s.sessionId.startsWith(idPrefix));
 }

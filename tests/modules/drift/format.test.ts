@@ -61,3 +61,18 @@ describe("renderDriftJson", () => {
     expect(obj.causes[0].fix).toContain("fresh chat");
   });
 });
+
+describe("renderDriftTerminal per agent", () => {
+  it("Claude Code is unchanged with or without the agent", () => {
+    expect(renderDriftTerminal(regressed, { id: "claude-code", displayName: "Claude Code" })).toBe(
+      renderDriftTerminal(regressed),
+    );
+  });
+
+  it("names Codex in the alarm", () => {
+    const out = renderDriftTerminal(regressed, { id: "codex", displayName: "Codex" });
+    expect(out).toContain("Context drift detected in your latest Codex session");
+    expect(out).toContain("can make Codex less reliable");
+    expect(out).not.toContain("Claude");
+  });
+});

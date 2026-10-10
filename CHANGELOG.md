@@ -8,7 +8,61 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.6.21]._
+_Nothing landed since [1.7.0]._
+
+## [1.7.0] - 2026-10-09
+
+Sipcode now reads OpenAI Codex CLI session logs for spend analytics, and Claude Code totals no longer count requests that a resumed session copies from its parent.
+
+### Added
+- **Codex spend analytics.** `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` read Codex session logs (`~/.codex/sessions` and `~/.codex/archived_sessions`, or the folder `CODEX_HOME` points to). `--agent codex` shows Codex only.
+- **Both tools in one view.** With no `--agent` flag and both tools installed, `stats`, `today`, `forecast`, `trend` and `impact` print one section per tool, and `stats`, `today` and `forecast` end with a `Both tools:` line (total tokens, then each tool's cost). `why`, `receipt` and `drift` report on the newest session across both tools and print a one-line hint when the other tool has a recent session too. `--json` stays one tool per call: without `--agent` it covers Claude Code and says on stderr that Codex logs were found, so scripts keep working.
+- **`--here` for Codex**, matched against the working folder Codex records for each session.
+- **How Codex tokens are counted.** Sipcode reads Codex's per-request usage records, or, in logs from older Codex versions, the change in the running total Codex logs after each request. Cached input is part of Codex's input count, so it is never billed twice. A request copied into a resumed or forked file counts once. On the maintainer's machine, Sipcode's per-file totals equal Codex's own final `total_token_usage` on all 15 real session logs.
+- **OpenAI prices.** Codex models are priced from OpenAI's API price table (developers.openai.com/api/docs/pricing, and each Codex model's page under developers.openai.com/api/docs/models, as of 2026-10-09: gpt-5-codex, gpt-5.1-codex, gpt-5.1-codex-max, gpt-5.1-codex-mini, gpt-5.2-codex, gpt-5.3-codex, codex-mini-latest), including the long-context rate for prompts over 272,000 input tokens. A model with no known price is shown as unpriced: its tokens are counted, a line says how many the cost leaves out, and it is never shown as $0.
+- **MCP:** the 7 session tools take an optional `agent` input (`"claude-code"` or `"codex"`). Still 15 tools.
+- **`drift --agent`, `--here` and `--session <id>`.** Pick the tool, limit the check to the folder you are in, or check a specific session instead of the latest.
+- Codex short session ids are 18 characters (the UUIDv7 timestamp plus random bits), so sessions started close together stay distinct. Claude Code ids are unchanged.
+
+### Fixed
+- **Requests copied into resumed Claude Code sessions were counted twice.** When Claude Code resumes a session, the new log file repeats requests from the old one, and Sipcode summed both. On one real machine, counting exactly the files Sipcode reads: 13.37B tokens summed vs 12.00B unique, 11.4% over (3,163 repeated requests in 8 resumed-session files). `stats`, `today`, `forecast`, `trend` and `impact` now count each request once.
+- **`why` and `receipt` on a resumed session included the parent's copied requests.** Worst real case: a session shown as $218.00 whose own spend was $10.20. They now report the session's own requests, and skip a resumed session that holds nothing but copied history.
+- **`verify_sipcode_impact` (MCP) output now parses as JSON.** A note used to be appended after the JSON.
+- **`stats --since all`** counted days from 1970 ("20735 days"). The window now starts at your earliest session.
+- **`why` and `receipt` warned that pricing was out of date (E004) for any older session**, because an older session is priced with the price table of its own date. The warning now checks the newest table Sipcode ships, and a Codex section of `stats` checks the OpenAI table.
+- **Cursor next to other tools:** with no `--agent` flag, a Cursor pick now shows the tools whose logs Sipcode can read (Claude Code, Codex), instead of a Cursor section that could only report error E009. Cursor's E009 stays when neither has logs.
+- **An empty `~/.claude/projects` no longer hides Codex.** Claude Code counts as having logs only when it has a transcript, the same rule for every command: `why --json`, `receipt --json` and MCP `audit_latest_session` failed with E003 while Codex had sessions.
+- **`--here` and copied requests.** Logs outside the folder still claim the requests they hold, so a Codex fork whose parent ran in another folder reports only its own requests in period commands, as `why` does.
+- **`drift` picked a session with turns but no token usage as "latest"** when its metrics were cached. Warm and cold runs now use one rule: a session counts only if it used tokens.
+- **Unpriced tokens in `--json` and MCP.** `stats`, `today`, `forecast`, `trend` and `impact --json` print the "tokens on models without a known price" note on stderr, as `why` and `receipt` do; MCP tools return it as its own text item after the JSON. JSON schemas are unchanged.
+- **Skipped logs in `--json`.** `today`, `forecast`, `trend` and `impact --json` print the note about compressed or unreadable logs on stderr, as in terminal mode.
+- **`impact`:** `--agent cursor` prints the coded E009 like every other command; with no install marker, Codex users are no longer told to run `rules --install` (it returns E009 for Codex).
+- **`today`'s top leak counted reads as re-reads** ("4 re-reads" for a file read 4 times); it now says 3.
+- **Codex users whose rollouts are all archived** (`archived_sessions` only) were not detected.
+- **`stats --html`** writes `.sipcode/stats-codex.html` for Codex every time (it used to depend on section order) and `.sipcode/stats.html` for Claude Code. A Codex section's `metaPricing` and "prices from" line show the OpenAI table date.
+- **The usage cache** no longer leaves a temp file behind for good when a run is killed mid-write.
+- **The GitHub Action** ran `npx @sipcode/cli@latest`; the package is `sipcode`.
+
+### Changed
+- **Lower memory for period commands.** `stats`, `today`, `forecast`, `trend` and `impact` read, dedupe and analyze one log at a time instead of holding every session in memory. On a synthetic 480,000-request log folder, peak memory went from 642 MB to 238 MB for `stats --since all` and from 752 MB to 265 MB for `today` (first run). On one real 2.4 GB log folder, `stats`, `today`, `trend` and `impact` peak at about 1.5 GB, against 2.3 to 3.4 GB in 1.6. Windowed `stats` and `trend` read only older logs that can hold a copy of a request in the window, and only their request keys (Codex logs too), so `stats` for 30 days is back to its 1.6 speed.
+- **More Codex models priced:** gpt-5-codex, gpt-5.1-codex, gpt-5.1-codex-max, gpt-5.1-codex-mini, gpt-5.2-codex and codex-mini-latest, from each model's page on developers.openai.com (as of 2026-10-09). The OpenAI table is now dated 2026-10-09.
+- **`impact` on Codex** shows one more line wherever it compares before and after: Sipcode does not act inside Codex yet, so the difference is not caused by Sipcode (on stderr with `--json`, its own item in MCP).
+- **`manifest --delta` / `--explain`** now say they are not supported, with no version promise.
+- **README:** Node.js on Linux is installed from nodejs.org (nvm), since Ubuntu's own package is often older than Node 20.
+- **PRIVACY.md:** the Future telemetry section keeps its substance (opt-in, off by default, announced) without the major-version promise.
+- **`today` and `forecast` are faster on repeat runs.** In measurement on a warm cache, `today` went from about 30-43s to about 1.4s and `forecast` from 24-32s to about 0.5s, with byte-identical output. The first run takes as long as before. They keep a local cache at `~/.sipcode/usage-cache/<agent>.json`: token counts, models, timestamps, the session's working folder and the paths of files the agent read. Never message text, never uploaded. [PRIVACY.md](PRIVACY.md) says how to delete it.
+- **`drift` has a new cache file**, `~/.sipcode/drift/sessions-v3.jsonl`, built automatically on the first run. The old `sessions.jsonl` is no longer used and can be deleted. Drift is also faster: about 6.1s to 2.3s cold and 1.24s to 0.29s warm in measurement.
+- **Help text:** every `--agent` option lists `codex`, and `why` describes itself as auditing Claude Code or Codex sessions.
+- Commands that do not read Codex say "not supported for Codex yet" (error E009) for `--agent codex`, instead of showing Claude Code data under a Codex flag.
+
+### Not supported for Codex yet
+- Writing rules to `AGENTS.md` (`rules`, and the rules step of `init`), registering the MCP server in Codex, the proxy and hooks (`proxy`, `hygiene`), `estimate` and `benchmark`.
+- Compressed Codex logs (`.jsonl.zst`) are skipped, and a note says how many.
+
+### Internal
+- `scripts/verify-counts.mjs` (dev only, not shipped): an independent token counter that imports nothing from Sipcode and cross-checks every period command, cold and warm cache, against the same Claude Code and Codex logs. On the maintainer's real logs: 210 checks match, 0 mismatches (Claude Code: 188 files, 26,782 requests, 3,182 copied requests dropped across 8 files; Codex: 15 files, 930 requests).
+- Three slow tests got their own timeouts after measuring past or near vitest's 5s default under full-suite load. Snapshot files are pinned to LF line endings (`.gitattributes`), so a test run on Windows no longer leaves them modified.
+- Test count: 1,404 to 1,996 (`npx vitest run`, which includes the 19 e2e tests).
 
 ## [1.6.21] — 2026-10-08
 

@@ -21,7 +21,7 @@ runs:
     - name: Run sipcode score
       shell: bash
       run: |
-        npx --yes @sipcode/cli@latest score \
+        npx --yes sipcode@latest score \
           --threshold "${{ inputs.threshold }}" \
           --badge \
           --no-html

@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryFs } from "../../../src/lib/fs.js";
 import { FakeProcessEnv } from "../../../src/lib/process.js";
-import {
-  findSessionById,
-  listAllSessions,
-  resolveProjectsDir,
-} from "../../../src/modules/transcript/discover.js";
+import { FakeClock } from "../../../src/lib/clock.js";
+import { claudeCodeAgent } from "../../../src/modules/agents/claude-code/adapter.js";
+import { listAgentSessions, pickFrom } from "../../../src/modules/agents/latest.js";
+import { listAllSessions, resolveProjectsDir } from "../../../src/modules/transcript/discover.js";
+
+/** The --session lookup why / receipt / drift use. */
+async function lookup(fs: InMemoryFs, prefix: string) {
+  const deps = { fs, env: new FakeProcessEnv({ homeDir: "/home/u" }), clock: new FakeClock(new Date("2026-10-08")) };
+  const lists = await listAgentSessions({ agents: [claudeCodeAgent], deps, cwd: "/" });
+  return (await pickFrom(lists, deps, { sessionIdPrefix: prefix }))?.chosen.meta;
+}
 
 function makeFs(): InMemoryFs {
   const fs = new InMemoryFs();
@@ -39,14 +45,8 @@ describe("discover", () => {
     ]);
   });
 
-  it("findSessionById finds by prefix", async () => {
-    const fs = makeFs();
-    const found = await findSessionById(
-      fs,
-      "/home/u/.claude/projects",
-      "abc",
-    );
-    expect(found?.sessionId).toBe("abc12345");
+  it("--session finds a session by id prefix", async () => {
+    expect((await lookup(makeFs(), "abc"))?.sessionId).toBe("abc12345");
   });
 
   it("returns [] when projectsDir is missing", async () => {
@@ -63,13 +63,7 @@ describe("discover", () => {
     expect(sessions[0]?.sessionId).toBe("x");
   });
 
-  it("findSessionById returns undefined for unknown prefix", async () => {
-    const fs = makeFs();
-    const r = await findSessionById(
-      fs,
-      "/home/u/.claude/projects",
-      "zzzzz",
-    );
-    expect(r).toBeUndefined();
+  it("--session finds nothing for an unknown prefix", async () => {
+    expect(await lookup(makeFs(), "zzzzz")).toBeUndefined();
   });
 });

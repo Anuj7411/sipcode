@@ -1,9 +1,9 @@
 /**
  * `sipcode stats` — cross-session analytics dashboard.
- * Thin orchestrator: agent.discoverSessions → filter window → parse + analyze
- * → aggregate → render → format → print (+ optionally write HTML / JSON).
+ * Thin orchestrator: loadSessions → filter window → analyze → aggregate →
+ * render → format → print (+ optionally write HTML / JSON).
  *
- * Routes through the Agent abstraction so future agents are first-class.
+ * One section per shown agent (Claude Code, Codex); JSON is one agent per call.
  */
 import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
 void ASSERT_NO_NETWORK;
@@ -13,19 +13,35 @@ import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
-import { resolveAgentFromOpts } from "../modules/agents/cli.js";
 import {
-  resolveProjectsDir,
-  cwdToProjectHash,
-} from "../modules/transcript/discover.js";
-import { analyzeTokens, isEmptySession } from "../modules/transcript/analyzers/tokens.js";
+  compressedSkippedMessage,
+  loadSessions,
+} from "../modules/agents/loadSessions.js";
+import {
+  resolveDisplayAgents,
+  runSections,
+  SectionOutput,
+  type SectionResult,
+} from "../modules/agents/multi.js";
+import type { Agent } from "../modules/agents/types.js";
+import { resolveProjectsDir } from "../modules/transcript/discover.js";
+import {
+  addUnpriced,
+  analyzeTokens,
+  analyzeUnpriced,
+  isEmptySession,
+  NO_UNPRICED,
+} from "../modules/transcript/analyzers/tokens.js";
 import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicateReads.js";
 import { analyzeIdleContext } from "../modules/transcript/analyzers/idleContext.js";
 import {
+  daysSinceAsOf,
   loadPricingForDate,
-  pricingAgeDays,
+  newestPricingAsOf,
+  pricingAsOf,
 } from "../lib/pricing/load.js";
-import { parseSince, isInWindow } from "../modules/stats/window.js";
+import { priceProvider } from "../modules/agents/latest.js";
+import { anchorAllWindow, parseSince, isInWindow } from "../modules/stats/window.js";
 import { aggregateSession } from "../modules/stats/aggregate.js";
 import { renderStats } from "../modules/stats/render.js";
 import { formatTerminal } from "../modules/stats/format-terminal.js";
@@ -34,6 +50,7 @@ import { formatHtml } from "../modules/stats/format-html.js";
 import type {
   AggregatedSession,
   GroupBy,
+  StatsWindow,
 } from "../modules/stats/types.js";
 
 export interface StatsOptions {
@@ -115,105 +132,156 @@ export async function runStats(
     return { exitCode: 1 };
   }
 
-  // Resolve agent.
-  const agentResolve = await resolveAgentFromOpts({
+  const shown = await resolveDisplayAgents({
     agent: opts.agent,
     fs,
     env,
+    clock,
     cwd,
-    stdout: opts.json ? () => {} : stdout,
+    json: opts.json ?? false,
     stderr,
-    quiet: opts.json ?? false,
   });
-  if (!agentResolve.ok) return { exitCode: 1 };
-  const agent = agentResolve.agent;
+  if (!shown.ok) return { exitCode: 1 };
+
+  const exitCode = await runSections({
+    agents: shown.agents,
+    detect: shown.detect,
+    banner: !opts.json,
+    combined: true,
+    stdout,
+    stderr,
+    run: (agent) =>
+      statsForAgent(agent, {
+        opts,
+        fs,
+        env,
+        clock,
+        cwd,
+        window,
+        topN,
+        groupBy,
+        writeFile,
+        // One file per tool, whatever else is shown: stats.html (Claude Code), stats-codex.html.
+        htmlName: agent.id === "codex" ? "stats-codex.html" : "stats.html",
+      }),
+  });
+  return { exitCode };
+}
+
+interface StatsContext {
+  readonly opts: StatsOptions;
+  readonly fs: FileSystem;
+  readonly env: ProcessEnv;
+  readonly clock: Clock;
+  readonly cwd: string;
+  readonly window: StatsWindow;
+  readonly topN: number;
+  readonly groupBy: GroupBy;
+  readonly writeFile: (absPath: string, content: string) => Promise<void>;
+  readonly htmlName: string;
+}
+
+/** One agent's stats, returned as ordered output instead of printed. */
+async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionResult> {
+  const { opts, fs, env, clock, cwd, topN, groupBy, writeFile } = ctx;
+  let window = ctx.window;
+  const o = new SectionOutput();
+  const stdout = o.out;
+  const stderr = o.err;
 
   // Cursor's transcripts aren't parseable in this milestone — bail clean.
   if (!agent.transcriptParsingSupported) {
     stderr(MESSAGES.cursorTranscriptNotSupported());
-    return { exitCode: 1 };
+    return o.result(1);
   }
 
   // Sanity check: projects dir must exist for claude-code path.
-  const projectsDir = resolveProjectsDir(env);
-  if (!(await fs.exists(projectsDir))) {
-    stderr(MESSAGES.noTranscriptsDir(projectsDir));
-    return { exitCode: 1 };
-  }
-
-  // Discover.
-  const discovery = await agent.discoverSessions({ fs, env, clock });
-  if (!discovery.ok) {
-    for (const i of discovery.error) stderr(i.message);
-    return { exitCode: 1 };
-  }
-  let metas = discovery.value;
-  // Raw count before any --here scoping — lets us tell a brand-new user
-  // (zero transcripts anywhere) from "none in this window/cwd".
-  const totalDiscovered = discovery.value.length;
-
-  // --here filter: scope to the cwd's projectHash.
-  if (opts.here) {
-    const cwdHash = cwdToProjectHash(cwd);
-    metas = metas.filter(
-      (m) => m.projectHash === cwdHash || cwdHash.endsWith(m.projectHash),
-    );
+  if (agent.id === "claude-code") {
+    const projectsDir = resolveProjectsDir(env);
+    if (!(await fs.exists(projectsDir))) {
+      stderr(MESSAGES.noTranscriptsDir(projectsDir));
+      return o.result(1);
+    }
   }
 
   // Pricing — keyed off the window's upper-bound (best snapshot of "today").
   const pricing = loadPricingForDate(new Date(window.untilIso));
-  const ageDays = pricingAgeDays(pricing, clock.now());
+  // The table this section's costs come from: OpenAI's for Codex, Anthropic's for Claude Code.
+  const asOf = pricingAsOf(pricing, priceProvider(agent));
+  const ageDays = daysSinceAsOf(asOf, clock.now());
 
-  // Walk each session: read → parse → analyze → aggregate. Skip out-of-window
-  // entries early via mtime, then refine after parse with the assistant ts.
+  // Discover, scope (--here), parse and de-duplicate requests that a resumed
+  // session file repeats from its original; each session is analyzed as it is
+  // loaded and only its summary kept.
+  const loaded = await loadSessions({
+    agent,
+    deps: { fs, env, clock },
+    cwd,
+    here: opts.here,
+    // Files last modified before the window are only key-scanned (those that
+    // can hold copies): they still remove their copies from newer resumed
+    // files, but are not parsed.
+    windowSinceMs: Date.parse(window.sinceIso),
+    analyze: ({ meta, parsed }) => {
+      const startedAt = parsed.startedAt ?? new Date(meta.mtimeMs).toISOString();
+      if (!isInWindow(window, startedAt)) return null;
+      const totals = analyzeTokens(parsed, pricing);
+      if (isEmptySession(totals)) return null;
+      return {
+        unpriced: analyzeUnpriced(parsed, pricing),
+        session: aggregateSession({
+          sessionId: meta.sessionId,
+          projectHash: meta.projectHash,
+          fallbackStartedAtMs: meta.mtimeMs,
+          parsed,
+          totals,
+          duplicates: analyzeDuplicateReads(parsed),
+          idle: analyzeIdleContext(parsed),
+        }),
+      };
+    },
+  });
+  if (!loaded.ok) {
+    for (const i of loaded.error) stderr(i.message);
+    return o.result(1);
+  }
+  // Raw count before any --here scoping — lets us tell a brand-new user
+  // (zero transcripts anywhere) from "none in this window/cwd".
+  const totalDiscovered = loaded.value.discovered;
+
+  // Sessions inside the window with usage.
   const aggregated: AggregatedSession[] = [];
   const warnings: { code: string; message: string }[] = [];
+  if (loaded.value.unreadable > 0) {
+    warnings.push({
+      code: "E003",
+      message: `couldn't read ${loaded.value.unreadable} transcript file(s); totals exclude them.`,
+    });
+  }
+  if (loaded.value.unreadableFolders > 0) {
+    warnings.push({
+      code: "E003",
+      message: `couldn't read ${loaded.value.unreadableFolders} log folder(s); totals exclude them.`,
+    });
+  }
+  if (loaded.value.skippedCompressed > 0) {
+    warnings.push({ code: "E009", message: compressedSkippedMessage(loaded.value.skippedCompressed) });
+  }
+  // Parse problems must surface (a Codex parse error would otherwise vanish).
+  for (const i of loaded.value.issues) warnings.push({ code: i.code, message: i.message });
 
-  for (const meta of metas) {
-    // Pre-filter by file mtime — cheap. If the file's mtime is before the
-    // window's lower bound by more than a day, skip outright.
-    const mtimeIso = new Date(meta.mtimeMs).toISOString();
-    if (mtimeIso < window.sinceIso) continue;
-
-    let content: string;
-    try {
-      content = await fs.readFile(meta.filePath);
-    } catch {
-      warnings.push({
-        code: "E003",
-        message: `couldn't read ${path.basename(meta.filePath)}.`,
-      });
-      continue;
-    }
-    const parseResult = agent.parseTranscript(content);
-    if (!parseResult.ok) {
-      for (const i of parseResult.error) warnings.push({ code: i.code, message: i.message });
-      continue;
-    }
-    const parsed = parseResult.value;
-    const startedAt = parsed.startedAt ?? mtimeIso;
-    if (!isInWindow(window, startedAt)) continue;
-
-    const totals = analyzeTokens(parsed, pricing);
-    if (isEmptySession(totals)) continue;
-    const dups = analyzeDuplicateReads(parsed);
-    const idle = analyzeIdleContext(parsed);
-
-    aggregated.push(
-      aggregateSession({
-        sessionId: meta.sessionId,
-        projectHash: meta.projectHash,
-        fallbackStartedAtMs: meta.mtimeMs,
-        parsed,
-        totals,
-        duplicates: dups,
-        idle,
-      }),
-    );
+  let unpriced = NO_UNPRICED;
+  for (const { value } of loaded.value.sessions) {
+    if (!value) continue;
+    unpriced = addUnpriced(unpriced, value.unpriced);
+    aggregated.push(value.session);
   }
 
   // Stable sort: most recent first.
   aggregated.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  // "all": count days from the earliest session, not from 1970.
+  window = anchorAllWindow(window, aggregated.at(-1)?.startedAt);
+  const unpricedNote = unpriced.requests > 0 ? MESSAGES.unpricedTokens(unpriced) : undefined;
 
   if (aggregated.length === 0) {
     if (opts.json) {
@@ -226,18 +294,19 @@ export async function runStats(
         groupBy,
         pricing,
         pricingAgeDays: ageDays,
+        pricingAsOf: asOf,
         warnings,
       });
       stdout(formatJson(empty));
-      return { exitCode: 0 };
+      return o.result(0);
     }
     if (totalDiscovered === 0) {
       // Brand-new user: no transcripts exist anywhere. Don't claim they do.
-      stdout(MESSAGES.statsNoSessionsYet());
-      return { exitCode: 0 };
+      stdout(MESSAGES.statsNoSessionsYet(agent));
+      return o.result(0);
     }
-    stderr(MESSAGES.statsNoSessionsInWindow(window.raw));
-    return { exitCode: 1 };
+    stderr(MESSAGES.statsNoSessionsInWindow(window.raw, agent));
+    return o.result(1, { emptyWindow: true });
   }
 
   const report = renderStats({
@@ -248,21 +317,24 @@ export async function runStats(
     groupBy,
     pricing,
     pricingAgeDays: ageDays,
+    pricingAsOf: asOf,
     warnings,
   });
 
   // Emit chosen format. JSON is exclusive (machine output); HTML is additive.
   if (opts.json) {
     stdout(formatJson(report));
+    // JSON has no field for it: say on stderr that the cost leaves tokens out.
+    if (unpricedNote) stderr(unpricedNote);
   } else {
     const useColor =
       env.get("NO_COLOR") === undefined && (process.stdout?.isTTY ?? false);
-    stdout(formatTerminal(report, { useColor }));
+    stdout(formatTerminal(report, { useColor, unpricedNote }));
   }
 
   if (opts.html) {
-    const htmlPath = path.join(cwd, ".sipcode", "stats.html");
-    const html = formatHtml(report);
+    const htmlPath = path.join(cwd, ".sipcode", ctx.htmlName);
+    const html = formatHtml(report, { unpricedNote });
     await writeFile(htmlPath, html);
     if (!opts.json) {
       stdout("");
@@ -270,10 +342,21 @@ export async function runStats(
     }
   }
 
-  if (ageDays > 30 && !opts.json) {
+  // The newest table of the provider this section is priced with (a Codex
+  // section warns about the OpenAI table, not the Anthropic one).
+  const provider = priceProvider(agent);
+  const newestAsOf = newestPricingAsOf(provider);
+  const newestAgeDays = daysSinceAsOf(newestAsOf, clock.now());
+  if (newestAgeDays > 30 && !opts.json) {
     stderr("");
-    stderr(MESSAGES.pricingStale(pricing.as_of, ageDays));
+    stderr(MESSAGES.pricingStale(newestAsOf, newestAgeDays, provider));
   }
 
-  return { exitCode: 0 };
+  return o.result(0, {
+    totals: {
+      tokens: report.totals.totalTokens,
+      usd: report.totals.estCostUSD,
+      unpriced: unpriced.requests > 0,
+    },
+  });
 }

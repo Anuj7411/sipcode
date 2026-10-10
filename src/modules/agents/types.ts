@@ -1,12 +1,13 @@
 /**
  * Agent abstraction — the multi-agent moat.
  *
- * S043 milestone scope-limited surface: rules injection + manifest target
- * are agent-aware; transcript parsing is claude-code-only (cursor stubs E009).
+ * Rules injection and the manifest target are agent-aware for Claude Code
+ * and Cursor; session logs are parsed for Claude Code and Codex (Cursor
+ * returns E009, and so does writing rules for Codex).
  *
  * Each agent has its own quirks:
- *   - where its rules live (CLAUDE.md vs .cursor/rules/*.mdc vs .cursorrules)
- *   - whether it produces a parseable transcript (cc=yes, cursor=not yet)
+ *   - where its rules live (CLAUDE.md, .cursor/rules/*.mdc or .cursorrules, AGENTS.md)
+ *   - whether its session logs can be parsed (Claude Code and Codex yes, Cursor no)
  *   - how it's detected as "installed" in a given cwd
  *
  * Adapters wrap those quirks behind a single Agent interface so commands
@@ -17,16 +18,17 @@ import type { FileSystem } from "../../lib/fs.js";
 import type { ProcessEnv } from "../../lib/process.js";
 import type { SipcodeIssue } from "../../lib/errors.js";
 import type { Result } from "../../lib/result.js";
+import type { KeyScan } from "../transcript/parse.js";
 import type {
   ParsedSession,
   SessionMeta,
 } from "./shared.js";
 
 /** Stable agent identifiers. New adapters reserve a new id (S044/S045/S046). */
-export type AgentId = "claude-code" | "cursor";
+export type AgentId = "claude-code" | "cursor" | "codex";
 
 /** All agent IDs we know about (for validation + auto-detect). */
-export const ALL_AGENT_IDS: ReadonlyArray<AgentId> = ["claude-code", "cursor"];
+export const ALL_AGENT_IDS: ReadonlyArray<AgentId> = ["claude-code", "cursor", "codex"];
 
 /** "auto" sentinel for CLI flag — resolved to a real AgentId by detect.ts. */
 export type AgentSelector = AgentId | "auto";
@@ -76,15 +78,42 @@ export interface AgentRulesRead {
   readonly content: string;
 }
 
+export type { KeyScan };
+
+/**
+ * Discovery with a report of what it could not use. Adapters with nothing to
+ * report return a bare SessionMeta[] instead.
+ */
+export interface SessionDiscovery {
+  readonly sessions: SessionMeta[];
+  /** Session files that could not be read; added to loadSessions' unreadable count. */
+  readonly unreadable: number;
+  /** Folders that could not be listed (reported apart from files). Default 0. */
+  readonly unreadableFolders?: number;
+  /** Compressed logs (Codex `.jsonl.zst`) skipped on purpose, reported as one count. Default 0. */
+  readonly skippedCompressed?: number;
+  /** Other problems discovery wants surfaced. */
+  readonly issues: readonly SipcodeIssue[];
+}
+
 /** Full agent interface — capabilities + I/O behaviors. */
 export interface Agent extends AgentCapabilities {
   /** Discover past sessions. Cursor returns E009 (no parsing in this milestone). */
   discoverSessions(
     deps: AgentDeps,
-  ): Promise<Result<SessionMeta[], SipcodeIssue[]>>;
+  ): Promise<Result<SessionMeta[] | SessionDiscovery, SipcodeIssue[]>>;
 
   /** Parse a transcript file. Cursor returns E009. */
   parseTranscript(content: string): Result<ParsedSession, SipcodeIssue[]>;
+
+  /**
+   * Optional fast path: scan request keys + time span without a full parse.
+   * Lets loadSessions dedupe against files outside a command window cheaply.
+   */
+  scanRequestKeys?(content: string): KeyScan;
+
+  /** --here: does this discovered session belong to the project at `cwd`? */
+  matchesCwd(meta: SessionMeta, cwd: string): boolean;
 
   /** Read the existing rules file content for inspection. null if none exists. */
   readRulesFile(deps: AgentDeps, cwd: string): Promise<AgentRulesRead | null>;

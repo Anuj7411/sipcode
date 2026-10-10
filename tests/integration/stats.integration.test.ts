@@ -6,6 +6,7 @@ import { runStats } from "../../src/commands/stats.js";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
+import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn } from "./codex-fixtures.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.resolve(__dirname, "../fixtures/transcripts");
@@ -324,5 +325,275 @@ describe("runStats integration", () => {
     );
     expect(result.exitCode).toBe(0);
     expect(out.join("\n")).toContain("per-project totals:");
+  });
+});
+
+describe("runStats: resumed sessions are not double counted", () => {
+  it("counts a request repeated in a resumed file once", async () => {
+    const fs = new InMemoryFs();
+    const req = (id: string) =>
+      JSON.stringify({
+        type: "assistant",
+        requestId: `req_${id}`,
+        timestamp: "2026-05-10T10:00:00.000Z",
+        sessionId: "s",
+        message: {
+          id: `msg_${id}`,
+          model: "claude-opus-4-8",
+          role: "assistant",
+          content: [{ type: "text", text: "." }],
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_input_tokens: 1_000_000,
+            cache_creation_input_tokens: 0,
+          },
+        },
+      });
+    const t = new Date("2026-05-10T10:05:00Z").getTime();
+    fs.writeFile("/home/u/.claude/projects/C--p/orig.jsonl", req("1"), t);
+    fs.writeFile("/home/u/.claude/projects/C--p/resumed.jsonl", [req("1"), req("2")].join("\n"), t);
+    const out: string[] = [];
+    const r = await runStats(
+      { json: true, since: "30d" },
+      { fs, env: makeEnv(), clock: new FakeClock(NOW), stdout: (s) => out.push(s), stderr: () => {} },
+    );
+    expect(r.exitCode).toBe(0);
+    const j = JSON.parse(out.join("\n"));
+    expect(j.totals.totalTokens).toBe(2_000_000);
+  });
+
+  it("an out-of-window original still removes its copy from a newer resumed file", async () => {
+    const fs = new InMemoryFs();
+    const req = (id: string, ts: string) =>
+      JSON.stringify({
+        type: "assistant",
+        requestId: `req_${id}`,
+        timestamp: ts,
+        sessionId: "s",
+        message: {
+          id: `msg_${id}`,
+          model: "claude-opus-4-8",
+          role: "assistant",
+          content: [{ type: "text", text: "." }],
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_input_tokens: 1_000_000,
+            cache_creation_input_tokens: 0,
+          },
+        },
+      });
+    // Original last written 100 days before NOW: outside --since 30d, key-scanned only.
+    fs.writeFile(
+      "/home/u/.claude/projects/C--p/orig.jsonl",
+      req("1", "2026-02-01T10:00:00.000Z"),
+      new Date("2026-02-01T10:05:00Z").getTime(),
+    );
+    fs.writeFile(
+      "/home/u/.claude/projects/C--p/resumed.jsonl",
+      [req("1", "2026-02-01T10:00:00.000Z"), req("2", "2026-05-10T10:00:00.000Z")].join("\n"),
+      new Date("2026-05-10T10:05:00Z").getTime(),
+    );
+    const out: string[] = [];
+    const r = await runStats(
+      { json: true, since: "30d" },
+      { fs, env: makeEnv(), clock: new FakeClock(NOW), stdout: (s) => out.push(s), stderr: () => {} },
+    );
+    expect(r.exitCode).toBe(0);
+    const j = JSON.parse(out.join("\n"));
+    expect(j.totals.totalTokens).toBe(1_000_000);
+  });
+});
+
+describe("runStats: Claude Code and Codex sections", () => {
+  const run = async (opts: Parameters<typeof runStats>[0], fs: InMemoryFs) => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const r = await runStats(opts, {
+      fs,
+      env: makeEnv(),
+      clock: new FakeClock(NOW),
+      stdout: (s) => out.push(s),
+      stderr: (s) => err.push(s),
+    });
+    return { exitCode: r.exitCode, out: out.join("\n"), err: err.join("\n"), outLines: out };
+  };
+  const withCodex = (fs: InMemoryFs = makeFs()) => {
+    addCodexRollout(fs, "cx1", [solTurn("2026-05-10T10:00:00Z")]);
+    return fs;
+  };
+  const codexOnly = () => withCodex(new InMemoryFs());
+
+  it("--html names the file by tool: stats.html for Claude Code, stats-codex.html for Codex", async () => {
+    const html = async (opts: Parameters<typeof runStats>[0], fs: InMemoryFs): Promise<string[]> => {
+      const paths: string[] = [];
+      await runStats(
+        { since: "30d", html: true, cwd: "/work/proj", ...opts },
+        { fs, env: makeEnv(), clock: new FakeClock(NOW), stdout: () => {}, stderr: () => {}, writeFile: async (p) => void paths.push(p.replace(/\\/g, "/")) },
+      );
+      return paths;
+    };
+    expect(await html({ agent: "codex" }, withCodex())).toEqual(["/work/proj/.sipcode/stats-codex.html"]);
+    expect(await html({}, codexOnly())).toEqual(["/work/proj/.sipcode/stats-codex.html"]);
+    expect(await html({}, withCodex())).toEqual(["/work/proj/.sipcode/stats.html", "/work/proj/.sipcode/stats-codex.html"]);
+    expect(await html({ agent: "claude-code" }, withCodex())).toEqual(["/work/proj/.sipcode/stats.html"]);
+  });
+
+  it("shows a Claude Code section and a Codex section, then the combined line", async () => {
+    const r = await run({ since: "30d" }, withCodex());
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toContain("── Claude Code ──");
+    expect(r.out).toContain("── Codex ──");
+    expect(r.out.indexOf("── Claude Code ──")).toBeLessThan(r.out.indexOf("── Codex ──"));
+    expect(r.out).toMatch(/Both tools: .* tokens · ~\$.* \+ ~\$/);
+    // Section headers replace the auto-detect banner.
+    expect(r.out).not.toContain("detected agent:");
+  });
+
+  it("Claude Code alone is unchanged: banner, no headers, no combined line", async () => {
+    const r = await run({ since: "30d" }, makeFs());
+    expect(r.outLines[0]).toBe("detected agent: claude-code (auto). pass --agent to override.");
+    expect(r.out).not.toContain("──");
+    expect(r.out).not.toContain("Both tools");
+  });
+
+  it("works for a Codex-only user (no ~/.claude): no E003, Codex numbers", async () => {
+    const r = await run({ since: "30d" }, codexOnly());
+    expect(r.exitCode).toBe(0);
+    expect(r.err).not.toContain("[E003]");
+    expect(r.outLines[0]).toBe("detected agent: codex (auto). pass --agent to override.");
+    expect(r.out).toContain("across 1 sessions you burned 1,100 tokens.");
+    expect(r.out).not.toContain("──");
+  });
+
+  it("Cursor + Codex without Claude Code logs shows Codex alone (terminal and JSON)", async () => {
+    const fs = codexOnly();
+    fs.mkdir("/home/u/.cursor");
+    const r = await run({ since: "30d" }, fs);
+    expect(r.exitCode).toBe(0);
+    expect(r.outLines[0]).toBe("detected agent: codex (auto). pass --agent to override.");
+    expect(r.out).toContain("across 1 sessions you burned 1,100 tokens.");
+    expect(r.out).not.toContain("──");
+    expect(r.err).not.toContain("[E009]");
+    const json = await run({ since: "30d", json: true }, fs);
+    expect(json.exitCode).toBe(0);
+    expect(JSON.parse(json.out).agent).toBe("codex");
+    expect(json.err).toBe("");
+  });
+
+  it("a Codex section's stale-price warning is about the OpenAI table", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "cx-late", [solTurn("2026-12-20T10:00:00Z")]);
+    const err: string[] = [];
+    await runStats(
+      { since: "30d" },
+      {
+        fs,
+        env: makeEnv(),
+        // Both bundled tables are >30 days old here.
+        clock: new FakeClock(new Date("2027-01-01T12:00:00Z")),
+        stdout: () => {},
+        stderr: (s) => err.push(s),
+      },
+    );
+    const text = err.join("\n");
+    expect(text).toContain("[E004]");
+    expect(text).toContain("openai's pricing");
+    expect(text).not.toContain("anthropic's pricing");
+  });
+
+  it("Cursor alone keeps its E009 (unchanged)", async () => {
+    const fs = new InMemoryFs();
+    fs.mkdir("/home/u/.cursor");
+    const r = await run({ since: "30d" }, fs);
+    expect(r.exitCode).toBe(1);
+    expect(r.err).toContain("[E009]");
+  });
+
+  it("--agent codex with no Codex logs names Codex in the empty state", async () => {
+    const r = await run({ since: "30d", agent: "codex" }, new InMemoryFs());
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toContain("no Codex sessions found yet.");
+    expect(r.out).not.toContain("Claude Code");
+  });
+
+  it("an agent with no sessions in the window prints its empty message in its section and does not fail", async () => {
+    const fs = makeFs();
+    addCodexRollout(fs, "old", [solTurn("2026-01-10T10:00:00Z")]);
+    const r = await run({ since: "30d" }, fs);
+    expect(r.exitCode).toBe(0);
+    const codexPart = r.out.slice(r.out.indexOf("── Codex ──"));
+    expect(codexPart).toContain("no sessions found in the last 30d.");
+    expect(codexPart).toContain("Codex session logs exist");
+    expect(r.out).not.toContain("Both tools");
+  });
+
+  it("JSON with both installed is the unchanged Claude Code JSON plus a stderr note", async () => {
+    const claudeOnly = await run({ since: "30d", json: true }, makeFs());
+    const both = await run({ since: "30d", json: true }, withCodex());
+    expect(both.out).toBe(claudeOnly.out);
+    expect(both.err).toMatch(/--agent codex/);
+    expect(claudeOnly.err).toBe("");
+  });
+
+  it("--agent codex --json is the Codex JSON", async () => {
+    const r = await run({ since: "30d", json: true, agent: "codex" }, withCodex());
+    const j = JSON.parse(r.out);
+    expect(j.agent).toBe("codex");
+    // Priced with the OpenAI table: its date, not the Anthropic one.
+    const { loadPricingForDate, pricingAsOf } = await import("../../src/lib/pricing/load.js");
+    const p = loadPricingForDate(NOW);
+    expect(pricingAsOf(p, "openai")).not.toBe(p.as_of);
+    expect(j.metaPricing.asOf).toBe(pricingAsOf(p, "openai"));
+    const claude = JSON.parse((await run({ since: "30d", json: true, agent: "claude-code" }, withCodex())).out);
+    expect(claude.metaPricing.asOf).toBe(p.as_of);
+    expect(j.sessionCount).toBe(1);
+    expect(j.totals.totalTokens).toBe(1100);
+  });
+
+  it("names tokens on models without a price under the cost, never as $0, and keeps JSON fields", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "cx1", [solTurn("2026-05-10T10:00:00Z"), autoReviewTurn("2026-05-10T10:05:00Z")]);
+    const r = await run({ since: "30d" }, fs);
+    const lines = r.outLines.join("\n").split("\n");
+    const cost = lines.findIndex((l) => l.startsWith("est. total cost:"));
+    expect(lines[cost]).toBe("est. total cost: $0.0030");
+    expect(lines[cost + 1]).toBe(
+      "20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.",
+    );
+    const json = await run({ since: "30d", json: true }, fs);
+    const j = JSON.parse(json.out);
+    expect(j.totals.estCostUSD).toBe(0.003);
+    expect(Object.keys(j)).toEqual(Object.keys(JSON.parse((await run({ since: "30d", json: true }, makeFs())).out)));
+    expect(json.out).not.toContain("codex-auto-review");
+  });
+
+  it("the combined line marks the part with unpriced tokens", async () => {
+    const fs = makeFs();
+    addCodexRollout(fs, "cx1", [solTurn("2026-05-10T10:00:00Z"), autoReviewTurn("2026-05-10T10:05:00Z")]);
+    const r = await run({ since: "30d" }, fs);
+    expect(r.out).toMatch(/Both tools: .* \+ ~\$0\.00 \(\+ unpriced\)$/m);
+  });
+
+  it("reports skipped compressed Codex logs as one line, apart from unreadable files", async () => {
+    const fs = codexOnly();
+    fs.writeFile(`${CODEX_SESSIONS}/2026/05/11/rollout-a.jsonl.zst`, "z", 1);
+    fs.writeFile(`${CODEX_SESSIONS}/2026/05/12/rollout-b.jsonl.zst`, "z", 1);
+    const r = await run({ since: "30d" }, fs);
+    expect(r.out).toContain(
+      "[E009] 2 compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.",
+    );
+    expect(r.out).not.toMatch(/couldn't read \d+ transcript file/);
+    expect(r.out.match(/\.jsonl\.zst/g)).toHaveLength(1);
+  });
+
+  it("--since all counts days from the earliest session, not from 1970", async () => {
+    const j = JSON.parse((await run({ since: "all", json: true }, makeFs())).out);
+    // Earliest fixture session starts 2026-05-01; the window ends after 2026-05-19.
+    expect(j.window.days).toBe(19);
+    expect(j.window.sinceIso).toBe("2026-05-01T00:00:00.000Z");
+    const t = await run({ since: "all" }, makeFs());
+    expect(t.out).toContain("trend: token spend per day (19 days)");
   });
 });
