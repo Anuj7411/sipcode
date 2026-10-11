@@ -111,14 +111,21 @@ Pure functions plus one command; each unit testable alone.
    `{ at (ms), sessionId, limitId, planType, windowMinutes, slot ("primary"|"secondary"),
    usedPercent, resetsAt (ms) }` per non-null window. Malformed lines skipped and counted.
 2. **`src/modules/limits/periods.ts`**: `buildPeriods(readings) → LimitWindow[]`. Sorts all
-   readings by time across files. Key = `limitId + windowMinutes`. A reading starts a new
-   period when its `resetsAt` differs from the current period's by more than the drift
-   tolerance (the larger of 15 minutes and 1% of the window: 15 min for 5-hour, about 1.7 h for
-   weekly, 7.2 h for 30-day), or when its `resetsAt` is more than 15 minutes later AND its
-   percent is below the running maximum (an early reset; see Amendments), or
-   when its time is past the current period's `resetsAt`. Within a period the percent is the
-   running maximum (a lower value from a concurrent session never lowers it). Period start =
-   `resetsAt − windowMinutes`.
+   readings by time across files (then reset time, then percent). Key =
+   `limitId + windowMinutes`. Stale readings are skipped, never read as a new period: one
+   logged after its own reset time (`at > resetsAt`; older Codex repeats the turn-start
+   reading on every line of a turn), and one whose `resetsAt` is more than 15 minutes earlier
+   than the open period's (a session still in its old turn after an early reset; real reset
+   times only move later). A reading starts a new period when its `resetsAt` differs from the
+   current period's by more than the drift tolerance (the larger of 15 minutes and 1% of the
+   window: 15 min for 5-hour, about 1.7 h for weekly, 7.2 h for 30-day), or when its time is
+   past the current period's `resetsAt`, or when its `resetsAt` is more than 15 minutes later
+   AND its percent is below the running maximum (an early reset; see Amendments). Within a
+   period the percent is the running maximum (a lower value from a concurrent session never
+   lowers it). Period start = max(min(`resetsAt − windowMinutes`, first reading), previous
+   period's newest reading): never after the period's first reading, and never before the
+   previous period's (same window) newest reading, so after an early reset every request
+   belongs to one period only.
 3. **`src/modules/limits/pace.ts`**: `projectRunOut(period, now) → { kind: "runs-out", at } |
    { kind: "lasts" } | { kind: "reached" } | { kind: "reset-since" } | { kind: "too-early" }`.
    Pace = percent used ÷ (newest reading time − period start). Run-out =
@@ -132,8 +139,10 @@ Pure functions plus one command; each unit testable alone.
    unattributed percent equals the observed rise exactly (floating sums, rounded only for
    display). `codex-auto-review` requests are grouped into their own line.
 5. **`src/modules/limits/shrink.ts`**: `tokensPerPercent(periods, requests) → series per
-   window per model`. Only finished periods (`resetsAt` before the newest reading) with at
-   least 20% used and at least 90% of their tokens from one model. Tokens per 1% = tokens of
+   window per model`. Only finished periods with at least 20% used and at least 90% of their
+   tokens from one model. A period is finished when it is not the last period of its window
+   (an early reset ends a period before its `resetsAt`), or when its `resetsAt` is before the
+   newest reading of any window (`asOf`). Tokens per 1% = tokens of
    requests in the period ÷ percent used. Alert rule: a comparable period whose tokens per 1%
    is at most half the median of at least two earlier comparable periods on the same model and
    window ("2x or more, against a baseline of 2+ periods"). The alert names the first such
