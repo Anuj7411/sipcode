@@ -4,6 +4,7 @@ import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
 import { callTool, listToolDefinitions, type McpToolDeps } from "../../src/mcp/server.js";
+import { runLimits } from "../../src/commands/limits.js";
 import { addShrinkScenario, addWeeklyLimitScenario } from "../integration/codex-fixtures.js";
 
 function deps(fs: InMemoryFs, now: string): McpToolDeps {
@@ -40,6 +41,19 @@ describe("get_codex_limits", () => {
     expect(j.agent).toBe("codex");
     expect(j.windows[0].usedPercent).toBe(62);
     expect(j.windows[0].label).toBe("Weekly");
+  });
+
+  it("the text is exactly what limits --json prints, with and without since", async () => {
+    const now = "2026-10-09T00:00:00.000Z";
+    for (const args of [{}, { since: "all" }]) {
+      const fs = new InMemoryFs();
+      addShrinkScenario(fs);
+      addWeeklyLimitScenario(fs);
+      const out: string[] = [];
+      const d = deps(fs, now);
+      await runLimits({ json: true, cwd: "/w", ...args }, { fs, env: d.env!, clock: d.clock!, stdout: (s) => out.push(s), stderr: () => {} });
+      expect((await call(args, fs, now)).text).toBe(out.join("\n"));
+    }
   });
 
   it("since narrows the tokens-per-1% history", async () => {

@@ -127,6 +127,29 @@ describe("pickTodayWindow", () => {
     expect(w.projection.kind).toBe("lasts");
   });
 
+  it("ties go to the shorter window, whatever the input order", () => {
+    // Both reached.
+    const reached = [reading(at, 100, T0 + 26 * DAY, { windowMinutes: 43_200 }), reading(at, 100, T0 + 6 * DAY)];
+    expect(pickTodayWindow(buildPeriods(reached), now)?.label).toBe("Weekly");
+    expect(pickTodayWindow(buildPeriods([...reached].reverse()), now)?.label).toBe("Weekly");
+    // Same percent, no run-out anywhere.
+    const lasting = [reading(at, 10, T0 + 26 * DAY, { windowMinutes: 43_200 }), reading(at, 10, T0 + 6 * DAY)];
+    expect(pickTodayWindow(buildPeriods(lasting), now)?.label).toBe("Weekly");
+    expect(pickTodayWindow(buildPeriods([...lasting].reverse()), now)?.label).toBe("Weekly");
+  });
+
+  it("an earlier run-out beats a higher percent that lasts", () => {
+    const windows = buildPeriods([
+      // Weekly, started 1 day before T0: 70% in 3 days runs out before its reset.
+      reading(at, 70, T0 + 6 * DAY),
+      // 30-day, started 25 days before T0: 75% in 27 days lasts until its reset on day 5.
+      reading(at, 75, T0 + 5 * DAY, { windowMinutes: 43_200 }),
+    ]);
+    const w = pickTodayWindow(windows, now)!;
+    expect(w.label).toBe("Weekly");
+    expect(w.projection.kind).toBe("runs-out");
+  });
+
   it("skips windows that reset since their newest reading; none left gives null", () => {
     const windows = buildPeriods([
       reading(T0 - 6 * DAY, 90, T0 + DAY),
