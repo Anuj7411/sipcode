@@ -27,7 +27,7 @@ describe("MCP server module is side-effect-free on import", () => {
       timeout: 20000,
     });
     const output = (r.stdout ?? "") + (r.stderr ?? "");
-    expect(output).toContain("TOOLS=15"); // the export is usable
+    expect(output).toContain("TOOLS=16"); // the export is usable
     expect(output).not.toContain("[sipcode-mcp] connected"); // server did NOT boot
     expect(output).not.toContain("stdin closed"); // no exit-on-EOF handler fired
     expect(r.status).toBe(0);

@@ -16,10 +16,11 @@
  *     }
  *   }
  *
- * Tools exposed: the 15 in TOOL_DEFS below (session audits and lists,
- * stats, today, forecast, drift, impact, manifest, estimate, score, proxy
- * status / install / uninstall, server info). The seven that read session
- * logs take an optional `agent` ("claude-code" | "codex").
+ * Tools exposed: the 16 in TOOL_DEFS below (session audits and lists,
+ * stats, today, forecast, drift, impact, Codex limits, manifest, estimate,
+ * score, proxy status / install / uninstall, server info). The seven that
+ * read session logs take an optional `agent` ("claude-code" | "codex");
+ * get_codex_limits reads Codex only and takes an optional `since`.
  *
  * Privacy contract: this server runs entirely on the user's machine. It
  * reads the same local files the CLI reads (Claude Code logs under
@@ -492,6 +493,21 @@ export async function toolForecastMonthlySpend(
   return commandResult(r.exitCode, c, "forecast failed");
 }
 
+/** `sipcode limits --json` as a tool: Codex usage limits from the local Codex logs. */
+export async function toolGetCodexLimits(
+  opts: { since?: string } = {},
+  deps: McpToolDeps = {},
+): Promise<CallToolResult> {
+  const { runLimits } = await import("../commands/limits.js");
+  const { fs, env, clock, cwd } = resolveDeps(deps);
+  const c = new Captured();
+  const r = await runLimits(
+    { json: true, cwd, ...(opts.since !== undefined ? { since: opts.since } : {}) },
+    { fs, env, clock, stdout: c.stdout, stderr: c.stderr },
+  );
+  return commandResult(r.exitCode, c, "limits failed");
+}
+
 async function toolGetAgentScore(cwd: string): Promise<CallToolResult> {
   const { runScoreCmd } = await import("../commands/score.js");
   const buf: string[] = [];
@@ -758,6 +774,21 @@ const TOOL_DEFS = [
     inputSchema: { type: "object", properties: { agent: AGENT_INPUT } },
     schema: z.object({ agent: z.enum(AGENT_IDS).optional() }),
   },
+  {
+    name: "get_codex_limits",
+    description:
+      "Codex usage limits from the readings Codex writes into its local logs (zero network calls). For each limit window (5-hour, weekly, 30-day): percent used, reset time, and when it runs out at the current pace; which sessions and projects used it; and how many tokens 1% of the limit bought per finished period, with a cautious possible-limit-cut flag. Returns the JSON of `sipcode limits --json`. Use when the user asks 'when will I hit my Codex limit?', 'what used up my Codex limit?' or 'did my Codex limit shrink?'. Codex only: Claude Code's logs do not record limits.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        since: {
+          type: "string",
+          description: "How far back the tokens-per-1% history goes: 7d | 30d | 90d | all | yyyy-mm-dd. Default 90d.",
+        },
+      },
+    },
+    schema: z.object({ since: z.string().min(1).optional() }),
+  },
 ] as const;
 
 // ---- Wire up the server ----
@@ -909,6 +940,15 @@ export async function callTool(
       }
       case "forecast_monthly_spend": {
         return await withTimeout(name, 10_000, toolForecastMonthlySpend(agentOpt, deps));
+      }
+      case "get_codex_limits": {
+        const since = args["since"] as string | undefined;
+        return await withTimeout(
+          name,
+          15_000,
+          toolGetCodexLimits(since !== undefined ? { since } : {}, deps),
+          "your Codex logs may be large: run `sipcode limits` in your terminal",
+        );
       }
       default:
         return fail(`Tool ${name} is registered but has no handler.`);

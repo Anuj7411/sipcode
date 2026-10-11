@@ -140,7 +140,7 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.serverVersion?.startsWith("1.")).toBe(true);
     });
 
-    it("registers exactly the fifteen documented tools", () => {
+    it("registers exactly the sixteen documented tools", () => {
       expect(result.tools).toBeDefined();
       expect(result.tools).toContain("get_sipcode_info");
       expect(result.tools).toContain("list_recent_sessions");
@@ -157,7 +157,8 @@ describe.skipIf(!HAS_BUILT_SERVER)(
       expect(result.tools).toContain("get_drift_report");
       expect(result.tools).toContain("get_today_summary");
       expect(result.tools).toContain("forecast_monthly_spend");
-      expect(result.tools).toHaveLength(15);
+      expect(result.tools).toContain("get_codex_limits");
+      expect(result.tools).toHaveLength(16);
     });
   },
 );

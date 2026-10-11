@@ -100,9 +100,9 @@ async function call(name: string, args: Record<string, unknown>, fs: InMemoryFs)
 }
 
 describe("tool definitions", () => {
-  it("the seven tools that read session logs take an optional agent; the count stays 15", () => {
+  it("the seven tools that read session logs take an optional agent; the count is 16", () => {
     const defs = listToolDefinitions();
-    expect(defs).toHaveLength(15);
+    expect(defs).toHaveLength(16);
     for (const d of defs) {
       const props = (d.inputSchema as { properties: Record<string, { enum?: string[] }> }).properties;
       if (SESSION_TOOLS.includes(d.name)) {
