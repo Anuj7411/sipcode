@@ -3,7 +3,8 @@
  *
  * Times are local. A time within a week of now shows its hour ("Tue 14 Oct
  * 14:00"); a later or earlier one shows the date only ("Sun 2 Nov"). Run-out
- * times are estimates, rounded to the nearest hour and marked "~". In the
+ * times are estimates, rounded to the nearest hour and always marked "~"
+ * ("~Sat 31 Oct" when only the date shows). In the
  * tokens-per-1% history, labels that share a date in one row also show their
  * local start time ("Jul 5 11:09"), so periods started the same day differ.
  */
@@ -47,10 +48,10 @@ export function formatWhen(ms: number, now: number): string {
   return soon(ms, now) ? `${formatDay(ms)} ${clock(new Date(ms))}` : formatDay(ms);
 }
 
-/** "Mon 13 Oct ~18:00" within a week of now, else "Mon 13 Oct". */
+/** "Mon 13 Oct ~18:00" within a week of now, else "~Mon 13 Oct". */
 export function formatApprox(ms: number, now: number): string {
   const d = roundHour(ms);
-  return soon(ms, now) ? `${formatDay(d.getTime())} ~${pad2(d.getHours())}:00` : formatDay(ms);
+  return soon(ms, now) ? `${formatDay(d.getTime())} ~${pad2(d.getHours())}:00` : `~${formatDay(d.getTime())}`;
 }
 
 /** "just now", "36m ago", "2h ago" (under 48 hours), "3d ago". */
@@ -178,10 +179,10 @@ function shortWhen(ms: number, now: number): string {
   return soon(ms, now) ? `${weekday(new Date(ms))} ${clock(new Date(ms))}` : formatDay(ms);
 }
 
-/** "Mon ~18:00" within a week of now, else "Mon 13 Oct". */
+/** "Mon ~18:00" within a week of now, else "~Mon 13 Oct". */
 function shortApprox(ms: number, now: number): string {
   const d = roundHour(ms);
-  return soon(ms, now) ? `${weekday(d)} ~${pad2(d.getHours())}:00` : formatDay(ms);
+  return soon(ms, now) ? `${weekday(d)} ~${pad2(d.getHours())}:00` : `~${formatDay(d.getTime())}`;
 }
 
 /** The one line `today` adds for the Codex limit closest to running out. */

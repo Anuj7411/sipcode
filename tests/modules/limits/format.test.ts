@@ -66,7 +66,9 @@ describe("helpers", () => {
   it("formatApprox rounds to the nearest hour", () => {
     expect(formatApprox(iso("2026-10-13T17:50:00.000Z"), NOW.getTime())).toBe("Tue 13 Oct ~18:00");
     expect(formatApprox(iso("2026-10-13T17:29:00.000Z"), NOW.getTime())).toBe("Tue 13 Oct ~17:00");
-    expect(formatApprox(iso("2026-10-31T17:29:00.000Z"), NOW.getTime())).toBe("Sat 31 Oct");
+    expect(formatApprox(iso("2026-10-31T17:29:00.000Z"), NOW.getTime())).toBe("~Sat 31 Oct");
+    // Rounded to the hour before the date is taken.
+    expect(formatApprox(iso("2026-10-31T23:40:00.000Z"), NOW.getTime())).toBe("~Sun 1 Nov");
   });
 
   it("formatAgo", () => {
@@ -269,6 +271,16 @@ describe("formatTodayLimitLine", () => {
         projection: { kind: "lasts" },
       }),
     ).toBe("Codex 30-day limit: 41% used, resets Mon 2 Nov. At this pace it lasts until the reset.");
+  });
+
+  it("a run-out more than a week away is a date marked approximate", () => {
+    expect(
+      line({
+        label: "30-day",
+        period: period({ usedPercent: 41, resetsAt: iso("2026-11-08T00:00:00.000Z") }),
+        projection: { kind: "runs-out", at: iso("2026-10-31T23:40:00.000Z") },
+      }),
+    ).toBe("Codex 30-day limit: 41% used, resets Sun 8 Nov. At this pace you run out ~Sun 1 Nov.");
   });
 
   it("a limit id other than codex is named", () => {
