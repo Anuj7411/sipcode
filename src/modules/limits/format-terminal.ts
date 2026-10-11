@@ -3,7 +3,9 @@
  *
  * Times are local. A time within a week of now shows its hour ("Tue 14 Oct
  * 14:00"); a later or earlier one shows the date only ("Sun 2 Nov"). Run-out
- * times are estimates, rounded to the nearest hour and marked "~".
+ * times are estimates, rounded to the nearest hour and marked "~". In the
+ * tokens-per-1% history, labels that share a date in one row also show their
+ * local start time ("Jul 5 11:09"), so periods started the same day differ.
  */
 import { shortSessionId } from "../../lib/session-id.js";
 import { AUTO_REVIEW_MODEL } from "./attribute.js";
@@ -130,8 +132,14 @@ function shrinkSection(w: WindowReport): string[] {
     if (points.length < 2) continue;
     out.push("", `Tokens per 1% of your ${lower(w.label)} limit (${model})`);
     for (let i = 0; i < points.length; i += 6) {
-      const row = points.slice(i, i + 6).map((p) => `${formatMonthDay(p.periodStart)}: ${formatTokensCompact(p.tokensPerPercent)}`);
-      out.push(`  ${row.join("   ")}`);
+      const row = points.slice(i, i + 6);
+      const days = row.map((p) => formatMonthDay(p.periodStart));
+      const labels = row.map((p, j) => {
+        const shared = days.filter((d) => d === days[j]).length > 1;
+        const name = shared ? `${days[j]} ${clock(new Date(p.periodStart))}` : days[j];
+        return `${name}: ${formatTokensCompact(p.tokensPerPercent)}`;
+      });
+      out.push(`  ${labels.join("   ")}`);
     }
     const cut = w.shrink.possibleCut;
     if (cut && cut.model === model) {

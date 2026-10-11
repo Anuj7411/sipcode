@@ -153,6 +153,34 @@ describe("formatLimitsTerminal", () => {
     );
   });
 
+  it("labels that share a date in one row of tokens per 1% also show their local start time", () => {
+    const report: LimitsReport = {
+      planType: "go",
+      asOf: NOW.getTime() - 2 * H,
+      windows: [
+        win({
+          label: "30-day",
+          windowMinutes: 43200,
+          period: period({ windowMinutes: 43200, usedPercent: 41, resetsAt: iso("2026-11-02T00:00:00.000Z") }),
+          projection: { kind: "lasts" },
+          shrink: {
+            points: [
+              { model: "gpt-5.5", periodStart: iso("2026-06-22T12:21:23.000Z"), tokensPerPercent: 31_597 },
+              { model: "gpt-5.5", periodStart: iso("2026-07-05T11:09:32.000Z"), tokensPerPercent: 46_343 },
+              { model: "gpt-5.5", periodStart: iso("2026-07-05T12:25:52.000Z"), tokensPerPercent: 50_824 },
+              { model: "gpt-5.5", periodStart: iso("2026-07-05T14:35:39.011Z"), tokensPerPercent: 38_518 },
+            ],
+            possibleCut: null,
+          },
+        }),
+      ],
+    };
+    expect(formatLimitsTerminal(report, NOW).split("\n").slice(-2)).toEqual([
+      "Tokens per 1% of your 30-day limit (gpt-5.5)",
+      "  Jun 22: 32K   Jul 5 11:09: 46K   Jul 5 12:25: 51K   Jul 5 14:35: 39K",
+    ]);
+  });
+
   it("reached, too-early and reset-since rows; no plan, no sections", () => {
     const report: LimitsReport = {
       planType: null,
