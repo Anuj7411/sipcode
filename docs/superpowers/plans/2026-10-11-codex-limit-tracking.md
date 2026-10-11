@@ -18,8 +18,8 @@ The spec is followed exactly except where it is silent, or where the maintainer'
 
 1. **Early reset starts a new period (addition to the period rule).** On the real 30-day window the limit reached 100% and then read 5% with a reset time 76 minutes later, and again 129 minutes later. The spec read those shifts as "drift of about 72 minutes", but they are resets: inside the 7.2-hour tolerance they would merge three fills into one period at 100% (tokens per 1% about 3x too high). True drift between readings was at most 66 seconds. Rule added: a reading whose reset time is more than 15 minutes later than the period's **and** whose percent is below the period's running maximum starts a new period. The spec's tolerance (max(15 min, 1% of the window)) and its other two rules are kept unchanged. Result on real data: 5 periods on the 30-day window (not 3), 3 on the weekly window.
 2. **A rise is shared by the requests since the previous rise (not the previous reading).** Older Codex versions refresh the limit only when a turn starts, so the rise shows on the first reading of the next turn, after the requests that caused it. With the spec's "between two consecutive readings" interval, 100% of the real weekly usage (Mar to Apr) came out "unattributed (no Codex requests on this computer)", which is false. With "since the previous rise": 60/60, 100/100 and 89/92 attributed; the 30-day periods are unchanged. It is also more correct for current Codex, where several small requests add up to one 1% step. Attributed + unattributed still equals the percent exactly.
-3. **"Finished" = reset time before the newest reading of any window** (`asOf`). The real Apr 13 weekly period has no later weekly reading (the plan moved to a 30-day window), so a per-window "newest reading" would never finish it and the spec's own Apr 13 alert could not fire.
-4. **Cut factor = baseline median ÷ the flagged period's tokens per 1%**, to one decimal (the quantity the 2x rule tests). Real data: 390,761 ÷ 77,401 = **5.0x** (the spec's 4.5x example used rounded illustrative numbers).
+3. **"Finished" = reset time before the newest reading of any window** (`asOf`), **or a later period of the same window exists** (a period ended by an early reset keeps a reset time after every reading). The real Apr 13 weekly period has no later weekly reading (the plan moved to a 30-day window), so a per-window "newest reading" would never finish it and the spec's own Apr 13 alert could not fire.
+4. **Cut factor = baseline median ÷ the flagged period's tokens per 1%**, to one decimal (the quantity the 2x rule tests). Real data: 391,022 ÷ 77,401 = 5.05, shown as **5.1x** (public copy says "about 5x": 5.05 sits on a rounding boundary) (the spec's 4.5x example used rounded illustrative numbers).
 5. **Observed rise of a period = its percent** (the period start counts as 0%), so "what used it" plus "unattributed" adds up to the percent shown.
 6. **Tokens of a period** = requests in (period start, newest reading]; requests before the start or after the newest reading belong to no rise.
 7. **JSON:** the spec's shape plus one field, `periodCount`, because the independent checker must compare the number of periods (spec "Testing and proof" item 3) and imports nothing from Sipcode. `usedBy` lists every session of the newest period (percent may be 0), then codex-auto-review as `{ "sessionId": "codex-auto-review", "project": null, ... }` when it used any of the limit. `possibleCut.at` is the flagged period's start date (UTC). No readings: `{ "agent": "codex", "planType": null, "asOf": null, "windows": [] }`, exit 0 (the terminal prints the spec's message instead).
@@ -2594,7 +2594,7 @@ describe("sipcode limits: anonymised real rollout (tests/fixtures/codex/compacte
       label: "Weekly",
       usedPercent: 92,
       resetsAt: "2026-01-14T14:44:07.000Z",
-      projection: { kind: "runs-out", at: "2026-01-09T21:47:53.272Z" },
+      projection: { kind: "runs-out", at: "2026-01-09T21:47:55.067Z" },
       periodCount: 2,
       tokensPerPercent: [{ model: "gpt-5.4", periodStart: "2025-12-26T17:17:46.000Z", tokensPerPercent: 111_071 }],
       possibleCut: null,
@@ -3400,16 +3400,20 @@ In the header comment, replace the line `// - Days: today = local calendar day; 
 // - Days: today = local calendar day; stats/trend/baseline buckets = UTC days.
 // - Codex limits (`limits --json --since all`): a reading is payload.rate_limits
 //   on an event_msg / token_count line, one per non-null window (resets_at in
-//   epoch seconds). Readings sorted by time, reset time, percent. Window =
-//   limit_id + window_minutes. A new period starts when the reset time moves
-//   by more than max(15 min, 1% of the window), when the reading is past the
-//   period's reset time, or when the reset time moves more than 15 min later
-//   while the percent is below the period's running maximum. Period start =
-//   the newest reset time minus the window. A rise of the running maximum is
-//   shared by the requests since the previous rise, by tokens; with none it
-//   is unattributed. Tokens per 1%: finished periods (reset before the newest
-//   reading), 20% or more used, 90% or more of tokens from one model; a cut is
-//   the first period at or below half the median of 2+ earlier ones (same model).
+//   epoch seconds; above 1e12 already ms). Readings sorted by time, reset time,
+//   percent. Window = limit_id + window_minutes. Stale readings are skipped:
+//   one logged after its own reset time, and one whose reset time is more than
+//   15 min earlier than the open period's. A new period starts when the reset
+//   time moves by more than max(15 min, 1% of the window), when the reading is
+//   past the period's reset time, or when the reset time moves more than 15 min
+//   later while the percent is below the period's running maximum. Period
+//   start = min(newest reset time minus the window, first reading), but never
+//   before the previous period's newest reading. A rise of the running maximum
+//   is shared by the requests since the previous rise, by tokens; with none it
+//   is unattributed. Tokens per 1%: finished periods (not the window's last, or
+//   reset before the newest reading), 20% or more used, 90% or more of tokens
+//   from one model; a cut is the first period at or below half the median of
+//   2+ earlier ones (same model).
 ```
 
 - [ ] **Step 2: Share the rollout walk**
@@ -3518,7 +3522,7 @@ function limitReadings() {
           plan: (typeof rl.plan_type === "string" && rl.plan_type) || null,
           wm: w.window_minutes,
           pct: w.used_percent,
-          resetsAt: w.resets_at * 1000,
+          resetsAt: w.resets_at > 1e12 ? w.resets_at : w.resets_at * 1000,
         });
       }
     }
@@ -3531,10 +3535,12 @@ function limitReadings() {
 function limitWindows(readings) {
   const windows = new Map();
   for (const r of readings) {
+    if (r.at > r.resetsAt) continue; // stale: logged after its own reset time
     const key = `${r.limitId}|${r.wm}`;
     let w = windows.get(key);
     if (!w) windows.set(key, (w = { limitId: r.limitId, wm: r.wm, periods: [] }));
     const cur = w.periods.at(-1);
+    if (cur && cur.resetsAt - r.resetsAt > 15 * MIN) continue; // stale: an earlier reset time than the open period's
     const shift = cur ? r.resetsAt - cur.resetsAt : 0;
     if (
       !cur ||
@@ -3542,7 +3548,7 @@ function limitWindows(readings) {
       r.at > cur.resetsAt ||
       (shift > 15 * MIN && r.pct < cur.max)
     ) {
-      w.periods.push({ resetsAt: r.resetsAt, max: r.pct, newest: r.at, rises: r.pct > 0 ? [{ at: r.at, rise: r.pct }] : [] });
+      w.periods.push({ resetsAt: r.resetsAt, max: r.pct, first: r.at, newest: r.at, rises: r.pct > 0 ? [{ at: r.at, rise: r.pct }] : [] });
       continue;
     }
     if (r.pct > cur.max) {
@@ -3552,7 +3558,10 @@ function limitWindows(readings) {
     cur.resetsAt = r.resetsAt;
     cur.newest = r.at;
   }
-  for (const w of windows.values()) for (const p of w.periods) p.start = p.resetsAt - w.wm * MIN;
+  for (const w of windows.values())
+    w.periods.forEach((p, i) => {
+      p.start = Math.max(Math.min(p.resetsAt - w.wm * MIN, p.first), i > 0 ? w.periods[i - 1].newest : -Infinity);
+    });
   return windows;
 }
 
@@ -3589,8 +3598,9 @@ function attributeLimit(p, requests) {
 /** Comparable periods (tokens per 1%) and the first possible cut. */
 function shrinkLimit(w, requests, asOf) {
   const points = [];
+  const last = w.periods.at(-1);
   for (const p of w.periods) {
-    if (!(p.resetsAt < asOf) || p.max < 20) continue;
+    if (!(p !== last || p.resetsAt < asOf) || p.max < 20) continue;
     const rs = inPeriod(p, requests);
     const total = rs.reduce((a, r) => a + r.tokens, 0);
     const byModel = new Map();
@@ -3709,7 +3719,7 @@ SIPCODE_PROJECTS_DIR="$SCRATCH/empty-claude" CODEX_HOME="$(cygpath -m "$HOME/.co
 grep -E "limits|all checks match|mismatch" "$SCRATCH/verify-limits.txt"
 ```
 
-Expected (maintainer's machine): exit 0, `all checks match`, and for each pass `1146 readings, 0 unreadable`, `codex 10080-minute window periods: independent 3, sipcode 3`, `codex 43200-minute window periods: independent 5, sipcode 5`, `codex 10080-minute window possible cut: independent {"at":"2026-04-13","factor":5}, sipcode {"at":"2026-04-13","factor":5}`, `periods compared with mixed models: independent 0, sipcode 0`.
+Expected (maintainer's machine): exit 0, `all checks match`, and for each pass `1146 readings, 0 unreadable`, `codex 10080-minute window periods: independent 3, sipcode 3`, `codex 43200-minute window periods: independent 5, sipcode 5`, `codex 10080-minute window possible cut: independent {"at":"2026-04-13","factor":5.1}, sipcode {"at":"2026-04-13","factor":5.1}`, `periods compared with mixed models: independent 0, sipcode 0`.
 
 - [ ] **Step 6: Prove the check catches a wrong period rule**
 
@@ -3934,8 +3944,8 @@ node -e 'const j=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
 ```
 
 Expected on the maintainer's logs:
-- Terminal: under `Tokens per 1% of your weekly limit (gpt-5.4)`: `Mar 28: 425K   Apr 1: 357K   Apr 13: 77K` and `Possible limit cut around Apr 13: 5.0x fewer tokens per 1%.` plus the two caveat lines. The weekly row reads `reset since your last Codex request (at Mon 20 Apr)`.
-- JSON summary: `Weekly 3 {"at":"2026-04-13","factor":5} gpt-5.4@2026-03-28=424592 gpt-5.4@2026-04-01=356929 gpt-5.4@2026-04-13=77401` and `30-day 5 null gpt-5.5@2026-06-22=31597 gpt-5.5@2026-07-05=46343 gpt-5.5@2026-07-05=50824 gpt-5.5@2026-07-05=38518`.
+- Terminal: under `Tokens per 1% of your weekly limit (gpt-5.4)`: `Mar 28: 425K   Apr 1: 357K   Apr 13: 77K` and `Possible limit cut around Apr 13: 5.1x fewer tokens per 1%.` plus the two caveat lines. The weekly row reads `reset since your last Codex request (at Mon 20 Apr)`.
+- JSON summary: `Weekly 3 {"at":"2026-04-13","factor":5.1} gpt-5.4@2026-03-28=424592 gpt-5.4@2026-04-01=357451 gpt-5.4@2026-04-13=77401` and `30-day 5 null gpt-5.5@2026-06-22=31597 gpt-5.5@2026-07-05=46343 gpt-5.5@2026-07-05=50824 gpt-5.5@2026-07-05=38518`.
 - Mixed models are never compared: the current 30-day period (95.5% gpt-5.6-terra, not finished) is absent, every listed period has one model, and verify-counts printed `periods compared with mixed models: independent 0, sipcode 0`.
 
 - [ ] **Step 5: `today` byte-identical without Codex limit data, against main's build**

@@ -57,7 +57,7 @@ What used your weekly limit (since Tue 7 Oct)
 
 Tokens per 1% of your weekly limit (gpt-5.4)
   Mar 28: 425K   Apr 1: 357K   Apr 13: 80K
-  Possible limit cut around Apr 13: 5.0x fewer tokens per 1%.
+  Possible limit cut around Apr 13: 4.9x fewer tokens per 1%.
   Limits cover your whole account. Codex use on other devices or in the cloud
   is not in these logs and can look like a cut.
 ```
@@ -209,8 +209,10 @@ usage cache are reused unchanged.
    requests that caused it. Under the original rule all real weekly usage showed as
    unattributed; with this rule 60 of 60%, 100 of 100% and 89 of 92% are attributed.
 3. **Finished period:** its `resetsAt` is before the newest reading of any window (otherwise
-   the last weekly period, Apr 13, could never be compared).
-4. **Cut factor** = baseline median ÷ the flagged period's tokens per 1% (5.0x on real data).
+   the last weekly period, Apr 13, could never be compared), or a later period of the same
+   window exists (a period ended by an early reset keeps a reset time after every reading).
+4. **Cut factor** = baseline median ÷ the flagged period's tokens per 1% (about 5x on real data;
+   the JSON keeps the computed factor, to one decimal).
 5. **JSON** adds `periodCount` per window (needed by the independent check);
    `codex-auto-review` appears in `usedBy` as `sessionId: "codex-auto-review"`; with no
    readings `--json` prints `windows: []`, exit 0.
