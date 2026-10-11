@@ -181,6 +181,44 @@ describe("formatLimitsTerminal", () => {
     ]);
   });
 
+  it("a limit id other than codex is named, so two windows of one length differ", () => {
+    const premium = period({ limitId: "premium", usedPercent: 30, startedAt: iso("2026-10-08T00:00:00.000Z") });
+    const report: LimitsReport = {
+      planType: "go",
+      asOf: NOW.getTime() - 2 * H,
+      windows: [
+        win({ projection: { kind: "lasts" } }),
+        win({
+          limitId: "premium",
+          period: premium,
+          projection: { kind: "lasts" },
+          usedBy: [{ sessionId: "0199a1b2-c3d4-7a11-8000-00000000000a", project: "sipcode", percent: 30, tokens: 900_000 }],
+          shrink: {
+            points: [
+              { model: "gpt-5.4", periodStart: iso("2026-09-01T00:00:00.000Z"), tokensPerPercent: 40_000 },
+              { model: "gpt-5.4", periodStart: iso("2026-09-08T00:00:00.000Z"), tokensPerPercent: 42_000 },
+            ],
+            possibleCut: null,
+          },
+        }),
+      ],
+    };
+    expect(formatLimitsTerminal(report, NOW)).toBe(
+      [
+        "sipcode limits · Codex · plan: go · as of 2h ago (your last Codex request)",
+        "",
+        "Weekly limit            62% used   resets Wed 14 Oct 14:00   at this pace: lasts until reset",
+        "Weekly limit (premium)  30% used   resets Wed 14 Oct 14:00   at this pace: lasts until reset",
+        "",
+        "What used your weekly limit (premium) (since Thu 8 Oct)",
+        "  0199a1b2-c3d4-7a11   sipcode       30%   900K tokens",
+        "",
+        "Tokens per 1% of your weekly limit (premium) (gpt-5.4)",
+        "  Sep 1: 40K   Sep 8: 42K",
+      ].join("\n"),
+    );
+  });
+
   it("reached, too-early and reset-since rows; no plan, no sections", () => {
     const report: LimitsReport = {
       planType: null,
@@ -231,6 +269,12 @@ describe("formatTodayLimitLine", () => {
         projection: { kind: "lasts" },
       }),
     ).toBe("Codex 30-day limit: 41% used, resets Mon 2 Nov. At this pace it lasts until the reset.");
+  });
+
+  it("a limit id other than codex is named", () => {
+    expect(line({ period: period({ limitId: "premium" }) })).toBe(
+      "Codex weekly limit (premium): 62% used, resets Wed 14:00. At this pace you run out Tue ~18:00.",
+    );
   });
 
   it("reached and too early", () => {

@@ -76,6 +76,11 @@ export function formatTokensCompact(n: number): string {
 
 const lower = (label: string): string => label.toLowerCase();
 
+/** "Weekly limit"; a limit id other than "codex" is named: "Weekly limit (premium)". */
+function limitName(label: string, limitId: string): string {
+  return limitId === "codex" ? `${label} limit` : `${label} limit (${limitId})`;
+}
+
 function fit(s: string, width: number): string {
   return (s.length > width ? `${s.slice(0, width - 1)}…` : s).padEnd(width);
 }
@@ -86,8 +91,9 @@ function useLine(left: string, percent: number, tokens?: number): string {
   return `  ${left.padEnd(34)} ${formatPercent(percent).padStart(3)}${t}`;
 }
 
-function windowRow(w: WindowReport, now: number): string {
-  const name = `${w.label} limit`.padEnd(16);
+/** The name column is 16 wide, or wider so a long name still lines up. */
+function windowRow(w: WindowReport, now: number, nameWidth: number): string {
+  const name = limitName(w.label, w.limitId).padEnd(nameWidth);
   const used = `${Math.round(w.period.usedPercent)}% used`.padEnd(11);
   const resets = formatWhen(w.period.resetsAt, now);
   const p = w.projection;
@@ -120,7 +126,7 @@ function usedBySection(w: WindowReport): string[] {
     lines.push(useLine("unattributed (no Codex requests on this computer)", w.unattributedPercent));
   }
   if (lines.length === 0) return [];
-  return ["", `What used your ${lower(w.label)} limit (since ${formatDay(w.period.startedAt)})`, ...lines];
+  return ["", `What used your ${limitName(lower(w.label), w.limitId)} (since ${formatDay(w.period.startedAt)})`, ...lines];
 }
 
 /** One block per model with two or more comparable periods; the alert under the flagged model. */
@@ -130,7 +136,7 @@ function shrinkSection(w: WindowReport): string[] {
   for (const model of models) {
     const points = w.shrink.points.filter((p) => p.model === model);
     if (points.length < 2) continue;
-    out.push("", `Tokens per 1% of your ${lower(w.label)} limit (${model})`);
+    out.push("", `Tokens per 1% of your ${limitName(lower(w.label), w.limitId)} (${model})`);
     for (let i = 0; i < points.length; i += 6) {
       const row = points.slice(i, i + 6);
       const days = row.map((p) => formatMonthDay(p.periodStart));
@@ -161,7 +167,8 @@ export function formatLimitsTerminal(report: LimitsReport, now: Date): string {
     ...(report.planType ? [`plan: ${report.planType}`] : []),
     `as of ${formatAgo(report.asOf, n)} (your last Codex request)`,
   ].join(" · ");
-  const lines = [head, "", ...report.windows.map((w) => windowRow(w, n))];
+  const nameWidth = Math.max(16, ...report.windows.map((w) => limitName(w.label, w.limitId).length + 2));
+  const lines = [head, "", ...report.windows.map((w) => windowRow(w, n, nameWidth))];
   for (const w of report.windows) lines.push(...usedBySection(w), ...shrinkSection(w));
   return lines.join("\n");
 }
@@ -180,7 +187,7 @@ function shortApprox(ms: number, now: number): string {
 /** The one line `today` adds for the Codex limit closest to running out. */
 export function formatTodayLimitLine(w: TodayWindow, now: Date): string {
   const n = now.getTime();
-  const name = `Codex ${lower(w.label)} limit`;
+  const name = `Codex ${limitName(lower(w.label), w.period.limitId)}`;
   const resets = shortWhen(w.period.resetsAt, n);
   const used = `${Math.round(w.period.usedPercent)}% used`;
   const p = w.projection;

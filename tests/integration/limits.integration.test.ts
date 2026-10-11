@@ -290,10 +290,11 @@ describe("sipcode limits: anonymised real rollout (tests/fixtures/codex/compacte
 
   it("terminal", async () => {
     const r = await run({ since: "all" }, fixtureFs(), FIXTURE_NOW);
+    // The anonymised fixture's limit id is "x", so the window is named after it.
     expect(r.out.split("\n").slice(0, 3)).toEqual([
       "sipcode limits · Codex · plan: x · as of 36m ago (your last Codex request)",
       "",
-      "Weekly limit    92% used   resets Wed 14 Jan 14:44   at this pace: runs out Fri 9 Jan ~22:00",
+      "Weekly limit (x)  92% used   resets Wed 14 Jan 14:44   at this pace: runs out Fri 9 Jan ~22:00",
     ]);
     expect(r.out).toContain("  019b0004-0001-7000   fixture       89%   7.1M tokens");
     expect(r.out).toContain("  unattributed (no Codex requests on this computer)  3%");
