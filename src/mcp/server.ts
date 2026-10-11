@@ -184,7 +184,6 @@ export async function toolVerifySipcodeImpact(
 ): Promise<CallToolResult> {
   const { runImpactCommand } = await import("../commands/impact.js");
   const d = resolveDeps(deps);
-  const { existsSync, readdirSync } = await import("node:fs");
   const { join } = await import("node:path");
 
   // Claude Desktop spawns sipcode-mcp with a cwd that is NOT the user's
@@ -193,16 +192,17 @@ export async function toolVerifySipcodeImpact(
   // .sipcode/install-state.json. Walk known locations in order so the
   // tool works without the caller having to know the right path.
   const triedPaths: string[] = [];
-  function hasMarker(p: string): boolean {
+  // Disk access goes through the injected fs (tests never touch the real disk).
+  async function hasMarker(p: string): Promise<boolean> {
     triedPaths.push(p);
-    return existsSync(join(p, ".sipcode", "install-state.json"));
+    return d.fs.exists(join(p, ".sipcode", "install-state.json"));
   }
 
   let resolvedCwd: string | undefined = opts.cwd;
   if (!resolvedCwd) {
     // 1. process.cwd() — the legacy default; still try it first.
     const here = d.cwd;
-    if (hasMarker(here)) {
+    if (await hasMarker(here)) {
       resolvedCwd = here;
     } else {
       // 2. Walk ~/.claude/projects/* — these are projects where Claude Code
@@ -211,10 +211,10 @@ export async function toolVerifySipcodeImpact(
       //    decoded path that contains an install-state.json. Claude only
       //    sees one MCP server, but it's reasonable to scan all projects.
       const projectsDir = join(d.env.homeDir(), ".claude", "projects");
-      if (existsSync(projectsDir)) {
+      if (await d.fs.exists(projectsDir)) {
         let entries: string[] = [];
         try {
-          entries = readdirSync(projectsDir);
+          entries = (await d.fs.readDir(projectsDir)).map((e) => e.name);
         } catch {
           /* unreadable — skip */
         }
@@ -226,7 +226,7 @@ export async function toolVerifySipcodeImpact(
             process.platform === "win32"
               ? entry.replace(/^([A-Za-z])--/, "$1:\\").replace(/-/g, "\\")
               : "/" + entry.replace(/-/g, "/");
-          if (hasMarker(decoded)) {
+          if (await hasMarker(decoded)) {
             resolvedCwd = decoded;
             break;
           }

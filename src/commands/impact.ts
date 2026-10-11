@@ -133,7 +133,7 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
     stderr(`Invalid --since "${opts.since}". Expected YYYY-MM-DD.`);
     return o.result(1);
   }
-  const installState = await readInstallState(cwd);
+  const installState = await readInstallState(cwd, fileSys);
   const stateMarker = pickMarker(installState);
   const installedAtIso = sinceIso ?? stateMarker?.iso ?? null;
   const markerSource: ImpactReport["markerSource"] = sinceIso
