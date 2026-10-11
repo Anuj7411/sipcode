@@ -9,6 +9,8 @@
  * writes them; they are not errors). A line that does not parse, a reading
  * without a timestamp, or a window with a missing or invalid number is
  * skipped and counted in `malformed`. Unknown fields are ignored.
+ * A resets_at above 1e12 is already in milliseconds (epoch seconds stay
+ * below that until the year 33658) and is taken as is.
  */
 export type LimitSlot = "primary" | "secondary";
 
@@ -34,6 +36,9 @@ export interface RateLimitScan {
 }
 
 const SLOTS: readonly LimitSlot[] = ["primary", "secondary"];
+
+/** Above this a resets_at is epoch milliseconds, not seconds. */
+const MS_THRESHOLD = 1e12;
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -83,7 +88,7 @@ export function scanCodexRateLimits(content: string, meta: { readonly sessionId:
         windowMinutes: minutes,
         slot,
         usedPercent: used,
-        resetsAt: resets * 1000,
+        resetsAt: resets > MS_THRESHOLD ? resets : resets * 1000,
       });
     }
   }

@@ -92,6 +92,16 @@ describe("scanCodexRateLimits", () => {
     expect(scanCodexRateLimits(content, { sessionId: "s1" })).toEqual({ readings: [], malformed: 0 });
   });
 
+  it("accepts a resets_at already in milliseconds without multiplying it again", () => {
+    const resetsMs = Date.parse("2026-10-14T08:30:00.000Z");
+    const r = scanCodexRateLimits(
+      tokenCount(T, { primary: { used_percent: 7, window_minutes: 10080, resets_at: resetsMs } }),
+      { sessionId: "s1" },
+    );
+    expect(r.malformed).toBe(0);
+    expect(r.readings[0]?.resetsAt).toBe(resetsMs);
+  });
+
   it("defaults the limit id to codex and leaves a missing plan type undefined", () => {
     const r = scanCodexRateLimits(tokenCount(T, { primary: win(7, 10080, "2026-10-14T08:30:00.000Z") }), {
       sessionId: "s1",
