@@ -146,7 +146,7 @@ describe("sipcode limits: one weekly period", () => {
       [
         "sipcode limits · Codex · plan: plus · as of 2h ago (your last Codex request)",
         "",
-        "Weekly limit    62% used   resets Wed 14 Oct 08:30   at this pace: runs out Sat 10 Oct ~13:00",
+        "Weekly limit    62% used   resets Wed 14 Oct 08:30   at this pace: runs out Sat 10 Oct ~16:00",
         "",
         "What used your weekly limit (since Wed 7 Oct)",
         "  0199a1b2-c3d4-7a11   sipcode       30%   3.1M tokens",
@@ -189,7 +189,7 @@ describe("sipcode limits: one weekly period", () => {
       periodCount: 1,
     });
     expect(w.projection.kind).toBe("runs-out");
-    expect(Math.abs(Date.parse(w.projection.at) - Date.parse("2026-10-10T13:06:46.451Z"))).toBeLessThan(1000);
+    expect(Math.abs(Date.parse(w.projection.at) - Date.parse("2026-10-10T16:20:19.355Z"))).toBeLessThan(1000);
     expect(w.usedBy.map((u: { sessionId: string; project: string | null; tokens: number }) => [u.sessionId, u.project, u.tokens])).toEqual([
       [LIMITS_SESSION_A, "sipcode", 3_100_000],
       [LIMITS_SESSION_B, "my-app", 3_100_000],
@@ -296,7 +296,7 @@ describe("sipcode limits: anonymised real rollout (tests/fixtures/codex/compacte
       label: "Weekly",
       usedPercent: 92,
       resetsAt: "2026-01-14T14:44:07.000Z",
-      projection: { kind: "runs-out", at: "2026-01-09T21:47:55.067Z" },
+      projection: { kind: "runs-out", at: "2026-01-09T22:27:29.881Z" },
       periodCount: 2,
       tokensPerPercent: [{ model: "gpt-5.4", periodStart: "2025-12-26T17:17:46.000Z", tokensPerPercent: 111_071 }],
       possibleCut: null,

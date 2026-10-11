@@ -11,7 +11,7 @@ import { FakeProcessEnv } from "../../src/lib/process.js";
 import { addWeeklyLimitScenario } from "./codex-fixtures.js";
 
 const NOW = new Date("2026-10-09T10:00:00.000Z");
-const LINE = "Codex weekly limit: 62% used, resets Wed 08:30. At this pace you run out Sat ~13:00.";
+const LINE = "Codex weekly limit: 62% used, resets Wed 08:30. At this pace you run out Sat ~16:00.";
 
 let savedTz: string | undefined;
 beforeAll(() => {

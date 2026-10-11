@@ -98,7 +98,8 @@ New tool `get_codex_limits` (optional `since`), returning the same JSON as
   after each request).` exit 0.
 - Newest reading's `resets_at` already passed: the window shows `reset since your last Codex
   request (at <time>)` instead of a stale percentage, and no run-out estimate.
-- Period started less than 1 hour before the newest reading: `not enough data yet for a pace`.
+- Less than 1 hour from the period start to now (or to the newest reading, if later): `not enough
+  data yet for a pace`.
 - At 100%: `limit reached, resets <time>`.
 - `rate_limits` null or a window null: skipped, never an error.
 
@@ -128,8 +129,10 @@ Pure functions plus one command; each unit testable alone.
    belongs to one period only.
 3. **`src/modules/limits/pace.ts`**: `projectRunOut(period, now) → { kind: "runs-out", at } |
    { kind: "lasts" } | { kind: "reached" } | { kind: "reset-since" } | { kind: "too-early" }`.
-   Pace = percent used ÷ (newest reading time − period start). Run-out =
-   newest reading time + (100 − percent) ÷ pace; "lasts" when that is after `resetsAt`.
+   The percent is as of the newest reading, but the period has run until now: latest =
+   max(now, newest reading time); pace = percent used ÷ (latest − period start); too early when
+   that elapsed time is under 1 hour. Run-out = latest + (100 − percent) ÷ pace; "lasts" when
+   that is after `resetsAt`. "reached" and "reset-since" are unchanged (Amendment 7).
 4. **`src/modules/limits/attribute.ts`**: `attribute(period, readings, requests) →
    { sessionId, project, percent, tokens }[]`. Requests come from the existing Codex loader
    (deduped turns with timestamps, session id, model). Each rise in the running maximum is
@@ -228,6 +231,11 @@ usage cache are reused unchanged.
    readings `--json` prints `windows: []`, exit 0.
 6. **today line** goes in the Codex section; "closest to running out" = a reached limit first,
    then the earliest run-out time, else the highest percent; ties go to the shorter window.
+7. **Pace counts elapsed time to now**, not to the newest reading: latest = max(now, newest
+   reading); pace = percent ÷ (latest − period start), too early only when that is under 1 hour;
+   run-out = latest + (100 − percent) ÷ pace. On the real logs the 30-day period started 16
+   minutes before its newest reading, which was 3 days old: the old rule said "not enough data
+   yet for a pace" at 50% used.
 
 The implementation plan (docs/superpowers/plans/2026-10-11-codex-limit-tracking.md) has the
 exact rules.

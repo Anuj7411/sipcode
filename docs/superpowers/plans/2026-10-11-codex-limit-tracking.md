@@ -619,7 +619,28 @@ function period(usedPercent: number, newestAt: number, extra: Partial<LimitPerio
 describe("projectRunOut", () => {
   it("runs out before the reset at the current pace", () => {
     // 40% in 2 days = 20%/day; 60% left takes 3 more days: day 5, before the day-7 reset.
-    expect(projectRunOut(period(40, START + 2 * DAY), new Date(START + 2 * DAY + H))).toEqual({
+    expect(projectRunOut(period(40, START + 2 * DAY), new Date(START + 2 * DAY))).toEqual({
+      kind: "runs-out",
+      at: START + 5 * DAY,
+    });
+  });
+
+  it("the pace counts the time up to now, not only up to the newest reading", () => {
+    // Newest reading 1 day in (40%), now 2 days in: 20%/day, run-out 3 days after now.
+    expect(projectRunOut(period(40, START + DAY), new Date(START + 2 * DAY))).toEqual({
+      kind: "runs-out",
+      at: START + 5 * DAY,
+    });
+    // 30-day window: 50% read 16 minutes in, now 3 days in: 50% in 3 days, out on day 6.
+    const month = { windowMinutes: 43_200, resetsAt: START + 30 * DAY };
+    expect(projectRunOut(period(50, START + 16 * MIN, month), new Date(START + 3 * DAY))).toEqual({
+      kind: "runs-out",
+      at: START + 6 * DAY,
+    });
+  });
+
+  it("a clock behind the newest reading counts up to the newest reading", () => {
+    expect(projectRunOut(period(40, START + 2 * DAY), new Date(START + 2 * DAY - H))).toEqual({
       kind: "runs-out",
       at: START + 5 * DAY,
     });
@@ -628,6 +649,8 @@ describe("projectRunOut", () => {
   it("lasts until the reset when the run-out time is after it", () => {
     expect(projectRunOut(period(10, START + 2 * DAY), new Date(START + 2 * DAY))).toEqual({ kind: "lasts" });
     expect(projectRunOut(period(0, START + 3 * H), new Date(START + 3 * H))).toEqual({ kind: "lasts" });
+    // 40% at day 1 would run out on day 2.5; by now (day 5) the pace is 8%/day: it lasts.
+    expect(projectRunOut(period(40, START + DAY), new Date(START + 5 * DAY))).toEqual({ kind: "lasts" });
   });
 
   it("a run-out exactly at the reset still runs out", () => {
@@ -647,9 +670,12 @@ describe("projectRunOut", () => {
     expect(projectRunOut(period(30, START + DAY), new Date(START + 8 * DAY))).toEqual({ kind: "reset-since" });
   });
 
-  it("is too early when the period started less than an hour before its newest reading", () => {
-    expect(projectRunOut(period(5, START + 59 * MIN), new Date(START + H))).toEqual({ kind: "too-early" });
-    expect(projectRunOut(period(5, START + H), new Date(START + H)).kind).toBe("runs-out");
+  it("is too early only while less than an hour has passed since the period start", () => {
+    expect(projectRunOut(period(5, START + 30 * MIN), new Date(START + 59 * MIN))).toEqual({ kind: "too-early" });
+    expect(projectRunOut(period(5, START + 59 * MIN), new Date(START + 30 * MIN))).toEqual({ kind: "too-early" });
+    // An hour since the start, counted to now or to the newest reading: a pace.
+    expect(projectRunOut(period(5, START + 30 * MIN), new Date(START + H)).kind).toBe("runs-out");
+    expect(projectRunOut(period(5, START + H), new Date(START + 30 * MIN)).kind).toBe("runs-out");
   });
 });
 ```
@@ -665,11 +691,13 @@ Expected: FAIL, `Failed to resolve import "../../../src/modules/limits/pace.js"`
 /**
  * When a limit period runs out at its current pace. Pure.
  *
- * Pace = percent used ÷ (newest reading time − period start). Run-out =
- * newest reading time + (100 − percent) ÷ pace; "lasts" when that is after the
+ * The percent is as of the newest reading, but the period has run until now:
+ * pace = percent used ÷ (latest − period start), where latest = the later of
+ * now and the newest reading (a clock behind the logs never shortens it).
+ * Run-out = latest + (100 − percent) ÷ pace; "lasts" when that is after the
  * reset. Checked in this order: the reset already passed (`now` is at or past
- * the newest reading's reset time), the limit is reached (100%), the period
- * started less than an hour before its newest reading (too early for a pace).
+ * the newest reading's reset time), the limit is reached (100%), less than an
+ * hour from the period start to latest (too early for a pace).
  */
 import type { LimitPeriod } from "./periods.js";
 
@@ -680,17 +708,18 @@ export type Projection =
   | { readonly kind: "reset-since" }
   | { readonly kind: "too-early" };
 
-/** Least time between period start and newest reading before a pace is shown. */
+/** Least time from the period start to now (or the newest reading, if later) before a pace is shown. */
 export const MIN_PACE_MS = 60 * 60 * 1000;
 
 export function projectRunOut(period: LimitPeriod, now: Date): Projection {
   if (period.resetsAt <= now.getTime()) return { kind: "reset-since" };
   if (period.usedPercent >= 100) return { kind: "reached" };
-  const elapsed = period.newestAt - period.startedAt;
+  const latest = Math.max(now.getTime(), period.newestAt);
+  const elapsed = latest - period.startedAt;
   if (elapsed < MIN_PACE_MS) return { kind: "too-early" };
   if (period.usedPercent <= 0) return { kind: "lasts" };
-  const pace = period.usedPercent / elapsed;
-  const at = period.newestAt + (100 - period.usedPercent) / pace;
+  // (100 − percent) ÷ pace, with pace = percent ÷ elapsed.
+  const at = latest + ((100 - period.usedPercent) * elapsed) / period.usedPercent;
   return at > period.resetsAt ? { kind: "lasts" } : { kind: "runs-out", at };
 }
 ```
@@ -698,7 +727,7 @@ export function projectRunOut(period: LimitPeriod, now: Date): Projection {
 - [ ] **Step 4: Run it to verify it passes**
 
 Run: `npx vitest run tests/modules/limits/pace.test.ts`
-Expected: PASS, 6 tests.
+Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -3966,7 +3995,7 @@ HOME="$SCRATCH/home-branch" USERPROFILE="$SCRATCH/home-branch" CODEX_HOME="$SNAP
 diff "$SCRATCH/today-codex-main.txt" "$SCRATCH/today-codex-branch.txt"
 ```
 
-Expected: `today: byte-identical`, `today --json: byte-identical`, and the last `diff` shows exactly one added line, the Codex limit line (on the maintainer's logs: `> Codex 30-day limit: 50% used, resets Sat 7 Nov. Not enough data yet for a pace.`).
+Expected: `today: byte-identical`, `today --json: byte-identical`, and the last `diff` shows exactly one added line, the Codex limit line (on the maintainer's logs: `> Codex 30-day limit: 50% used, resets Sat 7 Nov. At this pace you run out <day> ~<hour>.`; the pace counts time up to now, so the run-out time depends on when it runs).
 
 - [ ] **Step 6: Clean up** (remove the junction first: deleting the worktree through it would delete the repo's real `node_modules`)
 
