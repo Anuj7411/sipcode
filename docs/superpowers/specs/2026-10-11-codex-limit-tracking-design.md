@@ -132,10 +132,11 @@ Pure functions plus one command; each unit testable alone.
    newest reading time + (100 − percent) ÷ pace; "lasts" when that is after `resetsAt`.
 4. **`src/modules/limits/attribute.ts`**: `attribute(period, readings, requests) →
    { sessionId, project, percent, tokens }[]`. Requests come from the existing Codex loader
-   (deduped turns with timestamps, session id, model). Each rise in the running maximum between
-   two consecutive readings of the window is split across all requests whose time falls in
-   that interval, in proportion to their tokens (input + output). A rise with no request in
-   the interval goes to an "unattributed (no local requests)" line. Per period, attributed +
+   (deduped turns with timestamps, session id, model). Each rise in the running maximum is
+   split across all requests made since the previous rise (since the period start for the
+   first one; see Amendments), in proportion to their tokens (input + output). A rise with no
+   request in that interval goes to the "unattributed (no Codex requests on this computer)"
+   line. Per period, attributed +
    unattributed percent equals the observed rise exactly (floating sums, rounded only for
    display). `codex-auto-review` requests are grouped into their own line.
 5. **`src/modules/limits/shrink.ts`**: `tokensPerPercent(periods, requests) → series per
