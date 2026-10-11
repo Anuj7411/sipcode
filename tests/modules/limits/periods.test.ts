@@ -75,6 +75,15 @@ describe("buildPeriods", () => {
     expect(w5?.periods).toHaveLength(2);
   });
 
+  it("never starts a period after its first reading, even when the reset time drifted later", () => {
+    // Real weekly data: the reset time drifted 11 s later over the period, which put
+    // the start after the first reading and left a request made 9 s after it in no period.
+    const first = T0 + H;
+    const [w] = buildPeriods([reading(first, 1, first + 7 * DAY), reading(T0 + 3 * H, 3, first + 7 * DAY + 60_000)]);
+    expect(w?.periods[0]?.startedAt).toBe(first);
+    expect(w?.periods[0]?.resetsAt).toBe(first + 7 * DAY + 60_000);
+  });
+
   it("an early reset (reset time over 15 minutes later, lower percent) starts a new period", () => {
     const thirty = { windowMinutes: 43200 };
     const r = T0 + 30 * DAY;
