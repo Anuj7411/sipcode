@@ -23,6 +23,10 @@
  * repeats the turn-start reading on every line of a turn, so a turn that runs
  * past the reset logs the old reset time and percent after the reset. Kept, it
  * would open a period that had already ended and count its rise twice.
+ * A reading whose reset time is more than 15 minutes earlier than the open
+ * period's is stale too (the mirror of the early-reset rule): after an early
+ * reset, a session still in its old turn repeats the pre-reset reading. Real
+ * reset times only move later, so it is skipped, not read as a new period.
  */
 import type { LimitReading } from "../agents/codex/rateLimits.js";
 
@@ -97,6 +101,7 @@ export function buildPeriods(readings: readonly LimitReading[]): LimitWindow[] {
       open.set(key, w);
     }
     const cur = w.periods[w.periods.length - 1];
+    if (cur && cur.resetsAt - r.resetsAt > EARLY_RESET_MS) continue;
     if (!cur || startsNewPeriod(cur, r)) {
       w.periods.push({
         resetsAt: r.resetsAt,

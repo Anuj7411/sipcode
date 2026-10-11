@@ -98,6 +98,23 @@ describe("buildPeriods", () => {
     expect(w?.periods[1]?.points.map((x) => x.usedPercent)).toEqual([5, 6, 6]);
   });
 
+  it("skips a stale pre-reset reading from a concurrent session after an early reset", () => {
+    // After the early reset a session still running the old period repeats 100% with the
+    // old reset time, 76 minutes earlier than the open period's (inside the 7.2-hour
+    // tolerance). Joined to the new period it would be a false 95% rise and split it.
+    const thirty = { windowMinutes: 43200 };
+    const r = T0 + 30 * DAY;
+    const [w] = buildPeriods([
+      reading(T0 + H, 100, r, thirty),
+      reading(T0 + H + 11 * MIN, 5, r + 76 * MIN, thirty),
+      reading(T0 + H + 12 * MIN, 100, r, { ...thirty, sessionId: "s2" }),
+      reading(T0 + H + 13 * MIN, 6, r + 76 * MIN + 66_000, thirty),
+    ]);
+    expect(w?.periods.map((p) => p.usedPercent)).toEqual([100, 6]);
+    expect(w?.periods[1]?.points.map((x) => x.usedPercent)).toEqual([5, 6]);
+    expect(w?.periods[1]?.resetsAt).toBe(r + 76 * MIN + 66_000);
+  });
+
   it("keeps windows apart by limit id and length, shortest first", () => {
     const windows = buildPeriods([
       reading(T0 + H, 30, T0 + 6 * DAY, { limitId: "premium" }),
