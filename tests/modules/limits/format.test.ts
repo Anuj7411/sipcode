@@ -84,6 +84,14 @@ describe("helpers", () => {
     expect(formatPercent(19.4)).toBe("19%");
     expect(formatPercent(0.44)).toBe("0.4%");
     expect(formatPercent(100)).toBe("100%");
+    expect(formatPercent(1)).toBe("1%");
+    // Below 1% one decimal, cut (not rounded) so it never reads 1.0%; below 0.1% "<0.1%".
+    expect(formatPercent(0.96)).toBe("0.9%");
+    expect(formatPercent(0.7)).toBe("0.7%");
+    expect(formatPercent(0.1)).toBe("0.1%");
+    expect(formatPercent(0.04)).toBe("<0.1%");
+    expect(formatPercent(0.0001)).toBe("<0.1%");
+    expect(formatPercent(0)).toBe("0%");
     expect(formatTokensCompact(3_100_000)).toBe("3.1M");
     expect(formatTokensCompact(425_000)).toBe("425K");
     expect(formatTokensCompact(80_400)).toBe("80K");

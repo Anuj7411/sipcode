@@ -63,9 +63,17 @@ export function formatAgo(ms: number, now: number): string {
   return `${Math.floor(diff / DAY)}d ago`;
 }
 
-/** Whole percent; one decimal below 1%. */
+/**
+ * Whole percent from 1%. Below 1%: one decimal, cut rather than rounded so
+ * 0.96 never reads "1.0%"; below 0.1%, "<0.1%" (a share that is not zero
+ * never reads "0.0%").
+ */
 export function formatPercent(p: number): string {
-  return p < 1 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
+  if (p >= 1) return `${Math.round(p)}%`;
+  if (p <= 0) return "0%";
+  if (p < 0.1) return "<0.1%";
+  // The small epsilon keeps a value like 0.7 (6.9999… after * 10) at 0.7.
+  return `${(Math.floor(p * 10 + 1e-9) / 10).toFixed(1)}%`;
 }
 
 /** "3.1M", "425K", "512". */
