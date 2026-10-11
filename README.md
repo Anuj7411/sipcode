@@ -66,7 +66,7 @@ It is open source under the MIT license. It makes zero network calls during norm
 | **Mid-session install support** | ✓ Verified Warm-Fill | n/a | n/a | n/a |
 | **Zero false-dedup by construction** | ✓ | n/a | n/a | n/a |
 | **Reproducible benchmark on locked corpus** | ✓ 62.6% median (20 synthetic tasks) | ✗ | ✗ | ✗ |
-| **Self-introspection MCP tools** | ✓ 15 tools | ✗ | ✗ | partial |
+| **Self-introspection MCP tools** | ✓ 16 tools | ✗ | ✗ | partial |
 | **Agents covered** | Claude Code (all features); OpenAI Codex (spend analytics only, no hook) | not compared | not compared | not compared |
 | **Zero network calls in normal use** | ✓ | ✓ | n/a | ✗ |
 | **MIT licensed** | ✓ | ✓ | ✓ | ✓ |
@@ -290,7 +290,7 @@ After updating, confirm with `sipcode --version` and see what changed in the [CH
 | Spend telemetry | Daily, monthly, projected. All from your own transcripts (Claude Code and Codex), no cloud upload |
 | Task cost estimation | Predicts what a coding task will cost across Opus, Sonnet, and Haiku before you run it |
 | Codebase health score | Rates your repo 0-100 on how easy it is for an AI agent to work in |
-| MCP server | 15 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
+| MCP server | 16 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
 | Reproducible benchmark | A locked 20-task corpus that anyone can run and verify |
 
 ---

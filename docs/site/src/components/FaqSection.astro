@@ -10,11 +10,11 @@ const FAQS = [
   },
   {
     q: "Can I ask Sipcode questions in Claude Desktop?",
-    aHtml: `Yes. Sipcode ships 15 MCP tools. Ask "how am I doing today?" and Claude routes to <code class="chip">get_today_summary</code> — spend so far plus comparison against your adaptive 30/14/7/3 day median. Ask "how much will I spend this month?" and it routes to <code class="chip">forecast_monthly_spend</code> — projected month-end with a confidence band. No SDK, no account, no telemetry; Sipcode reads the local <code class="chip">.jsonl</code> files Claude Code already writes.`,
+    aHtml: `Yes. Sipcode ships 16 MCP tools. Ask "how am I doing today?" and Claude routes to <code class="chip">get_today_summary</code> — spend so far plus comparison against your adaptive 30/14/7/3 day median. Ask "how much will I spend this month?" and it routes to <code class="chip">forecast_monthly_spend</code> — projected month-end with a confidence band. No SDK, no account, no telemetry; Sipcode reads the local <code class="chip">.jsonl</code> files Claude Code already writes.`,
   },
   {
     q: "How is it different from RTK?",
-    a: "Sipcode covers terminal use through Claude Code and chat use through Claude Desktop via 15 MCP tools. RTK is terminal only. Beyond coverage, Sipcode adds reliability infrastructure RTK does not have: a drift detector that catches context rot live, re-read dedup that refuses to reload files already in context, integrity scoring that tells you how much signal a rewrite kept, and AST-aware reads that return only the symbol the model searched for. You can use both. They do not conflict.",
+    a: "Sipcode covers terminal use through Claude Code and chat use through Claude Desktop via 16 MCP tools. RTK is terminal only. Beyond coverage, Sipcode adds reliability infrastructure RTK does not have: a drift detector that catches context rot live, re-read dedup that refuses to reload files already in context, integrity scoring that tells you how much signal a rewrite kept, and AST-aware reads that return only the symbol the model searched for. You can use both. They do not conflict.",
   },
   {
     q: "How much will it actually save me?",

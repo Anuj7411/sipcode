@@ -1,6 +1,6 @@
 # Sipcode
 
-> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 15 MCP tools so Claude can read its own context-hygiene stats.
+> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 16 MCP tools so Claude can read its own context-hygiene stats.
 
 Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/claude-code), Anthropic's terminal coding agent. It installs as a PreToolUse hook and intercepts noisy tool output (git log, npm install, grep, ls, cat, find, tsc) before those bytes reach the model. Same-session re-reads of unchanged files are deduplicated. A Verified Warm-Fill step back-fills the dedup cache from the active Claude Code transcript on the first hook fire, so files Claude read before Sipcode was installed still get caught on their next read. The cache is only back-filled when transcript bytes match current disk after LF and BOM canonicalization, which gives zero false-dedup risk by construction.
 
@@ -178,7 +178,7 @@ If drift says "no drift" and proxy --stats shows a few dozen rewrites with savin
 | Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
 | Spend telemetry | Daily, monthly, projected. All from local Claude Code and Codex logs, no cloud upload |
-| MCP server | 15 tools registered for Claude Desktop, so Claude itself can read usage stats |
+| MCP server | 16 tools registered for Claude Desktop, so Claude itself can read usage stats |
 | Reproducible benchmark | A locked 20-task corpus anyone can run and verify |
 
 ## Frequently asked questions
@@ -238,7 +238,7 @@ MIT.
 
 # MCP server
 
-Sipcode ships a Model Context Protocol (MCP) server with 15 tools so Claude Code can introspect its own context hygiene from the chat.
+Sipcode ships a Model Context Protocol (MCP) server with 16 tools so Claude Code can introspect its own context hygiene from the chat.
 
 ## Tools
 

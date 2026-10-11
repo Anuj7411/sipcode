@@ -1,6 +1,6 @@
 # Sipcode
 
-> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 15 MCP tools so Claude can read its own context-hygiene stats.
+> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 16 MCP tools so Claude can read its own context-hygiene stats.
 
 Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/claude-code), Anthropic's terminal coding agent. It installs as a PreToolUse hook and intercepts noisy tool output (git log, npm install, grep, ls, cat, find, tsc) before those bytes reach the model. Same-session re-reads of unchanged files are deduplicated. A Verified Warm-Fill step back-fills the dedup cache from the active Claude Code transcript on the first hook fire, so files Claude read before Sipcode was installed still get caught on their next read. The cache is only back-filled when transcript bytes match current disk after LF and BOM canonicalization, which gives zero false-dedup risk by construction.
 
@@ -38,7 +38,7 @@ sipcode init
 
 ## MCP tools
 
-Sipcode ships an MCP server exposing 15 tools so Claude Code can introspect its own context hygiene without leaving the chat. Notable tools:
+Sipcode ships an MCP server exposing 16 tools so Claude Code can introspect its own context hygiene without leaving the chat. Notable tools:
 
 - `get_proxy_stats`: per-session rewriter stats, tokens saved, integrity score
 - `get_drift_report`: bloat and rot detection for the live session
