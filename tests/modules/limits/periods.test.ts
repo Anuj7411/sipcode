@@ -111,6 +111,24 @@ describe("buildPeriods", () => {
     expect(buildPeriods([...rs].reverse())).toEqual(buildPeriods(rs));
   });
 
+  it("ignores a stale reading logged after its own reset time (a turn that ran across the reset)", () => {
+    // Older Codex repeats the turn-start reading on every line of a turn, so a turn
+    // running past the reset logs the old reset time after it passed, from any session.
+    const r1 = T0 + DAY;
+    const r2 = r1 + 7 * DAY + 30 * MIN;
+    const [w] = buildPeriods([
+      reading(T0 + H, 40, r1),
+      reading(r1 + 5 * MIN, 40, r1),
+      reading(r1 + 30 * MIN, 2, r2),
+      reading(r1 + H, 40, r1, { sessionId: "s2" }),
+      reading(r1 + 2 * H, 3, r2),
+    ]);
+    expect(w?.periods.map((p) => [p.usedPercent, p.resetsAt, p.points.length])).toEqual([
+      [40, r1, 1],
+      [3, r2, 2],
+    ]);
+  });
+
   it("returns no windows for no readings", () => {
     expect(buildPeriods([])).toEqual([]);
   });

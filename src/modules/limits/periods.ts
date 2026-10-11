@@ -17,6 +17,10 @@
  * Within a period the percent is the running maximum, so a lower value from a
  * concurrent session never lowers it. A period's reset time is its newest
  * reading's; it started one window length before that.
+ * A reading logged after its own reset time is stale and skipped: older Codex
+ * repeats the turn-start reading on every line of a turn, so a turn that runs
+ * past the reset logs the old reset time and percent after the reset. Kept, it
+ * would open a period that had already ended and count its rise twice.
  */
 import type { LimitReading } from "../agents/codex/rateLimits.js";
 
@@ -83,7 +87,8 @@ export function buildPeriods(readings: readonly LimitReading[]): LimitWindow[] {
   const sorted = [...readings].sort(compareReadings);
   const open = new Map<string, { limitId: string; windowMinutes: number; periods: OpenPeriod[] }>();
   for (const r of sorted) {
-    const key = `${r.limitId}\u0000${r.windowMinutes}`;
+    if (r.at > r.resetsAt) continue;
+    const key =`${r.limitId}\u0000${r.windowMinutes}`;
     let w = open.get(key);
     if (!w) {
       w = { limitId: r.limitId, windowMinutes: r.windowMinutes, periods: [] };
