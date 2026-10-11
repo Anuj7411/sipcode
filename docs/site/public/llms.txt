@@ -6,7 +6,7 @@ Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/c
 
 On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pairs, not recordings of live sessions), Sipcode's mechanisms remove 62.6% of tokens at the median (range 37.4% to 80.6%), totalling 3,567,170 tokens and $22.48 priced as Claude Opus 4.7. Anyone can reproduce these numbers with `sipcode benchmark`. Real-world savings depend on the workload. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet.
+Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag.
 
 Sipcode is solo-maintained, MIT licensed, has 1,996 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
@@ -45,6 +45,7 @@ Sipcode ships an MCP server exposing 16 tools so Claude Code can introspect its 
 - `get_session_stats`, `get_today_summary`, `forecast_monthly_spend`: spend telemetry
 - `audit_latest_session`, `get_agent_score`: post-session forensics
 - `verify_sipcode_impact`: before vs after comparison sourced from transcripts
+- `get_codex_limits`: when you will hit your Codex limit, what used it, and whether it may have shrunk
 
 ## Documentation
 

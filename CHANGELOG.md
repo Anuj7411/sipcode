@@ -8,7 +8,25 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.7.0]._
+_Nothing landed since [1.7.1]._
+
+## [1.7.1] - 2026-10-12
+
+Sipcode now reads the usage-limit readings Codex writes into its own logs: when you will hit your Codex limit, what used it, and whether it may have shrunk.
+
+### Added
+- **`sipcode limits` (Codex).** For each limit window the logs report (5-hour, weekly, 30-day, named from the window length): percent used, reset time, and when it runs out at this pace. The pace is the percent used divided by the time since the period started, counted up to now, so the estimate moves later while Codex is idle. Zero network calls; "as of" is your last Codex request.
+- **What used it.** The current period's top 5 sessions and projects (folder name only), with Codex's automatic reviews (`codex-auto-review`) as one line. Each rise in the percent is shared by the requests made since the previous rise, in proportion to their tokens; a rise with no request on this computer is shown as unattributed, since limits are shared with other devices and Codex cloud. Attributed plus unattributed equals the percent used.
+- **Tokens per 1%, and a possible limit cut.** How many tokens 1% of a limit bought in each finished period with at least 20% used, compared only within one model (90% or more of the period's tokens). Periods that started on the same day also show their start time (`Jul 5 16:39`). A period that bought at most half the median of at least two earlier periods is flagged as a possible limit cut, with a note that Codex use on other devices or in the cloud can look like one. On the maintainer's logs this flags the week of Apr 13: 77K tokens per 1% against 425K and 357K on gpt-5.4, about 5x fewer.
+- **Options:** `--json`, `--since <window>` (default `90d`, how far back the tokens-per-1% history goes), `--here` (narrows only the "what used it" list). `--agent claude-code` stops with E009: Claude Code's logs do not record limits.
+- **`today`** adds one line for the Codex limit closest to running out, when Codex has logged limit readings. Without them the output is byte-identical; `today --json` is unchanged.
+- **MCP:** new tool `get_codex_limits` (optional `since`) returns the same JSON as `sipcode limits --json`. 16 tools.
+- **Independent check:** `scripts/verify-counts.mjs` recomputes the limits from the raw logs without Sipcode code (newest percent and number of periods per window, the "what used it" lines of the current period, attributed plus unattributed against the rise of every period, tokens per 1%, the possible cut) and compares them with `limits --json`. All match on the maintainer's 15 Codex logs (1,146 readings).
+
+### Notes
+- A limit that resets early (seen on a 30-day window right after it reached 100%) starts a new period even when the new reset time is within the drift tolerance.
+- Older Codex versions refresh the limit reading once per turn, so a rise is shared by the requests since the previous rise, not only those since the previous reading.
+- A reading logged after its own reset time, or one whose reset time is more than 15 minutes earlier than the open period's, is stale (older Codex repeats a turn's first reading on every line of the turn) and is skipped.
 
 ## [1.7.0] - 2026-10-09
 
@@ -339,7 +357,10 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.6.20...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/Anuj7411/sipcode/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/Anuj7411/sipcode/compare/v1.6.21...v1.7.0
+[1.6.21]: https://github.com/Anuj7411/sipcode/compare/v1.6.20...v1.6.21
 [1.6.20]: https://github.com/Anuj7411/sipcode/compare/v1.6.19...v1.6.20
 [1.6.19]: https://github.com/Anuj7411/sipcode/compare/v1.6.18...v1.6.19
 [1.6.18]: https://github.com/Anuj7411/sipcode/compare/v1.6.17...v1.6.18

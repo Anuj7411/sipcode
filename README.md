@@ -67,7 +67,7 @@ It is open source under the MIT license. It makes zero network calls during norm
 | **Zero false-dedup by construction** | ✓ | n/a | n/a | n/a |
 | **Reproducible benchmark on locked corpus** | ✓ 62.6% median (20 synthetic tasks) | ✗ | ✗ | ✗ |
 | **Self-introspection MCP tools** | ✓ 16 tools | ✗ | ✗ | partial |
-| **Agents covered** | Claude Code (all features); OpenAI Codex (spend analytics only, no hook) | not compared | not compared | not compared |
+| **Agents covered** | Claude Code (all features); OpenAI Codex (spend analytics and usage limits, no hook) | not compared | not compared | not compared |
 | **Zero network calls in normal use** | ✓ | ✓ | n/a | ✗ |
 | **MIT licensed** | ✓ | ✓ | ✓ | ✓ |
 
@@ -144,9 +144,9 @@ projected month-end   $17,674   (range $14,139 to $21,208)
 
 ## Codex
 
-Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.codex/archived_sessions`, or the folder `CODEX_HOME` points to). For Codex this is spend analytics only: Sipcode reports what your Codex sessions used and where the tokens went. It does not change what Codex does.
+Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.codex/archived_sessions`, or the folder `CODEX_HOME` points to). For Codex this is spend analytics and usage limits: Sipcode reports what your Codex sessions used, where the tokens went, and how close you are to your plan's limits. It does not change what Codex does.
 
-**Commands that read Codex:** `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift`, plus the session tools in the MCP server (they take an optional `agent` input: `"claude-code"` or `"codex"`).
+**Commands that read Codex:** `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` and `limits` (Codex only), plus the session tools in the MCP server (they take an optional `agent` input: `"claude-code"` or `"codex"`) and `get_codex_limits`.
 
 - `--agent codex` shows Codex only. `--agent claude-code` shows Claude Code only.
 - With no `--agent` flag and both tools installed, `stats`, `today`, `forecast`, `trend` and `impact` print one section per tool. `stats`, `today` and `forecast` end with one combined line, in this shape:
@@ -165,6 +165,37 @@ Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.co
 **Prices.** Codex models are priced from OpenAI's API price table ([developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing), and each Codex model's page under developers.openai.com/api/docs/models, as of 2026-10-09), including the long-context rate for prompts over 272,000 input tokens. A model with no known price is shown as unpriced: its tokens are still counted, a line under the cost says how many were left out of it, and it is never shown as $0.
 
 **Not supported for Codex yet:** writing rules to `AGENTS.md` (`rules`, and the rules step of `init`), registering the MCP server in Codex, the proxy and hooks (`proxy`, `hygiene`), `estimate` and `benchmark`. `rules --agent codex` and `estimate --agent codex` stop with error E009 instead of showing Claude Code data. Compressed Codex logs (`.jsonl.zst`) are skipped, and a note says how many.
+
+### Codex limits: `sipcode limits`
+
+Codex writes your plan's usage-limit readings into its own logs after each request. `sipcode limits` reads them, with zero network calls, and answers three questions: when will I hit my limit, what used it, and did it shrink.
+
+```
+sipcode limits · Codex · plan: go · as of 2h ago (your last Codex request)
+
+Weekly limit    62% used   resets Wed 14 Oct 14:00   at this pace: runs out Tue 13 Oct ~18:00
+30-day limit    22% used   resets Mon 2 Nov          at this pace: lasts until reset
+
+What used your weekly limit (since Wed 7 Oct)
+  0199a1b2-c3d4-7a11   sipcode       31%   3.1M tokens
+  0199a0f7-11aa-7b02   my-app        17%   1.4M tokens
+  codex-auto-review (9 requests)      6%
+  unattributed (no Codex requests on this computer)  8%
+
+Tokens per 1% of your weekly limit (gpt-5.4)
+  Mar 28: 425K   Apr 1: 357K   Apr 13: 77K
+  Possible limit cut around Apr 13: 5.1x fewer tokens per 1%.
+  Limits cover your whole account. Codex use on other devices or in the cloud
+  is not in these logs and can look like a cut.
+```
+
+- **Every limit window the logs report** (5-hour, weekly, 30-day): percent used, reset time, and when it runs out at this pace. The pace is the percent used divided by the time since the period started, counted up to now, so the estimate moves later while you are not using Codex. "as of" is your last Codex request: the percent is only as fresh as that.
+- **What used it:** the current period's top 5 sessions and projects (folder name only), plus Codex's automatic reviews as one line. Each rise in the percent is shared by the requests made since the previous rise, in proportion to their tokens. A rise with no request on this computer shows as `unattributed`, because limits are shared with your other devices and Codex cloud.
+- **Did it shrink:** how many tokens 1% of the limit bought in each finished period with at least 20% used, compared only within one model (a period counts when 90% or more of its tokens came from one model). Periods that started on the same day also show their start time (`Jul 5 16:39`). `Possible limit cut` appears when a period bought at most half the median of at least two earlier periods. It always says "possible": Codex use on another device raises the percent without local tokens.
+- **Options:** `--json`; `--since <window>` (default `90d`), how far back the tokens-per-1% history goes; `--here` narrows only the "what used it" list to sessions from the current folder (limits are account-wide).
+- `sipcode today` adds one line for the Codex limit closest to running out, when Codex has logged limit readings. `today --json` is unchanged.
+- MCP: `get_codex_limits` (optional `since`) returns the same JSON as `sipcode limits --json`.
+- Claude Code's logs do not record limits, so `limits --agent claude-code` stops with error E009.
 
 ---
 
@@ -288,6 +319,7 @@ After updating, confirm with `sipcode --version` and see what changed in the [CH
 | Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
 | Spend telemetry | Daily, monthly, projected. All from your own transcripts (Claude Code and Codex), no cloud upload |
+| Codex limits | When you will hit your Codex limit, what used it, and whether it may have shrunk |
 | Task cost estimation | Predicts what a coding task will cost across Opus, Sonnet, and Haiku before you run it |
 | Codebase health score | Rates your repo 0-100 on how easy it is for an AI agent to work in |
 | MCP server | 16 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
@@ -352,6 +384,7 @@ npm uninstall -g sipcode
 | `sipcode today` | Today's spend summary vs your 30-day median |
 | `sipcode stats` | Cumulative token savings across all sessions (`--html` writes `.sipcode/stats.html` for Claude Code and `.sipcode/stats-codex.html` for Codex) |
 | `sipcode forecast` | Month-end spend projection from your last 14 days |
+| `sipcode limits` | Codex usage limits: when you run out at this pace, what used them, tokens per 1% over time |
 | `sipcode trend` | Track one metric over time, to see if it's getting better |
 | `sipcode why` | Per-session forensics: where your tokens died |
 | `sipcode impact` | A/B compare your spend before vs after Sipcode |
