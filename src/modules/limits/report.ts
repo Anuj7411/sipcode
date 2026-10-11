@@ -63,7 +63,10 @@ export function buildLimitsReport(input: BuildLimitsReportInput): LimitsReport |
   const newest = newestReading(input.readings);
   if (!newest) return null;
   const asOf = newest.at;
-  const windows = buildPeriods(input.readings).map((w): WindowReport => {
+  const built = buildPeriods(input.readings);
+  // Every reading stale (logged after its own reset time): no windows, same as no readings.
+  if (built.length === 0) return null;
+  const windows = built.map((w): WindowReport => {
     const period = w.periods[w.periods.length - 1]!;
     const a = attribute(period, input.requests);
     const used = summarizeShares(a.shares, input.include);

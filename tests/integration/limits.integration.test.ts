@@ -66,6 +66,19 @@ describe("sipcode limits: empty and error states", () => {
     expect(r.out).toBe("no Codex limit readings found yet (Codex records them after each request).");
   });
 
+  it("only stale readings (logged after their reset time) count as no readings", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "cx1", [
+      { ...solTurn("2026-10-08T10:00:00Z"), limit: { usedPercent: 40, windowMinutes: 300, resetsAt: "2026-10-08T09:00:00Z" } },
+    ]);
+    const r = await run({}, fs);
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toBe("no Codex limit readings found yet (Codex records them after each request).");
+    const j = await run({ json: true }, fs);
+    expect(j.exitCode).toBe(0);
+    expect(JSON.parse(j.out)).toEqual({ agent: "codex", planType: null, asOf: null, windows: [] });
+  });
+
   it("--json without readings prints an empty windows list", async () => {
     const r = await run({ json: true }, new InMemoryFs());
     expect(r.exitCode).toBe(0);

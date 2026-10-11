@@ -55,6 +55,11 @@ describe("buildLimitsReport", () => {
     expect(buildLimitsReport({ readings: [], requests, now: new Date(T0), sinceMs: 0 })).toBeNull();
   });
 
+  it("returns null when every reading is stale (logged after its own reset time)", () => {
+    const stale = [reading(T0 + 2 * H, 40, T0 + H), reading(T0 + 3 * H, 41, T0 + H, { sessionId: "b" })];
+    expect(buildLimitsReport({ readings: stale, requests, now: new Date(T0 + 3 * H), sinceMs: 0 })).toBeNull();
+  });
+
   it("reports every window: plan, newest time, percent, pace and what used it", () => {
     const r = buildLimitsReport({ readings, requests, now: new Date(T0 + 2 * H), sinceMs: 0 })!;
     expect(r.planType).toBe("plus");
