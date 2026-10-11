@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { LimitReading } from "../../../src/modules/agents/codex/rateLimits.js";
 import {
   attribute,
   folderName,
+  requestsInPeriod,
   summarizeShares,
   type LimitRequest,
 } from "../../../src/modules/limits/attribute.js";
-import type { LimitPeriod, PeriodPoint } from "../../../src/modules/limits/periods.js";
+import { buildPeriods, type LimitPeriod, type PeriodPoint } from "../../../src/modules/limits/periods.js";
 
 const H = 3_600_000;
 const S = Date.parse("2026-10-07T00:00:00.000Z");
@@ -96,6 +98,42 @@ describe("attribute", () => {
     const a = attribute(period(points), requests);
     const sum = a.shares.reduce((n, s) => n + s.percent, 0) + a.unattributedPercent;
     expect(sum).toBeCloseTo(pct, 9);
+  });
+});
+
+describe("attribute across an early reset", () => {
+  it("a request belongs to one period only: the next period starts no earlier than the previous one's newest reading", () => {
+    // 30-day window: the limit fills to 100% over 10 days, then resets early with a reset
+    // time 76 minutes later. resetsAt minus 30 days would start the new period on day 0,
+    // before the previous period's readings, and count the day-1 request twice.
+    const r = S + 30 * 24 * H;
+    const rd = (at: number, usedPercent: number, resetsAt: number): LimitReading => ({
+      at,
+      sessionId: "a",
+      limitId: "codex",
+      planType: "go",
+      windowMinutes: 43200,
+      slot: "primary",
+      usedPercent,
+      resetsAt,
+    });
+    const filled = S + 10 * 24 * H;
+    const [w] = buildPeriods([
+      rd(S + 2 * H, 90, r),
+      rd(filled, 100, r),
+      rd(filled + 0.5 * H, 5, r + 76 * 60_000),
+      rd(filled + 2 * H, 8, r + 76 * 60_000),
+    ]);
+    const [first, second] = w!.periods;
+    expect(second!.startedAt).toBe(filled);
+    const requests = [req(S + H, 900, "a"), req(S + 5 * H, 100, "b"), req(filled + H, 50, "c")];
+    expect(requestsInPeriod(first!, requests).map((q) => q.sessionId)).toEqual(["a", "b"]);
+    expect(requestsInPeriod(second!, requests).map((q) => q.sessionId)).toEqual(["c"]);
+    const total = [first!, second!]
+      .flatMap((p) => attribute(p, requests).shares)
+      .reduce((n, sh) => n + sh.percent, 0);
+    const unattributed = attribute(first!, requests).unattributedPercent + attribute(second!, requests).unattributedPercent;
+    expect(total + unattributed).toBeCloseTo(108, 9);
   });
 });
 

@@ -18,7 +18,10 @@
  * concurrent session never lowers it. A period's reset time is its newest
  * reading's; it started one window length before that, or at its first reading
  * when reset-time drift would put the start after it (a request made after
- * the first reading must belong to the period).
+ * the first reading must belong to the period), but never before the previous
+ * period's newest reading: after an early reset, one window length before the
+ * new reset time lies inside the previous period, whose requests would then be
+ * counted in both.
  * A reading logged after its own reset time is stale and skipped: older Codex
  * repeats the turn-start reading on every line of a turn, so a turn that runs
  * past the reset logs the old reset time and percent after the reset. Kept, it
@@ -53,7 +56,10 @@ export interface PeriodPoint {
 export interface LimitPeriod {
   readonly limitId: string;
   readonly windowMinutes: number;
-  /** resetsAt minus the window length, but never after the first reading; epoch ms. */
+  /**
+   * resetsAt minus the window length, but never after the first reading nor
+   * before the previous period's newest reading; epoch ms.
+   */
   readonly startedAt: number;
   /** Reset time of the period's newest reading, epoch ms. */
   readonly resetsAt: number;
@@ -121,10 +127,13 @@ export function buildPeriods(readings: readonly LimitReading[]): LimitWindow[] {
     .map((w) => ({
       limitId: w.limitId,
       windowMinutes: w.windowMinutes,
-      periods: w.periods.map((p) => ({
+      periods: w.periods.map((p, i) => ({
         limitId: w.limitId,
         windowMinutes: w.windowMinutes,
-        startedAt: Math.min(p.resetsAt - w.windowMinutes * MINUTE_MS, p.points[0]!.at),
+        startedAt: Math.max(
+          Math.min(p.resetsAt - w.windowMinutes * MINUTE_MS, p.points[0]!.at),
+          w.periods[i - 1]?.newestAt ?? Number.NEGATIVE_INFINITY,
+        ),
         resetsAt: p.resetsAt,
         usedPercent: p.usedPercent,
         newestAt: p.newestAt,
