@@ -21,7 +21,9 @@ interface RpcResult {
   tools?: string[];
 }
 
-async function runMcpHandshake(timeoutMs = 5000): Promise<RpcResult> {
+// The server answered tools/list in 0.7 s idle and up to 2.1 s under parallel load.
+// A start slower than the cap resolves a partial result and fails all three tests.
+async function runMcpHandshake(timeoutMs = 15_000): Promise<RpcResult> {
   return new Promise((resolve, reject) => {
     let child: ChildProcessWithoutNullStreams | undefined;
     try {
@@ -126,7 +128,7 @@ describe.skipIf(!HAS_BUILT_SERVER)(
 
     beforeAll(async () => {
       result = await runMcpHandshake();
-    }, 10_000);
+    }, 20_000);
 
     it("answers `initialize` with server name 'sipcode'", () => {
       expect(result.initializeOk).toBe(true);

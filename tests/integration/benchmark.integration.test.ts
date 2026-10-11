@@ -14,7 +14,8 @@ function capture() {
   };
 }
 
-describe("sipcode benchmark integration", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("sipcode benchmark integration", { timeout: 20_000 }, () => {
   it("--list prints all 20 task ids and exits 0", async () => {
     const c = capture();
     const r = await runBenchmark(

@@ -36,7 +36,8 @@ function makeEnv() {
   });
 }
 
-describe("runReceipt integration", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("runReceipt integration", { timeout: 20_000 }, () => {
   it("--html-only writes a standalone html file, no png attempted", async () => {
     const fs = makeFs();
     const writes = new Map<string, string | Uint8Array>();

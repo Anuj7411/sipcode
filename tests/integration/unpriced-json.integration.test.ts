@@ -54,7 +54,8 @@ const cmds: Array<[string, Cmd]> = [
   ["why", (fs, c) => runWhy({ json: true, agent: "codex", cwd: "/w" }, { fs, ...c.deps })],
 ];
 
-describe("--json: unpriced tokens are noted on stderr, JSON unchanged", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("--json: unpriced tokens are noted on stderr, JSON unchanged", { timeout: 20_000 }, () => {
   for (const [name, run] of cmds) {
     it(name, async () => {
       const c = io();

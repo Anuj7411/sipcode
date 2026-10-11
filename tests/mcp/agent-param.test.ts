@@ -208,7 +208,8 @@ describe("audit_latest_session", () => {
   });
 });
 
-describe("period tools", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("period tools", { timeout: 20_000 }, () => {
   it("get_session_stats: agent codex returns Codex totals", async () => {
     const claude = await call("get_session_stats", {}, bothFs());
     const codex = await call("get_session_stats", { agent: "codex" }, bothFs());

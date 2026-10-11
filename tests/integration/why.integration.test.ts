@@ -35,7 +35,8 @@ function makeEnv(): FakeProcessEnv {
   });
 }
 
-describe("runWhy integration", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("runWhy integration", { timeout: 20_000 }, () => {
   it("auto-pick skips an empty/in-flight latest session", async () => {
     const fs = new InMemoryFs();
     fs.writeFile(

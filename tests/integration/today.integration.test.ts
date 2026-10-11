@@ -50,7 +50,8 @@ async function run(opts: Parameters<typeof runTodayCmd>[0], fs: InMemoryFs) {
   return { exitCode: r.exitCode, out: out.join("\n"), err: err.join("\n") };
 }
 
-describe("runTodayCmd: Claude Code and Codex sections", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("runTodayCmd: Claude Code and Codex sections", { timeout: 20_000 }, () => {
   it("shows a Claude Code section and a Codex section, then the combined line", async () => {
     const r = await run({}, withCodex());
     expect(r.exitCode).toBe(0);
