@@ -90,6 +90,14 @@ function limitName(label: string, limitId: string): string {
   return limitId === "codex" ? `${label} limit` : `${label} limit (${limitId})`;
 }
 
+/**
+ * A limit name with a note in one pair of parentheses: "weekly limit (gpt-5.4)",
+ * "weekly limit (premium, gpt-5.4)".
+ */
+function limitNameWith(label: string, limitId: string, note: string): string {
+  return limitId === "codex" ? `${label} limit (${note})` : `${label} limit (${limitId}, ${note})`;
+}
+
 function fit(s: string, width: number): string {
   return (s.length > width ? `${s.slice(0, width - 1)}…` : s).padEnd(width);
 }
@@ -135,7 +143,7 @@ function usedBySection(w: WindowReport): string[] {
     lines.push(useLine("unattributed (no Codex requests on this computer)", w.unattributedPercent));
   }
   if (lines.length === 0) return [];
-  return ["", `What used your ${limitName(lower(w.label), w.limitId)} (since ${formatDay(w.period.startedAt)})`, ...lines];
+  return ["", `What used your ${limitNameWith(lower(w.label), w.limitId, `since ${formatDay(w.period.startedAt)}`)}`, ...lines];
 }
 
 /** One block per model with two or more comparable periods; the alert under the flagged model. */
@@ -145,7 +153,7 @@ function shrinkSection(w: WindowReport): string[] {
   for (const model of models) {
     const points = w.shrink.points.filter((p) => p.model === model);
     if (points.length < 2) continue;
-    out.push("", `Tokens per 1% of your ${limitName(lower(w.label), w.limitId)} (${model})`);
+    out.push("", `Tokens per 1% of your ${limitNameWith(lower(w.label), w.limitId, model)}`);
     for (let i = 0; i < points.length; i += 6) {
       const row = points.slice(i, i + 6);
       const days = row.map((p) => formatMonthDay(p.periodStart));

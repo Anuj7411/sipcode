@@ -317,6 +317,7 @@ describe("sipcode limits: anonymised real rollout (tests/fixtures/codex/compacte
       "",
       "Weekly limit (x)  92% used   resets Wed 14 Jan 14:44   at this pace: runs out Fri 9 Jan ~22:00",
     ]);
+    expect(r.out).toContain("\nWhat used your weekly limit (x, since Wed 7 Jan)\n");
     expect(r.out).toContain("  019b0004-0001-7000   fixture       89%   7.1M tokens");
     expect(r.out).toContain("  unattributed (no Codex requests on this computer)  3%");
   });

@@ -220,10 +220,10 @@ describe("formatLimitsTerminal", () => {
         "Weekly limit            62% used   resets Wed 14 Oct 14:00   at this pace: lasts until reset",
         "Weekly limit (premium)  30% used   resets Wed 14 Oct 14:00   at this pace: lasts until reset",
         "",
-        "What used your weekly limit (premium) (since Thu 8 Oct)",
+        "What used your weekly limit (premium, since Thu 8 Oct)",
         "  0199a1b2-c3d4-7a11   sipcode       30%   900K tokens",
         "",
-        "Tokens per 1% of your weekly limit (premium) (gpt-5.4)",
+        "Tokens per 1% of your weekly limit (premium, gpt-5.4)",
         "  Sep 1: 40K   Sep 8: 42K",
       ].join("\n"),
     );
