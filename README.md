@@ -170,6 +170,8 @@ Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.co
 
 Codex writes your plan's usage-limit readings into its own logs after each request. `sipcode limits` reads them, with zero network calls, and answers three questions: when will I hit my limit, what used it, and did it shrink.
 
+Example output of `sipcode limits --since all` (the tokens-per-1% history here goes back further than the default 90 days):
+
 ```
 sipcode limits · Codex · plan: go · as of 2h ago (your last Codex request)
 

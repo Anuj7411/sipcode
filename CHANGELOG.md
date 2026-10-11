@@ -27,6 +27,7 @@ Sipcode now reads the usage-limit readings Codex writes into its own logs: when 
 - A limit that resets early (seen on a 30-day window right after it reached 100%) starts a new period even when the new reset time is within the drift tolerance.
 - Older Codex versions refresh the limit reading once per turn, so a rise is shared by the requests since the previous rise, not only those since the previous reading.
 - A reading logged after its own reset time, or one whose reset time is more than 15 minutes earlier than the open period's, is stale (older Codex repeats a turn's first reading on every line of the turn) and is skipped.
+- For contributors: the release smoke test (`npm run test:e2e`) now packs into its own temp folder, so a `sipcode-<version>.tgz` kept in the repo root is no longer overwritten and deleted.
 - Test count: 1,996 to 2,108 (`npx vitest run`, which includes the 20 e2e tests).
 
 ## [1.7.0] - 2026-10-09

@@ -3940,7 +3940,7 @@ NO_COLOR=1 npx vitest run > "$SCRATCH/vitest-full.txt" 2>&1; echo "exit $?"   # 
 npm run test:e2e                                                             # background
 ```
 
-Expected: lint clean; build ends `copy-assets: 7 file(s) copied to dist/.`; vitest exit 0 with no failed or skipped tests; e2e 19 tests pass (`16 tools`, `get_codex_limits`, `limits` in `--help`).
+Expected: lint clean; build ends `copy-assets: 7 file(s) copied to dist/.`; vitest exit 0 with no failed or skipped tests; e2e 20 tests pass (`16 tools`, `get_codex_limits`, `limits` in `--help`).
 Known load flake, unrelated to this change: `tests/modules/hygiene/hookScript.test.ts > emits a hint after a git commit bash call` spawns a hook with a 5-second timeout and can time out while the whole suite runs. If it is the only failure, rerun `npx vitest run tests/modules/hygiene/hookScript.test.ts` alone: it must pass (22 tests).
 
 - [ ] **Step 2: Freeze a copy of the real logs** (background; the Claude folder can be several GB)
@@ -4077,7 +4077,7 @@ edit("CHANGELOG.md", [
   ["## [1.7.1] - 2026-10-11", `## [1.7.1] - ${day}`],
   [
     "not only those since the previous reading.\n",
-    `not only those since the previous reading.\n- Test count: 1,996 to ${pretty} (\`npx vitest run\`, which includes the 19 e2e tests).\n`,
+    `not only those since the previous reading.\n- Test count: 1,996 to ${pretty} (\`npx vitest run\`, which includes the 20 e2e tests).\n`,
   ],
 ]);
 console.log(`v1.7.1, ${pretty} tests, ${day}`);
