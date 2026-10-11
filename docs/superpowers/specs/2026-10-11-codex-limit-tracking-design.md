@@ -30,8 +30,9 @@ with zero network calls:
 - 1,149 readings. `used_percent` is always a whole number (1% resolution). Window lengths
   seen: 10,080 min (weekly) and 43,200 min (30-day); other plans also have 300 min (5-hour).
   `secondary` was always `null` on this plan; 3 readings had `primary: null`.
-- `resets_at` (epoch seconds) drifts between readings of the same period: exact on the weekly
-  window, up to about 72 minutes on the 30-day window.
+- `resets_at` (epoch seconds) drifts between readings of the same period by at most about a
+  minute. Larger jumps (76 and 129 minutes on the 30-day window) are early resets: the limit
+  read 100%, then about 5% with a later reset time.
 - Within one period `used_percent` never decreased in the weekly window; the 30-day window had 7
   decreases (period boundaries the old grouping missed, or concurrent sessions reporting
   slightly different values), so grouping must not assume monotonic readings.
@@ -56,7 +57,7 @@ What used your weekly limit (since Tue 7 Oct)
 
 Tokens per 1% of your weekly limit (gpt-5.4)
   Mar 28: 425K   Apr 1: 357K   Apr 13: 80K
-  Possible limit cut around Apr 13: 4.5x fewer tokens per 1%.
+  Possible limit cut around Apr 13: 5.0x fewer tokens per 1%.
   Limits cover your whole account. Codex use on other devices or in the cloud
   is not in these logs and can look like a cut.
 ```
@@ -113,7 +114,8 @@ Pure functions plus one command; each unit testable alone.
    readings by time across files. Key = `limitId + windowMinutes`. A reading starts a new
    period when its `resetsAt` differs from the current period's by more than the drift
    tolerance (the larger of 15 minutes and 1% of the window: 15 min for 5-hour, about 1.7 h for
-   weekly, 7.2 h for 30-day; real 30-day readings drift by about 72 minutes), or
+   weekly, 7.2 h for 30-day), or when its `resetsAt` is more than 15 minutes later AND its
+   percent is below the running maximum (an early reset; see Amendments), or
    when its time is past the current period's `resetsAt`. Within a period the percent is the
    running maximum (a lower value from a concurrent session never lowers it). Period start =
    `resetsAt − windowMinutes`.
@@ -163,7 +165,7 @@ usage cache are reused unchanged.
       "usedBy": [{ "sessionId": "…", "project": "…", "percent": 19, "tokens": 3100000 }],
       "unattributedPercent": 0,
       "tokensPerPercent": [{ "model": "gpt-5.4", "periodStart": "…", "tokensPerPercent": 425000 }],
-      "possibleCut": { "at": "2026-04-13", "factor": 4.5 }
+      "possibleCut": { "at": "2026-04-13", "factor": 5.0 }
     }
   ]
 }
@@ -195,3 +197,25 @@ usage cache are reused unchanged.
 - **Log format is not a stable interface.** Unknown fields ignored; missing windows skipped.
 - **Model weighting.** OpenAI may weigh models differently against limits; comparisons stay
   within one model.
+
+## Amendments (approved 2026-10-11, after testing the plan on real logs)
+
+1. **Early resets start a new period.** A reading whose `resetsAt` is more than 15 minutes
+   later than the current period's and whose percent is below the running maximum starts a new
+   period. Without this, three 30-day fills merged into one and tokens per 1% came out about 3x
+   too high. The 30-day window has 5 periods on the real data, not 3.
+2. **A rise is shared by the requests since the previous rise**, not since the previous reading.
+   Older Codex refreshes the limit only when a turn starts, so a rise is logged after the
+   requests that caused it. Under the original rule all real weekly usage showed as
+   unattributed; with this rule 60 of 60%, 100 of 100% and 89 of 92% are attributed.
+3. **Finished period:** its `resetsAt` is before the newest reading of any window (otherwise
+   the last weekly period, Apr 13, could never be compared).
+4. **Cut factor** = baseline median ÷ the flagged period's tokens per 1% (5.0x on real data).
+5. **JSON** adds `periodCount` per window (needed by the independent check);
+   `codex-auto-review` appears in `usedBy` as `sessionId: "codex-auto-review"`; with no
+   readings `--json` prints `windows: []`, exit 0.
+6. **today line** goes in the Codex section; "closest to running out" = a reached limit first,
+   then the earliest run-out time, else the highest percent; ties go to the shorter window.
+
+The implementation plan (docs/superpowers/plans/2026-10-11-codex-limit-tracking.md) has the
+exact rules.
