@@ -82,6 +82,14 @@ describe("sipcode limits: empty and error states", () => {
     }
   });
 
+  it("the E009 why line names the agent that was asked for", async () => {
+    const cursor = await run({ agent: "cursor" }, weeklyFs());
+    expect(cursor.err).toContain("why: limits are recorded only by Codex. Cursor's logs do not record them.");
+    expect(cursor.err).not.toContain("Claude Code");
+    const claude = await run({ agent: "claude-code" }, weeklyFs());
+    expect(claude.err).toContain("why: limits are recorded only by Codex. Claude Code's logs do not record them.");
+  });
+
   it("--agent codex and --agent auto read Codex", async () => {
     for (const agent of ["codex", "auto"]) {
       const r = await run({ agent, json: true }, weeklyFs());

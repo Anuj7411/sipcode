@@ -246,11 +246,12 @@ export const MESSAGES = {
 
   // ---- Codex limits (v1.7.1) ----
 
-  limitsCodexOnly: () =>
+  /** `agentName`: display name of the agent --agent asked for ("Claude Code", "Cursor"). */
+  limitsCodexOnly: (agentName: string) =>
     [
       `[E009] sipcode limits reads Codex limits only.`,
       ``,
-      `why: limits are recorded only by Codex. Claude Code's logs do not record them.`,
+      `why: limits are recorded only by Codex. ${agentName}'s logs do not record them.`,
       ``,
       `fix: run it without --agent, or with --agent codex.`,
       ``,

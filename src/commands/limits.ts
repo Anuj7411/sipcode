@@ -61,7 +61,7 @@ export async function runLimits(opts: LimitsOptions = {}, deps: LimitsDeps = {})
     return { exitCode: 1 };
   }
   if (agent.selector !== "auto" && agent.selector !== "codex") {
-    stderr(MESSAGES.limitsCodexOnly());
+    stderr(MESSAGES.limitsCodexOnly(getAgentById(agent.selector).displayName));
     return { exitCode: 1 };
   }
   const now = clock.now();
