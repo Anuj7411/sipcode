@@ -19,21 +19,27 @@ export interface CodexReadings {
   readonly malformed: number;
 }
 
+/** Rollouts read at once. Small, so a few large logs never sit in memory together. */
+const READ_AHEAD = 4;
+
 export async function loadCodexReadings(deps: AgentDeps): Promise<CodexReadings> {
   const readings: LimitReading[] = [];
   let malformed = 0;
   const found = await discoverAgentSessions(getAgentById("codex"), deps);
   if (!found.ok) return { readings, malformed };
-  for (const meta of found.value.sessions) {
-    let text: string;
-    try {
-      text = await deps.fs.readFile(meta.filePath);
-    } catch {
-      continue;
-    }
-    const scan = scanCodexRateLimits(text, { sessionId: meta.sessionId });
-    for (const r of scan.readings) readings.push(r);
-    malformed += scan.malformed;
+  // Up to READ_AHEAD files are read at once (`today` waits on this scan);
+  // they are scanned in discovery order, so the result never depends on timing.
+  const sessions = found.value.sessions;
+  for (let i = 0; i < sessions.length; i += READ_AHEAD) {
+    const batch = sessions.slice(i, i + READ_AHEAD);
+    const texts = await Promise.all(batch.map((m) => deps.fs.readFile(m.filePath).catch(() => undefined)));
+    batch.forEach((meta, j) => {
+      const text = texts[j];
+      if (text === undefined) return;
+      const scan = scanCodexRateLimits(text, { sessionId: meta.sessionId });
+      for (const r of scan.readings) readings.push(r);
+      malformed += scan.malformed;
+    });
   }
   return { readings, malformed };
 }
