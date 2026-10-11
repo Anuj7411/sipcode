@@ -63,6 +63,7 @@ const PKG_JSON = JSON.parse(
 const EXPECTED_VERSION = PKG_JSON.version;
 
 let installDir: string;
+let packDir: string;
 let tarballPath: string;
 let sipcodeBin: string;     // .cmd / symlink — existence-checked, not spawned
 let sipcodeMcpBin: string;  // .cmd / symlink — existence-checked, not spawned
@@ -71,17 +72,20 @@ let sipcodeMcpJs: string;   // direct JS entry — what we spawn (no shell)
 let pkgRoot: string;        // node_modules/sipcode/
 
 beforeAll(async () => {
-  // 1. npm pack — produce the exact tarball that would be published
+  // 1. npm pack — produce the exact tarball that would be published.
+  // Pack into a fresh temp dir, never the repo root: a sipcode-<version>.tgz
+  // kept there (e.g. a release artifact) must not be overwritten or deleted.
+  packDir = mkdtempSync(path.join(tmpdir(), "sipcode-pack-"));
   const pack = spawnSync(
     process.execPath,
-    [NPM_CLI_JS, "pack", "--silent"],
+    [NPM_CLI_JS, "pack", "--silent", "--pack-destination", packDir],
     { cwd: REPO_ROOT, encoding: "utf-8" },
   );
   if (pack.status !== 0) {
     throw new Error(`npm pack failed: ${pack.stderr}`);
   }
-  const tarballName = pack.stdout.trim().split(/\r?\n/).pop()!;
-  tarballPath = path.join(REPO_ROOT, tarballName);
+  const tarballName = path.basename(pack.stdout.trim().split(/\r?\n/).pop()!);
+  tarballPath = path.join(packDir, tarballName);
   if (!existsSync(tarballPath)) {
     throw new Error(`tarball not found at ${tarballPath}`);
   }
@@ -122,12 +126,20 @@ afterAll(() => {
   if (installDir && existsSync(installDir)) {
     rmSync(installDir, { recursive: true, force: true });
   }
-  if (tarballPath && existsSync(tarballPath)) {
-    rmSync(tarballPath, { force: true });
+  if (packDir && existsSync(packDir)) {
+    rmSync(packDir, { recursive: true, force: true });
   }
 });
 
 describe("release smoke — tarball contents", () => {
+  it("packs into its own temp directory, never the repo root", () => {
+    // A sipcode-<version>.tgz in the repo root may be a release artifact
+    // the maintainer kept; the smoke test must not overwrite or delete it.
+    const rel = path.relative(REPO_ROOT, tarballPath);
+    expect(rel.startsWith("..") || path.isAbsolute(rel)).toBe(true);
+    expect(path.dirname(tarballPath)).toBe(packDir);
+  });
+
   it("tarball exists with reasonable size (100KB-10MB)", () => {
     const stats = statSync(tarballPath);
     expect(stats.size).toBeGreaterThan(100_000);
