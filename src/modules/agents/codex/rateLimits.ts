@@ -48,8 +48,16 @@ const text = (v: unknown): string | undefined => (typeof v === "string" && v.len
 export function scanCodexRateLimits(content: string, meta: { readonly sessionId: string }): RateLimitScan {
   const readings: LimitReading[] = [];
   let malformed = 0;
-  for (const raw of content.split(/\r?\n/)) {
-    if (!raw.includes('"rate_limits"')) continue;
+  // Jump from one "rate_limits" to the next instead of splitting every line
+  // (`today` scans all rollouts for its limit line; most lines have none).
+  const NEEDLE = '"rate_limits"';
+  let pos = 0;
+  for (let hit = content.indexOf(NEEDLE); hit !== -1; hit = content.indexOf(NEEDLE, pos)) {
+    const start = content.lastIndexOf("\n", hit) + 1;
+    const nl = content.indexOf("\n", hit);
+    const end = nl === -1 ? content.length : nl;
+    pos = end + 1;
+    const raw = content.charCodeAt(end - 1) === 13 ? content.slice(start, end - 1) : content.slice(start, end);
     let line: unknown;
     try {
       line = JSON.parse(raw);

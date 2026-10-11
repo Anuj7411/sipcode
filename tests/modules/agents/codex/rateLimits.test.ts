@@ -20,6 +20,19 @@ const win = (used_percent: number, window_minutes: number, resetsIso: string) =>
 const T = "2026-10-07T10:00:00.000Z";
 
 describe("scanCodexRateLimits", () => {
+  it("reads every reading line: LF, CRLF, the first line and a last line with no newline", () => {
+    const reading = (p: number) => tokenCount(T, { limit_id: "codex", primary: win(p, 300, "2026-10-07T14:00:00.000Z"), secondary: null });
+    const other = JSON.stringify({ timestamp: T, type: "turn_context", payload: {} });
+    const content = [reading(1), other, reading(2), reading(3)].join("\r\n") + "\n" + other + "\n" + reading(4);
+    const r = scanCodexRateLimits(content, { sessionId: "s1" });
+    expect(r.malformed).toBe(0);
+    expect(r.readings.map((x) => x.usedPercent)).toEqual([1, 2, 3, 4]);
+    // A damaged reading line next to good ones is counted once, the rest still read.
+    const broken = scanCodexRateLimits([reading(5), '{"rate_limits":', reading(6)].join("\n"), { sessionId: "s1" });
+    expect(broken.readings.map((x) => x.usedPercent)).toEqual([5, 6]);
+    expect(broken.malformed).toBe(1);
+  });
+
   it("returns one reading per non-null window, times in ms", () => {
     const content = [
       JSON.stringify({ timestamp: "2026-10-07T09:00:00.000Z", type: "session_meta", payload: { id: "s1" } }),
