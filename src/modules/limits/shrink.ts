@@ -2,8 +2,9 @@
  * How many tokens 1% of a limit bought, per finished period, with a cautious
  * "possible limit cut" flag. Pure.
  *
- * A period is comparable when it finished (its reset time is before the
- * newest reading), started inside --since, had at least 20% used, and at
+ * A period is comparable when it finished (a later period of the window
+ * exists, which an early reset can start before the reset time, or its reset
+ * time is before the newest reading of any window), started inside --since, had at least 20% used, and at
  * least 90% of its tokens came from one model, which names the period.
  * Tokens per 1% = tokens of the period's requests ÷ percent used.
  * A period is flagged when its tokens per 1% is at most half the median of at
@@ -56,8 +57,10 @@ export function tokensPerPercent(
   opts: { readonly asOf: number; readonly sinceMs: number },
 ): ShrinkSeries {
   const points: TokensPerPercentPoint[] = [];
+  const last = window.periods[window.periods.length - 1];
   for (const p of window.periods) {
-    if (p.resetsAt >= opts.asOf || p.startedAt < opts.sinceMs || p.usedPercent < MIN_USED_PERCENT) continue;
+    const finished = p !== last || p.resetsAt < opts.asOf;
+    if (!finished || p.startedAt < opts.sinceMs || p.usedPercent < MIN_USED_PERCENT) continue;
     const byModel = new Map<string, number>();
     let total = 0;
     for (const r of requestsInPeriod(p, requests)) {

@@ -81,6 +81,17 @@ describe("tokensPerPercent", () => {
     expect(s.points.map((p) => p.periodStart)).toEqual([W0 + 3 * WEEK]);
   });
 
+  it("a period followed by a later one is finished, even when its reset time is still ahead (early reset)", () => {
+    // Early resets: each period ended before its reset time, so resetsAt is after every reading.
+    const far = W0 + 100 * WEEK;
+    const weeks = [0, 1, 2].map((n) => {
+      const w = week(n, 50, { "gpt-5.4": 20_000_000 });
+      return { ...w, period: { ...w.period, resetsAt: far } };
+    });
+    const s = series(weeks, { asOf: W0 + 2 * WEEK + 2 * H });
+    expect(s.points.map((p) => p.periodStart)).toEqual([W0, W0 + WEEK]);
+  });
+
   it("a period with 90% of its tokens from one model counts, named after that model", () => {
     const s = series([week(0, 50, { "gpt-5.4": 18_000_000, "codex-auto-review": 2_000_000 })]);
     expect(s.points).toEqual([{ model: "gpt-5.4", periodStart: W0, tokensPerPercent: 400_000 }]);
