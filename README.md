@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/anuj7411-sipcode-badge.png)](https://mseep.ai/app/anuj7411-sipcode)
+
 <p align="center">
   <a href="https://anuj7411.github.io/sipcode/" aria-label="Sipcode">
     <img src="https://raw.githubusercontent.com/Anuj7411/sipcode/main/docs/brand/icon/icon-color.png" alt="Sipcode" width="120" />
