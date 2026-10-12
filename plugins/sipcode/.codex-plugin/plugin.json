@@ -1,0 +1,32 @@
+{
+  "name": "sipcode",
+  "version": "1.7.2",
+  "description": "Ask about your Codex usage in plain words: spend, usage limits, why a session was expensive, and whether Codex or Claude Code got worse after an update. Runs the Sipcode CLI on this computer, which reads your local Codex and Claude Code logs and makes no network calls.",
+  "author": {
+    "name": "Anuj Ojha",
+    "url": "https://github.com/Anuj7411"
+  },
+  "homepage": "https://anuj7411.github.io/sipcode/",
+  "repository": "https://github.com/Anuj7411/sipcode",
+  "license": "MIT",
+  "keywords": ["codex", "usage", "limits", "tokens", "spend", "regression"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Sipcode",
+    "shortDescription": "Spend, limits and regressions",
+    "longDescription": "Sipcode answers questions about your own Codex use from the logs Codex already writes on this computer: how much you spent today or this month (at API prices), how close you are to your usage limits and whether a limit may have shrunk, why a session used so many tokens, and whether Codex or Claude Code got worse after an update. Each answer comes from the Sipcode command-line tool (npm package sipcode), which reads the logs locally and makes no network calls. Install it once with npm i -g sipcode.",
+    "developerName": "Anuj Ojha",
+    "category": "Developer Tools",
+    "capabilities": ["Read"],
+    "websiteURL": "https://anuj7411.github.io/sipcode/",
+    "privacyPolicyURL": "https://github.com/Anuj7411/sipcode/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "How much did I spend on Codex this month?",
+      "How close am I to my Codex usage limit?",
+      "Did Codex or Claude Code get worse after an update?"
+    ],
+    "brandColor": "#5B4FCF",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}

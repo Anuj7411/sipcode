@@ -1,0 +1,20 @@
+{
+  "name": "sipcode",
+  "interface": {
+    "displayName": "Sipcode"
+  },
+  "plugins": [
+    {
+      "name": "sipcode",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sipcode"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
