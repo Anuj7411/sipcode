@@ -199,6 +199,7 @@ describe("release smoke — sipcode CLI binary", () => {
       "hygiene",
       "benchmark",
       "limits",
+      "regress",
     ]) {
       expect(r.stdout).toContain(cmd);
     }

@@ -185,6 +185,19 @@ program
   });
 
 program
+  .command("regress")
+  .description("Did Claude Code or Codex get worse after an update? Compares each version with your other versions, from your local logs.")
+  .option("--json", "machine-readable output")
+  .option("--bug-report", "add a GitHub-issue-ready evidence block (token counts only)")
+  .option("--min-n <n>", "minimum requests per version a check needs", "20")
+  .option("--agent <id>", "claude-code | codex | auto (both, the default)")
+  .action(async (opts) => {
+    const { runRegress } = await import("./commands/regress.js");
+    const r = await runRegress(opts, { version: pkg.version });
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("trend")
   .description("Track ONE metric over time (output ratio, cost/session, recoverable tokens) — answers 'is this getting better?'.")
   .option("--metric <name>", "output-ratio | cost-per-session | recoverable-tokens-per-session", "output-ratio")
