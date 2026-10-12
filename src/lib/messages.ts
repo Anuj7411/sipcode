@@ -262,6 +262,43 @@ export const MESSAGES = {
 
   limitsMalformed: (n: number) => `note: ${n} Codex limit reading(s) could not be read and were skipped.`,
 
+  // ---- regress (v1.7.2) ----
+
+  regressCursor: [
+    `[E009] sipcode regress reads Claude Code and Codex logs only.`,
+    ``,
+    `why: Sipcode does not read Cursor's session logs.`,
+    ``,
+    `fix: run it without --agent, or with --agent claude-code or --agent codex.`,
+    ``,
+    `next: npx sipcode regress`,
+  ].join("\n"),
+
+  regressBadMinN: (raw: string) =>
+    [
+      `[E010] couldn't parse --min-n "${raw}".`,
+      ``,
+      `why: --min-n wants a whole number from 1 to 1000 (requests per version a check needs).`,
+      ``,
+      `fix: try --min-n 20 (the default).`,
+      ``,
+      `next: npx sipcode regress --min-n 20`,
+    ].join("\n"),
+
+  regressUnreadable: (n: number, claudeDir: string, codexDir: string) =>
+    `WARNING: ${n} log file(s) or folder(s) could not be read. Results cover only what was readable. If this runs inside a sandbox (for example Codex), allow read access to ${claudeDir} and ${codexDir} and run it again.`,
+
+  regressNothingToAnalyse:
+    "Nothing to analyse: no Claude Code or Codex requests could be read. This is NOT a clean result.",
+
+  regressNoFindings: "No regressions detected in your logs.",
+
+  regressNotEnoughData: (minN: number) =>
+    `Not enough data to compare versions yet: Claude Code needs 2 versions with ${minN} or more requests each, Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window. This is not a clean result.`,
+
+  regressSignalNotProof:
+    "A finding that is not in the known-issue catalog is a signal worth reporting, not proof of a bug.",
+
   codexNotSupportedYet: (command: string) =>
     [
       `[E009] sipcode ${command} is not supported for Codex yet.`,
