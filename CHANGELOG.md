@@ -8,7 +8,24 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.7.1]._
+_Nothing landed since [1.7.2]._
+
+## [1.7.2] - 2026-10-12
+
+Ask Codex about your usage in plain words with the new Sipcode plugin, and check whether a Claude Code or Codex update made things worse with `sipcode regress`.
+
+### Added
+- **`sipcode regress`.** Checks your own Claude Code and Codex logs for regressions and pins each one to the version that brought it, comparing each version with your other versions: prompt-cache misses on back-to-back turns, a cache that stays cold after an idle break, main-conversation cache written with the 5-minute TTL, large uncached input after tool results, the whole cache rebuilt about every hour, and a Codex version using more of your limit per token than your other versions on the same plan and window. Findings that match a confirmed regression (R1 to R5) say so; others are a signal worth reporting, not proof. `--bug-report` adds a GitHub-ready block (token counts only), `--json`, `--agent`, `--min-n` (default 20). Exit code 2 and "Nothing to analyse ... This is NOT a clean result." when no logs could be read.
+- **Sipcode plugin for Codex** (`plugins/sipcode`, marketplace in `.agents/plugins/marketplace.json`): four skills that answer "how much did I spend", "how close am I to my limit", "why was that session expensive" and "did it get worse after an update" by running the installed `sipcode` CLI. Add it with `codex plugin marketplace add Anuj7411/sipcode` or from the ChatGPT desktop app's Plugins screen. Skills only: no hooks, no MCP server, no network calls.
+- **Independent check:** `scripts/verify-counts.mjs` recomputes every `regress --json` number (coverage, the five Claude Code tables, the Codex table, the findings) from the raw logs without Sipcode code. All match on the maintainer's logs.
+
+### Changed
+- Period commands now also note Claude Code log folders they could not read (they already did for Codex).
+- The usage cache stores each Claude Code request's version, entrypoint and two flags, so `regress` reuses it; the cache is rebuilt once after the update.
+
+### Notes
+- `regress` is not an MCP tool: a first run reads every transcript and can take longer than the MCP time limit. The MCP server still has 16 tools.
+- Test count: 2,108 to 2,201 (`npx vitest run`, which includes the 20 e2e tests).
 
 ## [1.7.1] - 2026-10-12
 

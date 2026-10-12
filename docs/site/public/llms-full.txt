@@ -201,7 +201,7 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 ### Does it work with Cursor or other AI tools?
 
-The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
+The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. Inside Codex, the Sipcode plugin (`codex plugin marketplace add Anuj7411/sipcode`, then install Sipcode) answers spend, limit, why-expensive and regression questions by running the installed `sipcode` CLI (`npm i -g sipcode` once). For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
 
 ### How do I uninstall?
 
@@ -221,6 +221,7 @@ npm uninstall -g sipcode
 | `sipcode today` | Today's spend summary |
 | `sipcode forecast` | Month-end spend projection |
 | `sipcode limits` | Codex usage limits: when you run out at this pace, what used them, tokens per 1% over time |
+| `sipcode regress` | Did Claude Code or Codex get worse after an update? Each version against your other versions |
 | `sipcode impact` | Before vs after Sipcode comparison |
 | `sipcode why` | Per-session forensics |
 | `sipcode score` | Audit a repo for AI-friendliness |

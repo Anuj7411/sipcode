@@ -146,7 +146,7 @@ projected month-end   $17,674   (range $14,139 to $21,208)
 
 Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.codex/archived_sessions`, or the folder `CODEX_HOME` points to). For Codex this is spend analytics and usage limits: Sipcode reports what your Codex sessions used, where the tokens went, and how close you are to your plan's limits. It does not change what Codex does.
 
-**Commands that read Codex:** `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` and `limits` (Codex only), plus the session tools in the MCP server (they take an optional `agent` input: `"claude-code"` or `"codex"`) and `get_codex_limits`.
+**Commands that read Codex:** `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift`, `regress` and `limits` (Codex only), plus the session tools in the MCP server (they take an optional `agent` input: `"claude-code"` or `"codex"`) and `get_codex_limits`.
 
 - `--agent codex` shows Codex only. `--agent claude-code` shows Claude Code only.
 - With no `--agent` flag and both tools installed, `stats`, `today`, `forecast`, `trend` and `impact` print one section per tool. `stats`, `today` and `forecast` end with one combined line, in this shape:
@@ -198,6 +198,55 @@ Tokens per 1% of your weekly limit (gpt-5.4)
 - `sipcode today` adds one line for the Codex limit closest to running out, when Codex has logged limit readings. `today --json` is unchanged.
 - MCP: `get_codex_limits` (optional `since`) returns the same JSON as `sipcode limits --json`.
 - Claude Code's logs do not record limits, so `limits --agent claude-code` stops with error E009.
+
+### Did it get worse after an update? `sipcode regress`
+
+`sipcode regress` checks your own Claude Code and Codex logs for regressions that arrive with an update, and names the version that brought each one. Each version is compared with your other versions, so no outside baseline is needed, and nothing leaves your machine.
+
+```
+sipcode regress · local only, no network
+Claude Code: 27,671 interactive requests in 42 sessions (710 subagent and Agent SDK requests left out of the comparison), 2026-05-04 to 2026-10-12, versions 2.1.121 to 2.1.295
+Known-regression windows your logs cover: R1, R4, R5
+Codex: 930 requests in 15 sessions, 2026-03-28 to 2026-10-08, versions 0.118.0 to 0.162.0, 3 version/model groups with enough limit data
+
+No regressions detected in your logs.
+```
+
+| Check | What it looks for | Confirmed regression it catches |
+|---|---|---|
+| `warm-cache-miss` | back-to-back requests (under 5 minutes apart) that re-write most of the context | R2: `--resume` prompt-cache miss (2.1.69 to 2.1.89) |
+| `post-idle-cold` | the cache staying cold for the next requests after a break of an hour or more | R3: thinking history cleared after an idle hour (2.1.85 to 2.1.100) |
+| `ttl-5m` | main-conversation cache written with the 5-minute TTL instead of 1 hour | R4: 1-hour cache TTL downgraded to 5 minutes (fixed in 2.1.129) |
+| `uncached-input` | large uncached input on requests right after a tool result | R1: Fable 5.1 tool context re-sent uncached (2.1.257 to 2.1.259) |
+| `hourly-rebuild` | the whole prompt cache rebuilt about every hour | R5: OAuth refresh rebuilt the cache hourly (fixed in 2.1.248) |
+| `codex-limit-burn` | a Codex version using more of your limit per token than your other versions on the same plan and window | none in the catalog |
+
+- A finding outside the known catalog is a signal worth reporting, not proof of a bug. A Codex finding could also be a limit change on your plan at the same time, and Codex on your other devices or in the cloud shares the same limit.
+- Subagent and Agent SDK requests are left out: their cache policy differs by design.
+- `--bug-report` adds a block to paste into a GitHub issue: token counts, versions, dates and short session ids only. Review it before posting.
+- `--json` for scripts, `--agent claude-code` or `--agent codex` for one tool, `--min-n <n>` for the minimum requests per version a check needs (default 20).
+- If no logs can be read (for example a sandbox blocks the folders), it prints "Nothing to analyse ... This is NOT a clean result." and exits with code 2. With too little data it says "Not enough data to compare versions yet".
+- An independent counter that shares no code with Sipcode ([`scripts/verify-counts.mjs`](scripts/verify-counts.mjs)) recomputes the coverage, every check's table and the findings of `regress --json` from the same logs.
+
+### Use Sipcode inside Codex
+
+The Sipcode plugin lets you ask Codex (the ChatGPT desktop app or the Codex CLI) about your own usage in plain words. Each answer comes from the `sipcode` CLI on your computer, reading your local logs.
+
+1. Install Sipcode once: `npm i -g sipcode` (Node.js 20 or newer). The plugin runs the installed `sipcode`; it does not use `npx`, because Codex's sandbox usually blocks downloads.
+2. Add the plugin:
+   - Run `codex plugin marketplace add Anuj7411/sipcode` once in a terminal.
+   - Codex CLI: open `/plugins` in Codex, choose the Sipcode marketplace and install **Sipcode**, then start a new session.
+   - ChatGPT desktop app: restart the app, open **Plugins**, choose the Sipcode marketplace as the source and install **Sipcode**, then start a new chat.
+3. Ask:
+
+| Ask | Sipcode runs |
+|---|---|
+| "How much did I spend on Codex this month?" | `sipcode forecast --agent codex --json` (also `today` and `stats`) |
+| "How close am I to my Codex limit? Did it shrink?" | `sipcode limits --json` |
+| "Why was my last Codex session so expensive?" | `sipcode why --agent codex --json` |
+| "Did Codex or Claude Code get worse after an update?" | `sipcode regress --bug-report` |
+
+If Codex's sandbox blocks `~/.codex` or `~/.claude`, the plugin asks for permission to run the command with read access instead of reporting an empty result. Dollar figures are at API prices; on a ChatGPT plan you are not billed per token. The plugin is instructions only (four skills): no hooks, no MCP server, no network calls. Update it with `codex plugin marketplace upgrade sipcode`.
 
 ---
 
@@ -322,6 +371,8 @@ After updating, confirm with `sipcode --version` and see what changed in the [CH
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
 | Spend telemetry | Daily, monthly, projected. All from your own transcripts (Claude Code and Codex), no cloud upload |
 | Codex limits | When you will hit your Codex limit, what used it, and whether it may have shrunk |
+| Regression check | Whether a Claude Code or Codex update changed cache or limit behaviour, pinned to the version |
+| Codex plugin | Ask Codex about your spend, limits and regressions in plain words |
 | Task cost estimation | Predicts what a coding task will cost across Opus, Sonnet, and Haiku before you run it |
 | Codebase health score | Rates your repo 0-100 on how easy it is for an AI agent to work in |
 | MCP server | 16 tools registered for Claude Desktop, so you can ask Claude itself about your usage |
@@ -351,7 +402,7 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 ### Does it work with Cursor or other AI tools?
 
-The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift`); see [Codex](#codex) for what works and what is not supported for Codex yet. For Cursor, `sipcode rules --agent cursor` writes the output-compression rules to Cursor's rules file; Cursor's session logs are not read.
+The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift`); see [Codex](#codex) for what works and what is not supported for Codex yet. Inside Codex itself, the Sipcode plugin answers spend, limit and regression questions (see [Use Sipcode inside Codex](#use-sipcode-inside-codex)). For Cursor, `sipcode rules --agent cursor` writes the output-compression rules to Cursor's rules file; Cursor's session logs are not read.
 
 ### How do I update?
 
@@ -387,6 +438,7 @@ npm uninstall -g sipcode
 | `sipcode stats` | Cumulative token savings across all sessions (`--html` writes `.sipcode/stats.html` for Claude Code and `.sipcode/stats-codex.html` for Codex) |
 | `sipcode forecast` | Month-end spend projection from your last 14 days |
 | `sipcode limits` | Codex usage limits: when you run out at this pace, what used them, tokens per 1% over time |
+| `sipcode regress` | Did Claude Code or Codex get worse after an update? Each version against your other versions |
 | `sipcode trend` | Track one metric over time, to see if it's getting better |
 | `sipcode why` | Per-session forensics: where your tokens died |
 | `sipcode impact` | A/B compare your spend before vs after Sipcode |
