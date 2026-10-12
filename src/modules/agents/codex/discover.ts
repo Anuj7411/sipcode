@@ -137,6 +137,7 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
       cwd: m.cwd,
       ...(m.isSubagent ? { isSubagent: true } : {}),
       ...(m.id ? { lineage: { id: m.id, linkedIds: m.linkedIds } } : {}),
+      ...(m.cliVersion ? { cliVersion: m.cliVersion } : {}),
     });
   }
   sessions.sort((a, b) => b.mtimeMs - a.mtimeMs);

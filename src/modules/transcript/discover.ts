@@ -33,6 +33,8 @@ export interface SessionMeta {
    * each other's requests (loadSessions' copy candidates).
    */
   readonly lineage?: { readonly id: string; readonly linkedIds: readonly string[] } | undefined;
+  /** Codex: the `cli_version` line 1 records (the Codex version that wrote the file). */
+  readonly cliVersion?: string | undefined;
 }
 
 export function resolveProjectsDir(env: ProcessEnv): string {
