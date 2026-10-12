@@ -109,14 +109,18 @@ function useLine(left: string, percent: number, tokens?: number): string {
 }
 
 /** The name column is 16 wide, or wider so a long name still lines up. */
-function windowRow(w: WindowReport, now: number, nameWidth: number): string {
+function windowRow(w: WindowReport, now: number, asOf: number, nameWidth: number): string {
   const name = limitName(w.label, w.limitId).padEnd(nameWidth);
   const used = `${Math.round(w.period.usedPercent)}% used`.padEnd(11);
   const resets = formatWhen(w.period.resetsAt, now);
   const p = w.projection;
   switch (p.kind) {
     case "reset-since":
-      return `${name}reset since your last Codex request (at ${resets})`;
+      // A reset before the newest reading of any window means this window simply has not been
+      // reported since; "since your last Codex request" would be wrong there.
+      return w.period.resetsAt < asOf
+        ? `${name}no readings since it reset (${resets})`
+        : `${name}reset since your last Codex request (at ${resets})`;
     case "reached":
       return `${name}${used}limit reached, resets ${resets}`;
     case "too-early":
@@ -185,7 +189,7 @@ export function formatLimitsTerminal(report: LimitsReport, now: Date): string {
     `as of ${formatAgo(report.asOf, n)} (your last Codex request)`,
   ].join(" · ");
   const nameWidth = Math.max(16, ...report.windows.map((w) => limitName(w.label, w.limitId).length + 2));
-  const lines = [head, "", ...report.windows.map((w) => windowRow(w, n, nameWidth))];
+  const lines = [head, "", ...report.windows.map((w) => windowRow(w, n, report.asOf, nameWidth))];
   for (const w of report.windows) lines.push(...usedBySection(w), ...shrinkSection(w));
   return lines.join("\n");
 }

@@ -97,7 +97,9 @@ New tool `get_codex_limits` (optional `since`), returning the same JSON as
 - No Codex installed, or no readings: `no Codex limit readings found yet (Codex records them
   after each request).` exit 0.
 - Newest reading's `resets_at` already passed: the window shows `reset since your last Codex
-  request (at <time>)` instead of a stale percentage, and no run-out estimate.
+  request (at <time>)` instead of a stale percentage, and no run-out estimate. When that reset
+  is also before the newest reading of any window (the window simply stopped being reported),
+  it shows `no readings since it reset (<time>)` instead (approved 2026-10-12).
 - Less than 1 hour from the period start to now (or to the newest reading, if later): `not enough
   data yet for a pace`.
 - At 100%: `limit reached, resets <time>`.

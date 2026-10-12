@@ -255,7 +255,7 @@ describe("formatLimitsTerminal", () => {
         "",
         "5-hour limit    3% used    resets Fri 9 Oct 14:00    not enough data yet for a pace",
         "Weekly limit    100% used  limit reached, resets Wed 14 Oct 14:00",
-        "30-day limit    reset since your last Codex request (at Mon 20 Apr)",
+        "30-day limit    no readings since it reset (Mon 20 Apr)",
       ].join("\n"),
     );
   });
