@@ -8,7 +8,7 @@
 import path from "node:path";
 import {
   cwdToProjectHash,
-  listAllSessions,
+  listClaudeSessions,
   resolveProjectsDir,
   type SessionMeta,
 } from "../../transcript/discover.js";
@@ -25,6 +25,7 @@ import type {
   AgentRulesRead,
   AgentRulesWrite,
   RulesBlockInput,
+  SessionDiscovery,
   WriteFile,
 } from "../types.js";
 
@@ -40,10 +41,9 @@ export const claudeCodeAgent: Agent = {
 
   async discoverSessions(
     deps: AgentDeps,
-  ): Promise<Result<SessionMeta[], SipcodeIssue[]>> {
-    const projectsDir = resolveProjectsDir(deps.env);
-    const sessions = await listAllSessions(deps.fs, projectsDir);
-    return ok(sessions);
+  ): Promise<Result<SessionDiscovery, SipcodeIssue[]>> {
+    const r = await listClaudeSessions(deps.fs, resolveProjectsDir(deps.env));
+    return ok({ sessions: r.sessions, unreadable: r.unreadable, unreadableFolders: r.unreadableFolders, issues: [] });
   },
 
   parseTranscript(content: string) {

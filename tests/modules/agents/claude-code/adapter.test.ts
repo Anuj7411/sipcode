@@ -96,11 +96,11 @@ describe("claudeCodeAgent", () => {
     expect(await claudeCodeAgent.isInstalled(deps(fs), "/proj")).toBe(false);
   });
 
-  it("discoverSessions returns ok with empty array when projectsDir is missing", async () => {
+  it("discoverSessions returns ok with no sessions and zero counts when projectsDir is missing", async () => {
     const fs = new InMemoryFs();
     const r = await claudeCodeAgent.discoverSessions(deps(fs));
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value).toEqual([]);
+    if (r.ok) expect(r.value).toEqual({ sessions: [], unreadable: 0, unreadableFolders: 0, issues: [] });
   });
 
   it("parseTranscript returns ok for empty content", () => {
