@@ -25,7 +25,7 @@ Ask Codex about your usage in plain words with the new Sipcode plugin, and check
 
 ### Notes
 - `regress` is not an MCP tool: a first run reads every transcript and can take longer than the MCP time limit. The MCP server still has 16 tools.
-- Test count: 2,108 to 2,202 (`npx vitest run`, which includes the 20 e2e tests).
+- Test count: 2,108 to 2,206 (`npx vitest run`, which includes the 20 e2e tests).
 
 ## [1.7.1] - 2026-10-12
 
