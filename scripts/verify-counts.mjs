@@ -40,6 +40,15 @@
 //   reset before the newest reading), 20% or more used, 90% or more of tokens
 //   from one model; a cut is the first period at or below half the median of
 //   2+ earlier ones (same model).
+// - Regress (`regress --json`): Claude Code requests with usage, a `version`
+//   and a model other than <synthetic>; the kept copy is the owner's with the
+//   largest usage; automated = isSidechain or entrypoint sdk-*; 5-minute write
+//   = write - 1h when the nested split was logged; the prototype's five checks
+//   and thresholds (min n 20). Codex: per (line 1 cli_version without
+//   pre-release, model, plan of the period's newest reading, limit, window),
+//   the percent its requests were charged rise by rise (by tokens), per 1M
+//   uncached input + output tokens; groups of 200,000+ such tokens; flagged
+//   at 2x the upper median of the others on the same plan, limit and window.
 import { readFileSync, readdirSync, statSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir, tmpdir } from "node:os";
@@ -147,6 +156,7 @@ function readClaudeFile(text) {
   const requests = [];
   let start;
   let end;
+  let lastUserTool = false;
   for (const line of text.split(/\r?\n/)) {
     if (!line.includes('"assistant"') && !line.includes('"user"')) continue;
     let e;
@@ -163,7 +173,11 @@ function readClaudeFile(text) {
       if (!start || ts < start) start = ts;
       if (!end || ts > end) end = ts;
     }
-    if (e.type !== "assistant") continue;
+    if (e.type !== "assistant") {
+      const c = e.message && typeof e.message === "object" ? e.message.content : undefined;
+      lastUserTool = Array.isArray(c) && c.some((b) => b && typeof b === "object" && b.type === "tool_result");
+      continue;
+    }
     const m = e.message && typeof e.message === "object" ? e.message : {};
     const u = m.usage && typeof m.usage === "object" ? m.usage : undefined;
     const nested = u?.cache_creation && typeof u.cache_creation === "object" ? u.cache_creation : {};
@@ -178,12 +192,27 @@ function readClaudeFile(text) {
     };
     const key =
       typeof m.id === "string" && m.id ? `${m.id}|${typeof e.requestId === "string" ? e.requestId : ""}` : undefined;
+    const split = !!(u?.cache_creation && typeof u.cache_creation === "object");
     const prev = key ? byKey.get(key) : undefined;
     if (prev) {
       for (const f of FIELDS) prev[f] = Math.max(prev[f], v[f]);
+      prev.hasUsage ||= !!u;
+      prev.split ||= split;
       continue;
     }
-    const r = { key, model: typeof m.model === "string" ? m.model : undefined, ts, ...v };
+    const r = {
+      key,
+      model: typeof m.model === "string" ? m.model : undefined,
+      ts,
+      ...v,
+      // regress: the request's tags (its first line wins, like Sipcode).
+      version: typeof e.version === "string" && e.version ? e.version : undefined,
+      entry: typeof e.entrypoint === "string" && e.entrypoint ? e.entrypoint : "?",
+      side: e.isSidechain === true,
+      afterTool: lastUserTool,
+      hasUsage: !!u,
+      split,
+    };
     if (key) byKey.set(key, r);
     requests.push(r);
   }
@@ -348,6 +377,7 @@ function readCodexFile(text) {
       typeof meta.parent_thread_id === "string");
   return {
     metaId: typeof meta?.id === "string" && meta.id ? meta.id : undefined,
+    cliVersion: typeof meta?.cli_version === "string" && meta.cli_version ? meta.cli_version : undefined,
     isSubagent: !!sub,
     requests,
     start,
@@ -867,7 +897,7 @@ function limitWindows(readings) {
       r.at > cur.resetsAt || // past the period's reset time
       (shift > 15 * MIN && r.pct < cur.max) // early reset
     ) {
-      w.periods.push({ resetsAt: r.resetsAt, max: r.pct, first: r.at, newest: r.at, rises: r.pct > 0 ? [{ at: r.at, rise: r.pct }] : [] });
+      w.periods.push({ resetsAt: r.resetsAt, max: r.pct, first: r.at, newest: r.at, plan: r.plan, rises: r.pct > 0 ? [{ at: r.at, rise: r.pct }] : [] });
       continue;
     }
     if (r.pct > cur.max) {
@@ -876,6 +906,7 @@ function limitWindows(readings) {
     }
     cur.resetsAt = r.resetsAt;
     cur.newest = r.at;
+    cur.plan = r.plan;
   }
   for (const w of windows.values())
     w.periods.forEach((p, i) => {
@@ -1021,6 +1052,282 @@ function limitsChecks(codexFiles, pass) {
 }
 
 // ---------------------------------------------------------------------------
+// Regress (`regress --json`)
+// ---------------------------------------------------------------------------
+
+const REGRESS_MIN_N = 20;
+const KNOWN_REGRESSIONS = [
+  { id: "R1", checks: ["uncached-input"], from: "2.1.257", to: "2.1.259" },
+  { id: "R2", checks: ["warm-cache-miss"], from: "2.1.69", to: "2.1.89" },
+  { id: "R3", checks: ["post-idle-cold", "warm-cache-miss"], from: "2.1.85", to: "2.1.100" },
+  { id: "R4", checks: ["ttl-5m"], from: "2.1.0", to: "2.1.128" },
+  { id: "R5", checks: ["hourly-rebuild"], from: "2.1.0", to: "2.1.247" },
+];
+const vparts = (v) => {
+  const p = (v || "0.0.0").split(/[.-]/).slice(0, 3).map((x) => parseInt(x, 10) || 0);
+  while (p.length < 3) p.push(0);
+  return p;
+};
+const vcmp = (a, b) => {
+  const x = vparts(a);
+  const y = vparts(b);
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+};
+const upperMedian = (xs) => (xs.length ? [...xs].sort((a, b) => a - b)[xs.length >> 1] : 0);
+
+/** Claude Code rows per file: requests with usage, a version and a real model, in time order (the owner's copy, largest usage). */
+function regressClaudeFiles(files) {
+  return files
+    .map((f) =>
+      f.own
+        .filter((r) => (r.hasUsage || tokensOf(r) > 0) && r.version && r.model !== "<synthetic>")
+        .map((r) => ({
+          version: r.version,
+          model: r.model ?? "?",
+          automated: r.side || r.entry.startsWith("sdk"),
+          ts: ms(r.ts) ?? 0,
+          inp: r.inp,
+          cr: r.cr,
+          cw: r.cw,
+          c1: r.cw1h,
+          c5: r.split ? Math.max(0, r.cw - r.cw1h) : 0,
+          ctx: r.inp + r.cr + r.cw,
+          afterTool: r.afterTool,
+        }))
+        .sort((a, b) => a.ts - b.ts),
+    )
+    .filter((rows) => rows.length > 0);
+}
+
+/** Per-version rate table: versions with >= minN samples; baseline = every other sample. */
+function rates(samples, minN) {
+  const by = new Map();
+  for (const s of samples) by.set(s.version, [...(by.get(s.version) ?? []), s]);
+  const hits = samples.filter((s) => s.value).length;
+  return [...by.entries()]
+    .sort((a, b) => vcmp(a[0], b[0]))
+    .filter(([, a]) => a.length >= minN)
+    .map(([version, a]) => {
+      const h = a.filter((s) => s.value).length;
+      const restN = samples.length - a.length;
+      return { version, n: a.length, rate: h / a.length, baseline: restN ? (hits - h) / restN : 0, baselineN: restN };
+    });
+}
+
+/** Flagged versions adjacent in `order` → [from, to] ranges. */
+function ranges(flagged, order) {
+  const out = [];
+  for (const v of [...flagged].sort(vcmp)) {
+    const last = out.at(-1);
+    if (last && order.indexOf(v) >= 0 && order.indexOf(v) === order.indexOf(last[1]) + 1) last[1] = v;
+    else out.push([v, v]);
+  }
+  return out;
+}
+
+function regressClaude(files) {
+  const main = files.map((rows) => rows.filter((r) => !r.automated)).filter((rows) => rows.length);
+  const min = 60_000;
+  const findings = [];
+  const warm = [];
+  const idle = [];
+  for (const rows of main) {
+    for (let i = 1; i < rows.length; i++) {
+      const p = rows[i - 1];
+      const r = rows[i];
+      const gap = (r.ts - p.ts) / min;
+      if (gap >= 0 && gap <= 5 && r.ctx >= 30e3 && r.ctx >= 0.6 * p.ctx) warm.push({ version: r.version, value: r.cr < 0.3 * r.ctx });
+    }
+    for (let i = 1; i + 2 < rows.length; i++) {
+      if ((rows[i].ts - rows[i - 1].ts) / min < 60) continue;
+      const a = rows[i + 1];
+      const b = rows[i + 2];
+      if ((a.ts - rows[i].ts) / min > 5 || (b.ts - a.ts) / min > 5 || a.ctx < 30e3 || b.ctx < 30e3) continue;
+      idle.push({ version: rows[i].version, value: a.cr < 0.3 * a.ctx && b.cr < 0.3 * b.ctx });
+    }
+  }
+  const warmT = rates(warm, REGRESS_MIN_N);
+  const idleT = rates(idle, Math.max(5, REGRESS_MIN_N >> 2));
+  for (const [id, t, minRate, floor] of [
+    ["warm-cache-miss", warmT, 0.25, 0.01],
+    ["post-idle-cold", idleT, 0.5, 0.02],
+  ]) {
+    const bad = t.filter((x) => x.rate >= minRate && x.rate >= 3 * Math.max(x.baseline, floor)).map((x) => x.version);
+    for (const [from, to] of ranges(bad, t.map((x) => x.version))) findings.push({ id, from, to });
+  }
+
+  const ttl = new Map();
+  for (const rows of main)
+    for (const r of rows) {
+      if (r.c5 + r.c1 === 0) continue;
+      const t = ttl.get(r.version) ?? { c5: 0, c1: 0, n: 0 };
+      t.c5 += r.c5;
+      t.c1 += r.c1;
+      t.n++;
+      ttl.set(r.version, t);
+    }
+  const ttlBase = [...ttl.entries()]
+    .sort((a, b) => vcmp(a[0], b[0]))
+    .filter(([, t]) => t.n >= REGRESS_MIN_N)
+    .map(([version, t]) => ({ version, n: t.n, share5m: t.c5 / (t.c5 + t.c1) }));
+  const all5 = ttlBase.reduce((a, r) => a + r.share5m * r.n, 0);
+  const allN = ttlBase.reduce((a, r) => a + r.n, 0);
+  const ttlT = ttlBase.map((r) => ({ ...r, baseline: allN - r.n ? (all5 - r.share5m * r.n) / (allN - r.n) : 0 }));
+  const ttlBad = ttlT.filter((r) => r.share5m >= 0.5 && r.baseline <= 0.2 && allN - r.n >= REGRESS_MIN_N).map((r) => r.version);
+  for (const [from, to] of ranges(ttlBad, ttlT.map((r) => r.version))) findings.push({ id: "ttl-5m", from, to });
+
+  const unc = new Map();
+  for (const rows of main)
+    for (const r of rows) {
+      if (!r.afterTool || r.ctx < 20e3) continue;
+      const k = `${r.model}\u0000${r.version}`;
+      unc.set(k, [...(unc.get(k) ?? []), r]);
+    }
+  const groups = [...unc.values()]
+    .filter((a) => a.length >= Math.max(5, REGRESS_MIN_N >> 2))
+    .map((a) => ({ model: a[0].model, version: a[0].version, n: a.length, median: upperMedian(a.map((r) => r.inp)) }));
+  const uncT = groups.map((g) => {
+    const others = groups.filter((o) => o.model === g.model && o.version !== g.version);
+    return { ...g, baseline: others.length ? upperMedian(others.map((o) => o.median)) : null };
+  });
+  const uncBad = uncT.filter((r) => r.median >= 500 && (r.baseline === null || r.baseline < 100)).map((r) => r.version);
+  for (const [from, to] of ranges(uncBad, [...new Set(uncT.map((r) => r.version))].sort(vcmp)))
+    findings.push({ id: "uncached-input", from, to });
+
+  const hb = new Map();
+  for (const rows of main) {
+    let last = null;
+    for (let i = 1; i < rows.length; i++) {
+      const p = rows[i - 1];
+      const r = rows[i];
+      if ((r.ts - p.ts) / min > 5 || p.ctx < 50e3 || r.ctx < 0.6 * p.ctx || r.cr >= 0.2 * p.ctx) continue;
+      const g = hb.get(r.version) ?? [];
+      if (last !== null) g.push((r.ts - last) / min);
+      last = r.ts;
+      hb.set(r.version, g);
+    }
+  }
+  const hbT = [...hb.entries()]
+    .sort((a, b) => vcmp(a[0], b[0]))
+    .map(([version, iv]) => ({ version, n: iv.length, hourly: iv.filter((x) => x >= 50 && x <= 70).length }));
+  const hbBad = hbT.filter((r) => r.n >= 4 && r.hourly / r.n >= 0.5).map((r) => r.version);
+  for (const [from, to] of ranges(hbBad, hbT.map((r) => r.version))) findings.push({ id: "hourly-rebuild", from, to });
+
+  const all = files.flat();
+  const rows = all.filter((r) => !r.automated);
+  const versions = [...new Set(rows.map((r) => r.version))].sort(vcmp);
+  const ts = rows.map((r) => r.ts).filter((t) => t > 0).sort((a, b) => a - b);
+  const coverage = {
+    requests: rows.length,
+    excludedAutomated: all.length - rows.length,
+    sessions: files.filter((f) => f.some((r) => !r.automated)).length,
+    versions: versions.length,
+    firstVersion: versions[0] ?? null,
+    lastVersion: versions.at(-1) ?? null,
+    from: ts.length ? new Date(ts[0]).toISOString().slice(0, 10) : null,
+    to: ts.length ? new Date(ts.at(-1)).toISOString().slice(0, 10) : null,
+    knownWindowsCovered: KNOWN_REGRESSIONS.filter((k) => versions.some((v) => vcmp(v, k.from) >= 0 && vcmp(v, k.to) <= 0)).map((k) => k.id),
+  };
+  return { coverage, findings, tables: { warmCacheMiss: warmT, postIdleCold: idleT, ttl5m: ttlT, uncachedInput: uncT, hourlyRebuild: hbT } };
+}
+
+/** Codex: per version / model / plan / window, the percent its requests were charged (rise by rise, by tokens) per 1M uncached + output tokens. */
+function regressCodex(codexFiles, readings) {
+  const requests = codexFiles
+    .flatMap((f) =>
+      f.own.map((r) => ({
+        at: ms(r.ts),
+        tokens: tokensOf(r),
+        work: r.inp + r.cw + r.out,
+        model: r.model ?? "?",
+        version: (f.cliVersion ?? "?").replace(/-.*/, ""),
+      })),
+    )
+    .filter((r) => r.at !== undefined && r.tokens > 0);
+  const groups = new Map();
+  for (const w of limitWindows(readings).values()) {
+    for (const p of w.periods) {
+      const rs = inPeriod(p, requests);
+      let k = 0;
+      for (const { at, rise } of p.rises) {
+        const group = [];
+        while (k < rs.length && rs[k].at <= at) group.push(rs[k++]);
+        const t = group.reduce((a, r) => a + r.tokens, 0);
+        if (t === 0) continue;
+        for (const r of group) {
+          const key = [r.version, r.model, p.plan ?? "?", w.limitId, w.wm].join("|");
+          const g = groups.get(key) ?? { version: r.version, model: r.model, plan: p.plan ?? "?", limitId: w.limitId, windowMinutes: w.wm, requests: 0, percent: 0, workTokens: 0 };
+          g.requests++;
+          g.percent += (rise * r.tokens) / t;
+          g.workTokens += r.work;
+          groups.set(key, g);
+        }
+      }
+    }
+  }
+  const table = [...groups.values()]
+    .filter((g) => g.workTokens >= 200_000)
+    .map((g) => ({ ...g, percentPerMillion: g.percent / (g.workTokens / 1e6) }))
+    .sort((a, b) => vcmp(a.version, b.version) || (a.model < b.model ? -1 : a.model > b.model ? 1 : 0) || a.windowMinutes - b.windowMinutes || (a.limitId < b.limitId ? -1 : 1));
+  const findings = [];
+  for (const r of table) {
+    const peers = table.filter((o) => o !== r && o.plan === r.plan && o.limitId === r.limitId && o.windowMinutes === r.windowMinutes);
+    if (!peers.length) continue;
+    const base = upperMedian(peers.map((o) => o.percentPerMillion));
+    if (base > 0 && r.percentPerMillion >= 2 * base) findings.push({ id: "codex-limit-burn", from: r.version, to: r.version });
+  }
+  const versions = [...new Set(requests.map((r) => r.version))].sort(vcmp);
+  return { requests: requests.length, versions: versions.length, table, findings };
+}
+
+function regressChecks(claudeFiles, codexFiles, pass) {
+  const tag = `[regress ${pass}]`;
+  const j = sipcode(["regress", "--json"]).json;
+  const c = regressClaude(regressClaudeFiles(claudeFiles));
+  const sipCov = j?.coverage?.claudeCode ?? {};
+  for (const k of Object.keys(c.coverage)) {
+    check(`${tag} claude-code coverage ${k}`, JSON.stringify(c.coverage[k]), JSON.stringify(sipCov[k]));
+  }
+  // Rows compared in (version, model) order: table order is not part of the result.
+  const byKey = (a, b) => vcmp(a.version, b.version) || String(a.model ?? "").localeCompare(String(b.model ?? ""));
+  for (const [name, rows] of Object.entries(c.tables)) {
+    const mine = [...rows].sort(byKey);
+    const theirs = [...(j?.checks?.claudeCode?.[name] ?? [])].sort(byKey);
+    check(`${tag} ${name} rows`, mine.length, theirs.length);
+    let differing = 0;
+    mine.forEach((m, i) => {
+      const t = theirs[i];
+      if (!t) return differing++;
+      for (const [k, v] of Object.entries(m)) {
+        const ok = typeof v === "number" ? Math.abs(v - t[k]) <= EPS : v === t[k];
+        if (!ok) return differing++;
+      }
+    });
+    check(`${tag} ${name} rows differing`, 0, differing);
+  }
+  const { readings } = limitReadings();
+  const x = regressCodex(codexFiles, readings);
+  check(`${tag} codex requests`, x.requests, j?.coverage?.codex?.requests);
+  check(`${tag} codex versions`, x.versions, j?.coverage?.codex?.versions);
+  const theirs = j?.checks?.codex ?? [];
+  check(`${tag} codex groups`, x.table.length, theirs.length);
+  let differing = 0;
+  x.table.forEach((m, i) => {
+    const t = theirs[i];
+    if (!t) return differing++;
+    for (const k of ["version", "model", "plan", "limitId", "windowMinutes", "requests", "workTokens"]) if (m[k] !== t[k]) return differing++;
+    for (const k of ["percent", "percentPerMillion"]) if (Math.abs(m[k] - t[k]) > 1e-6) return differing++;
+  });
+  check(`${tag} codex groups differing`, 0, differing);
+  const mineF = [...c.findings, ...x.findings].map((f) => `${f.id} ${f.from} ${f.to}`).sort();
+  const sipF = (j?.findings ?? []).map((f) => `${f.id} ${f.from} ${f.to}`).sort();
+  check(`${tag} findings`, JSON.stringify(mineF), JSON.stringify(sipF));
+  check(`${tag} nothing read`, c.coverage.requests === 0 && x.requests === 0, j?.access?.nothingRead);
+  console.log(`${tag} ${c.coverage.requests} interactive requests, ${c.coverage.excludedAutomated} automated left out, ${x.table.length} Codex groups, ${mineF.length} finding(s)`);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -1093,6 +1400,7 @@ function main() {
       ])
         compareAgent(agent, files, pass);
       limitsChecks(codex, pass);
+      regressChecks(claude, codex, pass);
     }
     sessionChecks("claude-code", claude);
     sessionChecks("codex", codex);
