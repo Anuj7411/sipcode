@@ -33,6 +33,7 @@ import { analyzeDuplicateReads } from "../modules/transcript/analyzers/duplicate
 import { runToday, toLocalDay, type TodaySession } from "../modules/today/runToday.js";
 import { formatTodayTerminal } from "../modules/today/format-terminal.js";
 import { formatTodayJson } from "../modules/today/format-json.js";
+import { todayLimitLine } from "../modules/limits/load.js";
 
 const NO_DUPLICATES = { duplicateReadTokenCost: 0, topOffenders: [] } as const;
 
@@ -158,9 +159,12 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
     // JSON has no field for it: say on stderr that the spend leaves tokens out.
     if (hasUnpriced) stderr(MESSAGES.unpricedTokens(unpriced));
   } else {
+    // Codex limit line: terminal only, and only when Codex logged limit readings.
+    const limitLine = agent.id === "codex" ? await todayLimitLine({ fs, env, clock }, now) : undefined;
     stdout(
       formatTodayTerminal(report, {
         unpricedNote: hasUnpriced ? MESSAGES.unpricedTokens(unpriced) : undefined,
+        limitLine,
       }),
     );
   }

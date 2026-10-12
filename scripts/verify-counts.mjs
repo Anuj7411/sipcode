@@ -24,6 +24,22 @@
 //   file that started first; copies are dropped, and the kept copy carries the
 //   largest value per field across all copies.
 // - Days: today = local calendar day; stats/trend/baseline buckets = UTC days.
+// - Codex limits (`limits --json --since all`): a reading is payload.rate_limits
+//   on an event_msg / token_count line, one per non-null window (resets_at in
+//   epoch seconds; above 1e12 already ms). Readings sorted by time, reset time,
+//   percent. Window = limit_id + window_minutes. Stale readings are skipped:
+//   one logged after its own reset time, and one whose reset time is more than
+//   15 min earlier than the open period's. A new period starts when the reset
+//   time moves by more than max(15 min, 1% of the window), when the reading is
+//   past the period's reset time, or when the reset time moves more than 15 min
+//   later while the percent is below the period's running maximum. Period
+//   start = min(newest reset time minus the window, first reading), but never
+//   before the previous period's newest reading. A rise of the running maximum
+//   is shared by the requests since the previous rise, by tokens; with none it
+//   is unattributed. Tokens per 1%: finished periods (not the window's last, or
+//   reset before the newest reading), 20% or more used, 90% or more of tokens
+//   from one model; a cut is the first period at or below half the median of
+//   2+ earlier ones (same model).
 import { readFileSync, readdirSync, statSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir, tmpdir } from "node:os";
@@ -344,7 +360,8 @@ function readCodexFile(text) {
   };
 }
 
-function readCodex() {
+/** Rollout files by name; sessions/ is walked first and wins over archived_sessions/. */
+function listRollouts() {
   const byName = new Map();
   for (const sub of ["sessions", "archived_sessions"]) {
     const walk = (dir) => {
@@ -363,6 +380,11 @@ function readCodex() {
     };
     walk(join(CODEX_HOME, sub));
   }
+  return byName;
+}
+
+function readCodex() {
+  const byName = listRollouts();
   const out = [];
   for (const [name, p] of byName) {
     const st = statSync(p);
@@ -771,6 +793,234 @@ function sessionChecks(agent, files) {
 }
 
 // ---------------------------------------------------------------------------
+// Codex limits
+// ---------------------------------------------------------------------------
+
+const MIN = 60_000;
+const AUTO_REVIEW = "codex-auto-review";
+const EPS = 1e-9;
+
+/** Every limit reading in the Codex logs, in reading order. */
+function limitReadings() {
+  const out = [];
+  let malformed = 0;
+  for (const p of listRollouts().values()) {
+    for (const raw of readFileSync(p, "utf8").split(/\r?\n/)) {
+      if (!raw.includes('"rate_limits"')) continue;
+      let e;
+      try {
+        e = JSON.parse(raw);
+      } catch {
+        malformed++;
+        continue;
+      }
+      if (!e || typeof e !== "object" || Array.isArray(e)) {
+        malformed++;
+        continue;
+      }
+      if (e.type !== "event_msg" || e.payload?.type !== "token_count") continue;
+      const rl = e.payload.rate_limits;
+      if (rl === null || rl === undefined) continue;
+      const at = typeof e.timestamp === "string" ? Date.parse(e.timestamp) : NaN;
+      if (typeof rl !== "object" || Array.isArray(rl) || !Number.isFinite(at)) {
+        malformed++;
+        continue;
+      }
+      for (const slot of ["primary", "secondary"]) {
+        const w = rl[slot];
+        if (w === null || w === undefined) continue;
+        const obj = typeof w === "object" && !Array.isArray(w);
+        const ok = obj && [w.used_percent, w.window_minutes, w.resets_at].every((x) => typeof x === "number" && Number.isFinite(x));
+        if (!ok || w.used_percent < 0 || w.window_minutes <= 0 || w.resets_at <= 0) {
+          malformed++;
+          continue;
+        }
+        out.push({
+          at,
+          limitId: (typeof rl.limit_id === "string" && rl.limit_id) || "codex",
+          plan: (typeof rl.plan_type === "string" && rl.plan_type) || null,
+          wm: w.window_minutes,
+          pct: w.used_percent,
+          resetsAt: w.resets_at > 1e12 ? w.resets_at : w.resets_at * 1000,
+        });
+      }
+    }
+  }
+  out.sort((a, b) => a.at - b.at || a.resetsAt - b.resetsAt || a.pct - b.pct);
+  return { readings: out, malformed };
+}
+
+/** Windows (key "limitId|minutes") with their periods: reset time, max, first and newest time, rises, start. */
+function limitWindows(readings) {
+  const windows = new Map();
+  for (const r of readings) {
+    if (r.at > r.resetsAt) continue; // stale: logged after its own reset time
+    const key = `${r.limitId}|${r.wm}`;
+    let w = windows.get(key);
+    if (!w) windows.set(key, (w = { limitId: r.limitId, wm: r.wm, periods: [] }));
+    const cur = w.periods.at(-1);
+    if (cur && cur.resetsAt - r.resetsAt > 15 * MIN) continue; // stale: an earlier reset time than the open period's
+    const shift = cur ? r.resetsAt - cur.resetsAt : 0;
+    if (
+      !cur ||
+      Math.abs(shift) > Math.max(15 * MIN, r.wm * MIN * 0.01) || // beyond drift: a new reset time
+      r.at > cur.resetsAt || // past the period's reset time
+      (shift > 15 * MIN && r.pct < cur.max) // early reset
+    ) {
+      w.periods.push({ resetsAt: r.resetsAt, max: r.pct, first: r.at, newest: r.at, rises: r.pct > 0 ? [{ at: r.at, rise: r.pct }] : [] });
+      continue;
+    }
+    if (r.pct > cur.max) {
+      cur.rises.push({ at: r.at, rise: r.pct - cur.max });
+      cur.max = r.pct;
+    }
+    cur.resetsAt = r.resetsAt;
+    cur.newest = r.at;
+  }
+  for (const w of windows.values())
+    w.periods.forEach((p, i) => {
+      p.start = Math.max(Math.min(p.resetsAt - w.wm * MIN, p.first), i > 0 ? w.periods[i - 1].newest : -Infinity);
+    });
+  return windows;
+}
+
+const inPeriod = (p, requests) =>
+  requests.filter((r) => r.at > p.start && r.at <= p.newest).sort((a, b) => a.at - b.at);
+
+/** Per line of "what used it" (session id, or codex-auto-review): percent and tokens; plus unattributed. */
+function attributeLimit(p, requests) {
+  const rs = inPeriod(p, requests);
+  const lines = new Map();
+  const line = (r) => {
+    const key = r.model === AUTO_REVIEW ? AUTO_REVIEW : r.session;
+    let l = lines.get(key);
+    if (!l) lines.set(key, (l = { percent: 0, tokens: 0 }));
+    return l;
+  };
+  for (const r of rs) line(r).tokens += r.tokens;
+  let unattributed = 0;
+  let k = 0;
+  for (const { at, rise } of p.rises) {
+    const group = [];
+    while (k < rs.length && rs[k].at <= at) group.push(rs[k++]);
+    const t = group.reduce((a, r) => a + r.tokens, 0);
+    if (t === 0) {
+      unattributed += rise;
+      continue;
+    }
+    for (const r of group) line(r).percent += (rise * r.tokens) / t;
+  }
+  if (lines.get(AUTO_REVIEW)?.percent === 0) lines.delete(AUTO_REVIEW);
+  return { lines, unattributed };
+}
+
+/** Comparable periods (tokens per 1%) and the first possible cut. */
+function shrinkLimit(w, requests, asOf) {
+  const points = [];
+  const last = w.periods.at(-1);
+  for (const p of w.periods) {
+    const finished = p !== last || p.resetsAt < asOf;
+    if (!finished || p.max < 20) continue;
+    const rs = inPeriod(p, requests);
+    const total = rs.reduce((a, r) => a + r.tokens, 0);
+    const byModel = new Map();
+    for (const r of rs) if (r.model !== undefined) byModel.set(r.model, (byModel.get(r.model) ?? 0) + r.tokens);
+    let top;
+    for (const [m, t] of byModel) if (!top || t > top[1]) top = [m, t];
+    if (!top || total === 0 || top[1] / total < 0.9) continue;
+    points.push({ model: top[0], start: p.start, raw: total / p.max, share: top[1] / total });
+  }
+  let cut = null;
+  for (let i = 0; i < points.length && !cut; i++) {
+    const earlier = points.slice(0, i).filter((q) => q.model === points[i].model).map((q) => q.raw);
+    if (earlier.length < 2) continue;
+    const base = median(earlier);
+    if (points[i].raw <= base / 2)
+      cut = { at: new Date(points[i].start).toISOString().slice(0, 10), factor: Math.round((base / points[i].raw) * 10) / 10 };
+  }
+  return { points, cut };
+}
+
+function limitsChecks(codexFiles, pass) {
+  const tag = `[codex limits ${pass}]`;
+  const { readings, malformed } = limitReadings();
+  const run = sipcode(["limits", "--json", "--since", "all"]);
+  const j = run.json;
+  console.log(`${tag} ${readings.length} readings, ${malformed} unreadable`);
+  const windows = limitWindows(readings);
+  if (windows.size === 0) {
+    // No readings, or every one stale: Sipcode prints no windows and no "as of".
+    check(`${tag} windows (no usable readings)`, 0, j?.windows?.length ?? -1);
+    check(`${tag} as of (no usable readings)`, null, j?.asOf);
+    return;
+  }
+  const newest = readings.at(-1);
+  const asOf = newest.at;
+  check(`${tag} as of`, new Date(asOf).toISOString(), j?.asOf);
+  check(`${tag} plan`, newest.plan, j?.planType);
+  check(`${tag} windows`, windows.size, j?.windows?.length);
+  const requests = codexFiles
+    .flatMap((f) => f.own.map((r) => ({ at: ms(r.ts), tokens: tokensOf(r), model: r.model, session: f.id })))
+    .filter((r) => r.at !== undefined && r.tokens > 0);
+  let mixed = 0;
+  let unbalanced = 0;
+  let periodsTotal = 0;
+  for (const w of windows.values()) {
+    const label = `${tag} ${w.limitId} ${w.wm}-minute window`;
+    const theirs = j?.windows?.find((x) => x.limitId === w.limitId && x.windowMinutes === w.wm);
+    const cur = w.periods.at(-1);
+    check(`${label} periods`, w.periods.length, theirs?.periodCount);
+    check(`${label} newest percent`, cur.max, theirs?.usedPercent);
+    check(`${label} resets at`, new Date(cur.resetsAt).toISOString(), theirs?.resetsAt);
+
+    // Every period (independent): attributed + unattributed = its observed rise.
+    for (const p of w.periods) {
+      const a = attributeLimit(p, requests);
+      const sum = [...a.lines.values()].reduce((s, l) => s + l.percent, 0) + a.unattributed;
+      if (Math.abs(sum - p.max) > EPS) unbalanced++;
+      periodsTotal++;
+    }
+
+    // What used the newest period: attributed + unattributed = observed rise, line by line equal.
+    const a = attributeLimit(cur, requests);
+    const usedBy = theirs?.usedBy ?? [];
+    const mine = [...a.lines.values()].reduce((s, l) => s + l.percent, 0) + a.unattributed;
+    const sip = usedBy.reduce((s, u) => s + u.percent, 0) + (theirs?.unattributedPercent ?? NaN);
+    check(`${label} attributed + unattributed = observed rise (independent)`, cur.max, mine, EPS);
+    check(`${label} attributed + unattributed = observed rise (sipcode)`, cur.max, sip, EPS);
+    check(`${label} unattributed percent`, a.unattributed, theirs?.unattributedPercent, EPS);
+    check(`${label} what-used lines`, a.lines.size, usedBy.length);
+    let differing = 0;
+    for (const [key, l] of a.lines) {
+      const u = usedBy.find((x) => x.sessionId === key);
+      if (!u || Math.abs(u.percent - l.percent) > EPS || u.tokens !== l.tokens) differing++;
+    }
+    check(`${label} what-used lines differing`, 0, differing);
+
+    // Tokens per 1% and the possible cut.
+    const s = shrinkLimit(w, requests, asOf);
+    const tpp = theirs?.tokensPerPercent ?? [];
+    check(`${label} tokens-per-1% periods`, s.points.length, tpp.length);
+    differing = 0;
+    s.points.forEach((p, i) => {
+      const t = tpp[i];
+      if (!t || t.model !== p.model || t.periodStart !== new Date(p.start).toISOString() || t.tokensPerPercent !== Math.round(p.raw))
+        differing++;
+    });
+    check(`${label} tokens-per-1% periods differing`, 0, differing);
+    check(`${label} possible cut`, JSON.stringify(s.cut), JSON.stringify(theirs?.possibleCut ?? null));
+    // Mixed-model periods are never compared: every period Sipcode lists has 90%+ of its tokens from its model.
+    for (const t of tpp) {
+      const p = s.points.find((x) => new Date(x.start).toISOString() === t.periodStart);
+      if (!p || p.model !== t.model || p.share < 0.9) mixed++;
+    }
+    if (s.cut) console.log(`${label}: possible cut around ${s.cut.at} (${s.cut.factor}x)`);
+  }
+  check(`${tag} periods whose attributed + unattributed differs from the rise (of ${periodsTotal}, independent)`, 0, unbalanced);
+  check(`${tag} periods compared with mixed models`, 0, mixed);
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -842,6 +1092,7 @@ function main() {
         ["codex", codex],
       ])
         compareAgent(agent, files, pass);
+      limitsChecks(codex, pass);
     }
     sessionChecks("claude-code", claude);
     sessionChecks("codex", codex);

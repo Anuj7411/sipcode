@@ -100,9 +100,9 @@ async function call(name: string, args: Record<string, unknown>, fs: InMemoryFs)
 }
 
 describe("tool definitions", () => {
-  it("the seven tools that read session logs take an optional agent; the count stays 15", () => {
+  it("the seven tools that read session logs take an optional agent; the count is 16", () => {
     const defs = listToolDefinitions();
-    expect(defs).toHaveLength(15);
+    expect(defs).toHaveLength(16);
     for (const d of defs) {
       const props = (d.inputSchema as { properties: Record<string, { enum?: string[] }> }).properties;
       if (SESSION_TOOLS.includes(d.name)) {
@@ -208,7 +208,8 @@ describe("audit_latest_session", () => {
   });
 });
 
-describe("period tools", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("period tools", { timeout: 20_000 }, () => {
   it("get_session_stats: agent codex returns Codex totals", async () => {
     const claude = await call("get_session_stats", {}, bothFs());
     const codex = await call("get_session_stats", { agent: "codex" }, bothFs());
@@ -247,6 +248,36 @@ describe("period tools", () => {
     expect(() => JSON.parse(r.text)).not.toThrow();
     expect(r.texts).toHaveLength(2);
     expect(r.texts[1]).toMatch(/^Could not auto-locate \.sipcode\/install-state\.json/);
+  });
+
+  it("verify_sipcode_impact: finds the install marker in the cwd through the injected fs", async () => {
+    const fs = bothFs();
+    const state = { schemaVersion: "sipcode-install-state/1", rulesInstalledAt: "2026-05-05T00:00:00.000Z" };
+    fs.writeFile(path.join("/w", ".sipcode", "install-state.json"), JSON.stringify(state));
+    const r = await call("verify_sipcode_impact", { agent: "codex" }, fs);
+    expect(r.isError).toBe(false);
+    expect(r.texts.join("\n")).not.toContain("Could not auto-locate");
+    expect(JSON.parse(r.text).markerSource).toBe("install-state.json (rules)");
+  });
+
+  it("verify_sipcode_impact: walks ~/.claude/projects in the injected fs for the marker", async () => {
+    const fs = bothFs();
+    // A project dir name decodes to the project's path ("C--proj-app" → "C:\proj\app").
+    const win = process.platform === "win32";
+    const project = win ? "C:\\proj\\app" : "/proj/app";
+    fs.mkdir(`/home/u/.claude/projects/${win ? "C--proj-app" : "proj-app"}`);
+    const state = { schemaVersion: "sipcode-install-state/1", hygieneInstalledAt: "2026-05-05T00:00:00.000Z" };
+    fs.writeFile(path.join(project, ".sipcode", "install-state.json"), JSON.stringify(state));
+    const r = await call("verify_sipcode_impact", { agent: "codex" }, fs);
+    expect(r.isError).toBe(false);
+    expect(r.texts.join("\n")).not.toContain("Could not auto-locate");
+    expect(JSON.parse(r.text).markerSource).toBe("install-state.json (hygiene)");
+  });
+
+  it("verify_sipcode_impact: the diagnostic lists the paths tried in the injected fs", async () => {
+    const r = await call("verify_sipcode_impact", { agent: "codex" }, bothFs());
+    const decoded = process.platform === "win32" ? "test\\proj" : "/test/proj";
+    expect(r.texts[1]).toContain(`  • /w\n  • ${decoded}\n`);
   });
 
   it("get_drift_report: agent codex reads Codex; no stderr note in the result", async () => {

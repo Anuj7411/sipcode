@@ -172,6 +172,19 @@ program
   });
 
 program
+  .command("limits")
+  .description("Codex usage limits: percent used, when you run out at this pace, what used them, and tokens per 1% over time.")
+  .option("--json", "machine-readable output")
+  .option("--since <window>", "how far back the tokens-per-1% history goes: 7d | 30d | 90d | all | yyyy-mm-dd", "90d")
+  .option("--here", "list only sessions from the current folder under \"what used it\" (limits are account-wide)")
+  .option("--agent <id>", "codex (limits are recorded only by Codex)")
+  .action(async (opts) => {
+    const { runLimits } = await import("./commands/limits.js");
+    const r = await runLimits(opts);
+    if (r?.exitCode) process.exit(r.exitCode);
+  });
+
+program
   .command("trend")
   .description("Track ONE metric over time (output ratio, cost/session, recoverable tokens) — answers 'is this getting better?'.")
   .option("--metric <name>", "output-ratio | cost-per-session | recoverable-tokens-per-session", "output-ratio")

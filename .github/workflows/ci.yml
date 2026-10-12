@@ -6,7 +6,7 @@ name: ci
 #
 # Same toolchain as release.yml: Node 24, npm ci, build, then tests. The e2e
 # suite packs and installs the real tarball, so it also guards the published
-# artifact (bundled pricing JSON, MCP binary, 15 tools).
+# artifact (bundled pricing JSON, MCP binary, 16 tools).
 
 on:
   pull_request:

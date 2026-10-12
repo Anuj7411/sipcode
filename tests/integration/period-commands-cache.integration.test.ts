@@ -89,7 +89,8 @@ async function run(cmd: Cmd, json: boolean, fs: InMemoryFs, usageCaches?: UsageC
   return `${r.exitCode}\n${out.join("\n")}`;
 }
 
-describe("today / forecast with the usage cache", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("today / forecast with the usage cache", { timeout: 20_000 }, () => {
   for (const [name, cmd] of [["today", runTodayCmd], ["forecast", runForecastCmd]] as const) {
     it(`${name}: same output with no cache, a cold cache and a warm one`, async () => {
       for (const json of [true, false]) {

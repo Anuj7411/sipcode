@@ -34,7 +34,8 @@ function makeDeps(): {
   };
 }
 
-describe("runScoreCmd integration", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("runScoreCmd integration", { timeout: 20_000 }, () => {
   it("scores the excellent fixture as platinum", async () => {
     const { harness, deps } = makeDeps();
     const result = await runScoreCmd(

@@ -1,14 +1,14 @@
 # Sipcode
 
-> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 15 MCP tools so Claude can read its own context-hygiene stats.
+> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 16 MCP tools so Claude can read its own context-hygiene stats.
 
 Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/claude-code), Anthropic's terminal coding agent. It installs as a PreToolUse hook and intercepts noisy tool output (git log, npm install, grep, ls, cat, find, tsc) before those bytes reach the model. Same-session re-reads of unchanged files are deduplicated. A Verified Warm-Fill step back-fills the dedup cache from the active Claude Code transcript on the first hook fire, so files Claude read before Sipcode was installed still get caught on their next read. The cache is only back-filled when transcript bytes match current disk after LF and BOM canonicalization, which gives zero false-dedup risk by construction.
 
 On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pairs, not recordings of live sessions), Sipcode's mechanisms remove 62.6% of tokens at the median (range 37.4% to 80.6%), totalling 3,567,170 tokens and $22.48 priced as Claude Opus 4.7. Anyone can reproduce these numbers with `sipcode benchmark`. Real-world savings depend on the workload. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet.
+Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag.
 
-Sipcode is solo-maintained, MIT licensed, has 1,996 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode is solo-maintained, MIT licensed, has 2,108 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
@@ -142,7 +142,7 @@ Verify: `node --version` should show v20.0.0 or higher.
 npm i -g sipcode
 ```
 
-Verify: `sipcode --version` should show 1.7.0 or higher.
+Verify: `sipcode --version` should show 1.7.1 or higher.
 
 ### Step 3. Run `sipcode init`
 
@@ -178,7 +178,7 @@ If drift says "no drift" and proxy --stats shows a few dozen rewrites with savin
 | Re-read deduplication | Catches duplicate file reads and skips them, saving tokens and time |
 | Compression-integrity scoring | For every saving, tells you what percentage of the original signal was kept |
 | Spend telemetry | Daily, monthly, projected. All from local Claude Code and Codex logs, no cloud upload |
-| MCP server | 15 tools registered for Claude Desktop, so Claude itself can read usage stats |
+| MCP server | 16 tools registered for Claude Desktop, so Claude itself can read usage stats |
 | Reproducible benchmark | A locked 20-task corpus anyone can run and verify |
 
 ## Frequently asked questions
@@ -220,6 +220,7 @@ npm uninstall -g sipcode
 | `sipcode benchmark` | Run the locked 20-task corpus |
 | `sipcode today` | Today's spend summary |
 | `sipcode forecast` | Month-end spend projection |
+| `sipcode limits` | Codex usage limits: when you run out at this pace, what used them, tokens per 1% over time |
 | `sipcode impact` | Before vs after Sipcode comparison |
 | `sipcode why` | Per-session forensics |
 | `sipcode score` | Audit a repo for AI-friendliness |
@@ -238,7 +239,7 @@ MIT.
 
 # MCP server
 
-Sipcode ships a Model Context Protocol (MCP) server with 15 tools so Claude Code can introspect its own context hygiene from the chat.
+Sipcode ships a Model Context Protocol (MCP) server with 16 tools so Claude Code can introspect its own context hygiene from the chat.
 
 ## Tools
 
@@ -253,6 +254,7 @@ The session tools take an optional `agent` input (`"claude-code"` or `"codex"`).
 - `list_recent_sessions`: paginated list of recent Claude Code or Codex sessions
 - `get_today_summary`: today's spend, sessions, output ratio
 - `forecast_monthly_spend`: month-end projection with confidence range
+- `get_codex_limits`: Codex usage limits: percent used, run-out time at the current pace, what used them, tokens per 1% over time
 - `estimate_task_cost`: predicted cost of a task before running it
 - `audit_latest_session`: forensic audit of the most recent session
 - `get_agent_score`: AI-friendliness score for the current repo

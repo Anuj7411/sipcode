@@ -406,7 +406,8 @@ describe("runStats: resumed sessions are not double counted", () => {
   });
 });
 
-describe("runStats: Claude Code and Codex sections", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("runStats: Claude Code and Codex sections", { timeout: 20_000 }, () => {
   const run = async (opts: Parameters<typeof runStats>[0], fs: InMemoryFs) => {
     const out: string[] = [];
     const err: string[] = [];

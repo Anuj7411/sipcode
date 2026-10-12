@@ -194,7 +194,8 @@ function memStoreIO(): StoreIO {
   };
 }
 
-describe("auto-pick skips a resumed session that is all copied history", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("auto-pick skips a resumed session that is all copied history", { timeout: 20_000 }, () => {
   it("why reports the original, not the copy", async () => {
     const j = await whyJson(copiedOnlyFs());
     expect(j.punchline.totalTokens).toBe(1_000_000);

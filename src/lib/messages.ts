@@ -244,6 +244,24 @@ export const MESSAGES = {
       `defaulting to claude-code.`,
     ].join("\n"),
 
+  // ---- Codex limits (v1.7.1) ----
+
+  /** `agentName`: display name of the agent --agent asked for ("Claude Code", "Cursor"). */
+  limitsCodexOnly: (agentName: string) =>
+    [
+      `[E009] sipcode limits reads Codex limits only.`,
+      ``,
+      `why: limits are recorded only by Codex. ${agentName}'s logs do not record them.`,
+      ``,
+      `fix: run it without --agent, or with --agent codex.`,
+      ``,
+      `next: npx sipcode limits`,
+    ].join("\n"),
+
+  limitsNoReadings: "no Codex limit readings found yet (Codex records them after each request).",
+
+  limitsMalformed: (n: number) => `note: ${n} Codex limit reading(s) could not be read and were skipped.`,
+
   codexNotSupportedYet: (command: string) =>
     [
       `[E009] sipcode ${command} is not supported for Codex yet.`,
@@ -318,7 +336,7 @@ export const MESSAGES = {
 
   // ---- stats milestone (v0.2.0-alpha.4, S040) ----
 
-  statsBadSince: (raw: string) =>
+  statsBadSince: (raw: string, command = "stats") =>
     [
       `[E010] couldn't parse --since "${raw}".`,
       ``,
@@ -326,7 +344,7 @@ export const MESSAGES = {
       ``,
       `fix: try --since 30d, --since all, or --since 2026-04-01.`,
       ``,
-      `next: npx sipcode stats --since 30d`,
+      `next: npx sipcode ${command} --since 30d`,
     ].join("\n"),
 
   statsBadTopN: (raw: string) =>

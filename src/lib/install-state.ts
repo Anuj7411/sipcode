@@ -11,6 +11,7 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import type { FileSystem } from "./fs.js";
 
 const FILENAME = "install-state.json";
 const SUBDIR = ".sipcode";
@@ -39,10 +40,14 @@ function statePath(cwd: string): string {
  * Silently returns `null` on parse errors so impact can fall back to
  * the --since flag instead of crashing.
  */
-export async function readInstallState(cwd: string): Promise<InstallState | null> {
+export async function readInstallState(
+  cwd: string,
+  /** Read through this file system seam (impact, MCP); default the real disk. */
+  fileSys?: Pick<FileSystem, "readFile">,
+): Promise<InstallState | null> {
   const p = statePath(cwd);
   try {
-    const raw = await fs.readFile(p, "utf-8");
+    const raw = fileSys ? await fileSys.readFile(p) : await fs.readFile(p, "utf-8");
     const parsed = JSON.parse(raw) as Partial<InstallState>;
     if (parsed.schemaVersion !== "sipcode-install-state/1") return null;
     return parsed as InstallState;

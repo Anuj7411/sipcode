@@ -5,7 +5,11 @@ import type { TodayReport } from "./types.js";
 
 export function formatTodayTerminal(
   report: TodayReport,
-  opts: { unpricedNote?: string | undefined } = {},
+  opts: {
+    unpricedNote?: string | undefined;
+    /** Codex limit line (terminal only), printed last; absent: output unchanged. */
+    limitLine?: string | undefined;
+  } = {},
 ): string {
   const lines: string[] = [];
   const dateLabel = report.today?.dateLocal ?? "today";
@@ -14,6 +18,7 @@ export function formatTodayTerminal(
 
   if (report.status === "no-data") {
     lines.push("  " + report.headline);
+    if (opts.limitLine) lines.push(opts.limitLine);
     return lines.join("\n");
   }
 
@@ -58,6 +63,7 @@ export function formatTodayTerminal(
 
   lines.push("");
   lines.push(report.headline);
+  if (opts.limitLine) lines.push(opts.limitLine);
   return lines.join("\n");
 }
 

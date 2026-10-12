@@ -128,7 +128,8 @@ const commands: Array<[string, Run]> = [
 ];
 
 for (const [name, run] of commands) {
-  describe(`${name} across Claude Code and Codex`, () => {
+  // Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+  describe(`${name} across Claude Code and Codex`, { timeout: 20_000 }, () => {
     it("reports on the newer Codex session, names the tool, and hints Claude Code", async () => {
       const r = await run({}, bothFs());
       expect(r.exitCode).toBe(0);
@@ -238,7 +239,8 @@ for (const [name, run] of commands) {
   });
 }
 
-describe("Codex wording in the reports", () => {
+// Under parallel load these integration tests took up to 10.6 s (idle: under 0.3 s); the default is 5 s.
+describe("Codex wording in the reports", { timeout: 20_000 }, () => {
   it("why: Codex gets its own next step and capture hint, priced from the OpenAI table", async () => {
     const r = await why({ agent: "codex" }, codexOnlyFs());
     expect(r.out).toContain("gpt-6.1-sol");
