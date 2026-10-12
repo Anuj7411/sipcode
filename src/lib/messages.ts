@@ -289,12 +289,24 @@ export const MESSAGES = {
     `WARNING: ${n} log file(s) or folder(s) could not be read. Results cover only what was readable. If this runs inside a sandbox (for example Codex), allow read access to ${claudeDir} and ${codexDir} and run it again.`,
 
   regressNothingToAnalyse:
-    "Nothing to analyse: no Claude Code or Codex requests could be read. This is NOT a clean result.",
+    "Nothing to analyse: no interactive Claude Code requests and no Codex requests could be read. This is NOT a clean result.",
 
   regressNoFindings: "No regressions detected in your logs.",
 
-  regressNotEnoughData: (minN: number) =>
-    `Not enough data to compare versions yet: Claude Code needs 2 versions with ${minN} or more requests each, Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window. This is not a clean result.`,
+  /** What each tool needs before its versions can be compared (regress). */
+  regressNeeds: (agent: "claude-code" | "codex", minN: number) =>
+    agent === "claude-code"
+      ? `Claude Code needs 2 versions with ${minN} or more requests each`
+      : "Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window",
+
+  regressNotEnoughData: (minN: number, agents: readonly ("claude-code" | "codex")[] = ["claude-code", "codex"]) =>
+    `Not enough data to compare versions yet: ${agents.map((a) => MESSAGES.regressNeeds(a, minN)).join(", ")}. This is not a clean result.`,
+
+  /** One tool read but not compared while the other was compared, or had a finding (regress). */
+  regressAgentNotEnoughData: (agent: "claude-code" | "codex", minN: number) => {
+    const tool = agent === "claude-code" ? "Claude Code" : "Codex";
+    return `Not enough data to compare ${tool} versions yet: ${MESSAGES.regressNeeds(agent, minN)}. This is not a clean result for ${tool}.`;
+  },
 
   regressSignalNotProof:
     "A finding that is not in the known-issue catalog is a signal worth reporting, not proof of a bug.",

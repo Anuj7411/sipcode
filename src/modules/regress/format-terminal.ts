@@ -3,12 +3,16 @@ import { MESSAGES } from "../../lib/messages.js";
 import { compressedSkippedMessage } from "../agents/loadSessions.js";
 import { formatBugReport } from "./bug-report.js";
 import { fmtN } from "./helpers.js";
-import type { RegressReport } from "./report.js";
+import { notCompared, type RegressReport } from "./report.js";
 import type { Finding } from "./types.js";
 
 function claudeLine(report: RegressReport): string {
   const c = report.claude!.coverage;
-  if (c.requests === 0) return `Claude Code: no readable interactive requests in ${report.claudeDir}`;
+  if (c.requests === 0) {
+    return c.excludedAutomated > 0
+      ? `Claude Code: no interactive requests in ${report.claudeDir} (${fmtN(c.excludedAutomated)} subagent and Agent SDK requests left out of the comparison)`
+      : `Claude Code: no readable interactive requests in ${report.claudeDir}`;
+  }
   return (
     `Claude Code: ${fmtN(c.requests)} interactive requests in ${fmtN(c.sessions)} sessions ` +
     `(${fmtN(c.excludedAutomated)} subagent and Agent SDK requests left out of the comparison), ` +
@@ -58,13 +62,16 @@ export function formatRegressTerminal(
     lines.push(MESSAGES.regressNothingToAnalyse);
     return lines.join("\n");
   }
-  if (report.findings.length === 0) {
-    lines.push(report.comparable ? MESSAGES.regressNoFindings : MESSAGES.regressNotEnoughData(report.minN));
+  if (report.findings.length === 0 && !report.comparable) {
+    lines.push(MESSAGES.regressNotEnoughData(report.minN, report.agents));
     return lines.join("\n");
   }
+  if (report.findings.length === 0) lines.push(MESSAGES.regressNoFindings);
   for (const f of report.findings) lines.push(...findingLines(f));
+  // A tool that was read but had no versions to compare must not pass for a clean result.
+  for (const agent of notCompared(report)) lines.push(MESSAGES.regressAgentNotEnoughData(agent, report.minN));
   if (report.findings.some((f) => f.known.length === 0)) lines.push("", MESSAGES.regressSignalNotProof);
-  if (opts.bugReport) {
+  if (opts.bugReport && report.findings.length > 0) {
     lines.push("", "---- paste into a GitHub issue (review it first) ----", "", formatBugReport(report, opts.version)!);
   }
   return lines.join("\n");

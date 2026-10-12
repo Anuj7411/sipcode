@@ -61,7 +61,7 @@ describe("formatRegressTerminal", () => {
 describe("formatRegressJson", () => {
   it("has the schema, agents, coverage, access, findings and per-check tables", () => {
     const j = JSON.parse(formatRegressJson(report(), OPTS));
-    expect(Object.keys(j)).toEqual(["schemaVersion", "agents", "minN", "coverage", "access", "comparable", "findings", "checks"]);
+    expect(Object.keys(j)).toEqual(["schemaVersion", "agents", "minN", "coverage", "access", "comparable", "comparableByAgent", "findings", "checks"]);
     expect(j.schemaVersion).toBe("sipcode-regress/1");
     expect(j.agents).toEqual(["claude-code"]);
     expect(j.coverage.codex).toBeNull();

@@ -153,18 +153,19 @@ Codex: 930 requests in 15 sessions, 2026-03-28 to 2026-10-08, versions 0.118.0 t
 [note: N compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.]
 
 <one of>
-Nothing to analyse: no Claude Code or Codex requests could be read. This is NOT a clean result.      (exit 2)
+Nothing to analyse: no interactive Claude Code requests and no Codex requests could be read. This is NOT a clean result.      (exit 2)
 No regressions detected in your logs.                                                                 (comparable)
-Not enough data to compare versions yet: Claude Code needs 2 versions with 20 or more requests each, Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window. This is not a clean result.
+Not enough data to compare versions yet: Claude Code needs 2 versions with 20 or more requests each, Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window. This is not a clean result.   (names only the tools asked for)
 ● <title>  [<id>]  Claude Code|Codex <from>[ to <to>]  = known R2, R3 | (not in the known-issue catalog)
     <evidence lines>
     e.g. <example lines>
     note: <note>
+[Not enough data to compare Codex|Claude Code versions yet: <what it needs>. This is not a clean result for Codex|Claude Code.]   for a tool read but not compared, when the other tool was compared or a finding was reported (review fix)
 [blank + "A finding that is not in the known-issue catalog is a signal worth reporting, not proof of a bug."]   when any finding is outside the catalog
 [blank + "---- paste into a GitHub issue (review it first) ----" + blank + bug-report block]                       with --bug-report
 ```
 
-A line for an agent that was not asked for is omitted. Missing Claude Code data: `Claude Code: no readable interactive requests in <dir>`; missing Codex data: `Codex: no readable requests in <dir>`.
+A line for an agent that was not asked for is omitted. Missing Claude Code data: `Claude Code: no readable interactive requests in <dir>` (or, when only subagent and Agent SDK requests were read, `Claude Code: no interactive requests in <dir> (N subagent and Agent SDK requests left out of the comparison)`); missing Codex data: `Codex: no readable requests in <dir>`.
 
 ### 5.6 JSON (`--json`, schema `sipcode-regress/1`)
 
@@ -177,6 +178,7 @@ A line for an agent that was not asked for is omitted. Missing Claude Code data:
                 "codex": { "requests": 0, "sessions": 0, "versions": 0, "firstVersion": null, "lastVersion": null, "from": null, "to": null, "readings": 0, "groups": 0 } | null },
   "access": { "missingDirs": [], "unreadableFiles": 0, "unreadableFolders": 0, "skippedCompressed": 0, "nothingRead": false },
   "comparable": true,
+  "comparableByAgent": { "claudeCode": true | false | null, "codex": true | false | null },   // null: not asked for
   "findings": [{ "id": "...", "agent": "claude-code|codex", "title": "...", "from": "...", "to": "...",
                  "known": [{ "id": "R2", "what": "...", "ref": "...", "fixed": "..." }],
                  "evidence": ["..."], "examples": ["..."], "note": null }],

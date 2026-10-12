@@ -211,6 +211,9 @@ describe("Codex plugin: skills", () => {
     expect(skillText("sipcode-limits")).toContain("Codex use on other devices or in the cloud raises the percent without local tokens");
     expect(skillText("sipcode-regress")).toContain("is a signal worth reporting, not proof of a bug");
     expect(skillText("sipcode-regress")).toContain("this is not a clean result. Never say \"no regressions\".");
+    // One tool compared and the other not: "no regressions" must not cover the tool that was not compared.
+    expect(skillText("sipcode-regress")).toContain('"Not enough data to compare Codex versions yet"');
+    expect(skillText("sipcode-regress")).toContain('"Not enough data to compare Claude Code versions yet"');
   });
 });
 

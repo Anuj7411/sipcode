@@ -41,6 +41,19 @@ export interface RegressReport {
   readonly comparable: boolean;
 }
 
+/**
+ * Tools that were asked for and read (an interactive Claude Code request, or a
+ * Codex request) but had no versions to compare. When the other tool was
+ * compared, or a finding was reported, these are still named: no finding for
+ * them is not a clean result.
+ */
+export function notCompared(report: RegressReport): RegressAgent[] {
+  const out: RegressAgent[] = [];
+  if (report.claude && report.claude.coverage.requests > 0 && !report.claude.comparable) out.push("claude-code");
+  if (report.codex && report.codex.coverage.requests > 0 && !report.codex.comparable) out.push("codex");
+  return out;
+}
+
 export interface BuildRegressInput {
   readonly minN: number;
   readonly claudeDir: string;

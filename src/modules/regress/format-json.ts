@@ -21,6 +21,10 @@ export function formatRegressJson(
       },
       access: report.access,
       comparable: report.comparable,
+      comparableByAgent: {
+        claudeCode: report.claude ? report.claude.comparable : null,
+        codex: report.codex ? report.codex.comparable : null,
+      },
       findings: report.findings.map((f) => ({
         id: f.id,
         agent: f.agent,

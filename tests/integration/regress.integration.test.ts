@@ -160,7 +160,7 @@ describe("sipcode regress: nothing read is never a clean result", () => {
     expect(r.exitCode).toBe(2);
     expect(r.out).toMatch(/Not found or not readable: [\\/]home[\\/]u[\\/]\.claude[\\/]projects/);
     expect(r.out).toMatch(/Not found or not readable: [\\/]home[\\/]u[\\/]\.codex[\\/]sessions/);
-    expect(r.out).toContain("Nothing to analyse: no Claude Code or Codex requests could be read. This is NOT a clean result.");
+    expect(r.out).toContain("Nothing to analyse: no interactive Claude Code requests and no Codex requests could be read. This is NOT a clean result.");
     expect(r.out).not.toContain("No regressions detected");
   });
 
@@ -295,5 +295,56 @@ describe("sipcode regress: Codex", () => {
 describe("sipcode regress: Claude Code session text helper", () => {
   it("writes one user and one assistant line per turn", () => {
     expect(claudeSessionText("s", "2.1.1", "m", healthy(3)).trim().split("\n")).toHaveLength(6);
+  });
+});
+
+describe("sipcode regress: one tool compared, the other not (review fix)", () => {
+  it("Claude Code compared, Codex read but with one group only: Codex is named as not compared", async () => {
+    const fs = new InMemoryFs();
+    addClaudeDataset(fs, { dirty: false });
+    addCodexRollout(fs, "0199a000-0000-7000-8000-0000000000a1", "0.140.0", 0, 2);
+    const r = await run({}, fs);
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toContain("No regressions detected in your logs.");
+    expect(r.out).toContain(
+      "Not enough data to compare Codex versions yet: Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window. This is not a clean result for Codex.",
+    );
+    expect(r.out).not.toContain("Not enough data to compare Claude Code versions");
+    const j = JSON.parse((await run({ json: true }, fs)).out);
+    expect(j.comparable).toBe(true);
+    expect(j.comparableByAgent).toEqual({ claudeCode: true, codex: false });
+  });
+
+  it("Codex compared, Claude Code read but with one version only: Claude Code is named as not compared", async () => {
+    const fs = new InMemoryFs();
+    addClaudeSession(fs, "only-0000-4000-8000-000000000000", "2.1.200", "claude-opus-4-8", healthy(30));
+    addCodexRollout(fs, "0199a000-0000-7000-8000-0000000000a1", "0.140.0", 0, 2);
+    addCodexRollout(fs, "0199a000-0000-7000-8000-0000000000a2", "0.141.0", 1, 2.1);
+    const r = await run({}, fs);
+    expect(r.out).toContain("No regressions detected in your logs.");
+    expect(r.out).toContain(
+      "Not enough data to compare Claude Code versions yet: Claude Code needs 2 versions with 20 or more requests each. This is not a clean result for Claude Code.",
+    );
+    expect(JSON.parse((await run({ json: true }, fs)).out).comparableByAgent).toEqual({ claudeCode: false, codex: true });
+  });
+
+  it("--agent codex with too little data names only Codex", async () => {
+    const fs = new InMemoryFs();
+    addCodexRollout(fs, "0199a000-0000-7000-8000-0000000000a1", "0.140.0", 0, 2);
+    const r = await run({ agent: "codex" }, fs);
+    expect(r.out).toContain(
+      "Not enough data to compare versions yet: Codex needs 2 versions with 200,000 or more tokens on the same plan and limit window. This is not a clean result.",
+    );
+    expect(r.out).not.toContain("Claude Code needs");
+    expect(JSON.parse((await run({ json: true, agent: "codex" }, fs)).out).comparableByAgent).toEqual({ claudeCode: null, codex: false });
+  });
+
+  it("only Agent SDK requests: the Claude Code line says they were read and left out", async () => {
+    const fs = new InMemoryFs();
+    addClaudeSession(fs, "sdk1-0000-4000-8000-000000000000", "2.1.200", "claude-opus-4-8", healthy(30), { entrypoint: "sdk-ts" });
+    const r = await run({ agent: "claude-code" }, fs);
+    expect(r.exitCode).toBe(2);
+    expect(r.out).toMatch(/Claude Code: no interactive requests in \S+ \(30 subagent and Agent SDK requests left out of the comparison\)/);
+    expect(r.out).toContain("Nothing to analyse: no interactive Claude Code requests and no Codex requests could be read. This is NOT a clean result.");
   });
 });
