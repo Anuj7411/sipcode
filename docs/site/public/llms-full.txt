@@ -8,7 +8,7 @@ On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pai
 
 Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag.
 
-Sipcode is solo-maintained, MIT licensed, has 2,108 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode is solo-maintained, MIT licensed, has 2,206 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
@@ -142,7 +142,7 @@ Verify: `node --version` should show v20.0.0 or higher.
 npm i -g sipcode
 ```
 
-Verify: `sipcode --version` should show 1.7.1 or higher.
+Verify: `sipcode --version` should show 1.7.2 or higher.
 
 ### Step 3. Run `sipcode init`
 
@@ -201,7 +201,7 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 ### Does it work with Cursor or other AI tools?
 
-The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
+The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. Inside Codex, the Sipcode plugin (`codex plugin marketplace add Anuj7411/sipcode`, then `codex plugin add sipcode@sipcode`; desktop-app-only users run both with `npx -y @openai/codex` and restart the app) answers spend, limit, why-expensive and regression questions by running the installed `sipcode` CLI (`npm i -g sipcode` once). For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
 
 ### How do I uninstall?
 
@@ -221,6 +221,7 @@ npm uninstall -g sipcode
 | `sipcode today` | Today's spend summary |
 | `sipcode forecast` | Month-end spend projection |
 | `sipcode limits` | Codex usage limits: when you run out at this pace, what used them, tokens per 1% over time |
+| `sipcode regress` | Did Claude Code or Codex get worse after an update? Each version against your other versions |
 | `sipcode impact` | Before vs after Sipcode comparison |
 | `sipcode why` | Per-session forensics |
 | `sipcode score` | Audit a repo for AI-friendliness |

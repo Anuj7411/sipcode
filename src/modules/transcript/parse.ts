@@ -57,6 +57,16 @@ export interface AssistantTurn {
   readonly toolCalls: ToolCall[];
   /** True if this turn had no usage block at all (older Claude Code). */
   readonly missingUsage: boolean;
+  /** Claude Code: the `version` on the request's line (the Claude Code version that sent it). */
+  readonly version?: string | undefined;
+  /** Claude Code: the `entrypoint` on the request's line ("cli", "sdk-ts", ...). */
+  readonly entrypoint?: string | undefined;
+  /** Claude Code: true when the line is marked `isSidechain` (a subagent turn inside the main file). */
+  readonly sidechain?: boolean | undefined;
+  /** Claude Code: true when the user line logged before this request held a tool_result. */
+  readonly afterToolResult?: boolean | undefined;
+  /** Claude Code: true when usage logged the nested 5-minute / 1-hour cache-write split. */
+  readonly cacheSplitLogged?: boolean | undefined;
 }
 
 export interface ParsedSession {
@@ -102,6 +112,7 @@ function usageNumbers(u: Usage | undefined): {
   cacheRead: number;
   cacheCreation: number;
   cacheCreation1h: number;
+  split: boolean;
 } {
   // Claude Code before 2.1.152 could log the top-level cache_creation field as 0
   // while the nested 5m/1h breakdown held the real value.
@@ -119,6 +130,7 @@ function usageNumbers(u: Usage | undefined): {
     cacheRead: u?.cache_read_input_tokens ?? 0,
     cacheCreation: Math.max(u?.cache_creation_input_tokens ?? 0, nestedSum || 0),
     cacheCreation1h: nested1h,
+    split: !!nested && typeof nested === "object",
   };
 }
 
@@ -162,6 +174,8 @@ export function parseTranscript(
   let userTurnCount = 0;
   let linesParsed = 0;
   let linesSkipped = 0;
+  // Did the last user line hold a tool_result? (AssistantTurn.afterToolResult)
+  let lastUserHadToolResult = false;
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
@@ -230,11 +244,18 @@ export function parseTranscript(
         t.cacheCreationTokens = Math.max(t.cacheCreationTokens, u.cacheCreation);
         t.cacheCreation1hTokens = Math.max(t.cacheCreation1hTokens, u.cacheCreation1h);
         if (usage) t.missingUsage = false;
+        if (u.split) t.cacheSplitLogged = true;
       } else {
         if (model) {
           modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1);
         }
+        const tags = a as { version?: unknown; entrypoint?: unknown; isSidechain?: unknown };
         turn = {
+          ...(typeof tags.version === "string" && tags.version ? { version: tags.version } : {}),
+          ...(typeof tags.entrypoint === "string" && tags.entrypoint ? { entrypoint: tags.entrypoint } : {}),
+          ...(tags.isSidechain === true ? { sidechain: true } : {}),
+          ...(lastUserHadToolResult ? { afterToolResult: true } : {}),
+          ...(u.split ? { cacheSplitLogged: true } : {}),
           index: assistantTurns.length,
           model,
           timestamp: ts,
@@ -282,6 +303,9 @@ export function parseTranscript(
       }
       // Skip tool_result-only wrappers when counting user turns.
       const content = u.message?.content;
+      lastUserHadToolResult =
+        Array.isArray(content) &&
+        content.some((c) => c != null && typeof c === "object" && (c as { type?: unknown }).type === "tool_result");
       if (Array.isArray(content)) {
         for (const c of content) {
           const tr = c as { type?: string; tool_use_id?: unknown; content?: unknown };

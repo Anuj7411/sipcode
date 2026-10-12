@@ -179,7 +179,7 @@ export function fileUsageCacheIO(file: string): UsageCacheIO {
  * holds, or when the file layout changes. The Sipcode version is part of the
  * header too, so every release starts a fresh cache.
  */
-const CACHE_SCHEMA = "sipcode-usage-cache/2";
+const CACHE_SCHEMA = "sipcode-usage-cache/3";
 
 let versionMemo: string | undefined;
 function sipcodeVersion(): string {

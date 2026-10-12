@@ -6,9 +6,9 @@ Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/c
 
 On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pairs, not recordings of live sessions), Sipcode's mechanisms remove 62.6% of tokens at the median (range 37.4% to 80.6%), totalling 3,567,170 tokens and $22.48 priced as Claude Opus 4.7. Anyone can reproduce these numbers with `sipcode benchmark`. Real-world savings depend on the workload. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag.
+Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag. `sipcode regress` checks the user's own Claude Code and Codex logs for regressions after an update (prompt-cache misses, 5-minute cache TTL, uncached context, hourly cache rebuilds, Codex limit draining faster per token) and pins each one to the version, comparing each version with the user's other versions. A Sipcode plugin for Codex (`codex plugin marketplace add Anuj7411/sipcode`) lets users ask about spend, limits and regressions in plain words; it runs the installed `sipcode` CLI.
 
-Sipcode is solo-maintained, MIT licensed, has 2,108 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
+Sipcode is solo-maintained, MIT licensed, has 2,206 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
 ## How Sipcode differs from neighboring tools
 
@@ -33,6 +33,7 @@ sipcode init
 - `sipcode benchmark`: run the locked 20-task corpus and emit a reproducible savings number
 - `sipcode today`: today's spend, tokens, sessions, output ratio vs 30-day median
 - `sipcode forecast`: month-end spend projection with a confidence range
+- `sipcode regress`: did Claude Code or Codex get worse after an update, each version against the user's other versions
 - `sipcode impact`: before vs after Sipcode comparison, anchored to the install date
 - `sipcode score`: audit a repo for AI-agent friendliness
 
@@ -56,8 +57,8 @@ Sipcode ships an MCP server exposing 16 tools so Claude Code can introspect its 
 
 ## Source code
 
-- [GitHub repository](https://github.com/Anuj7411/sipcode): MIT licensed source, 2,108 tests
-- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.7.1
+- [GitHub repository](https://github.com/Anuj7411/sipcode): MIT licensed source, 2,206 tests
+- [npm package](https://www.npmjs.com/package/sipcode): `sipcode` on npm, current version 1.7.2
 - [Privacy test](https://github.com/Anuj7411/sipcode/blob/main/src): build-blocking check that no network modules are imported in `src/`
 
 ## License

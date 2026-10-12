@@ -33,6 +33,8 @@ export interface SessionMeta {
    * each other's requests (loadSessions' copy candidates).
    */
   readonly lineage?: { readonly id: string; readonly linkedIds: readonly string[] } | undefined;
+  /** Codex: the `cli_version` line 1 records (the Codex version that wrote the file). */
+  readonly cliVersion?: string | undefined;
 }
 
 export function resolveProjectsDir(env: ProcessEnv): string {
@@ -89,18 +91,35 @@ export async function hasClaudeTranscripts(fs: FileSystem, projectsDir: string):
   return false;
 }
 
+/** Claude Code sessions, with what could not be read counted (never silently dropped). */
+export interface ClaudeSessionList {
+  readonly sessions: SessionMeta[];
+  /** Transcript files that were listed but could not be read (stat failed). */
+  readonly unreadable: number;
+  /** Folders that could not be listed: the projects folder itself, or a project folder. */
+  readonly unreadableFolders: number;
+}
+
 /**
- * List all sessions across all project directories.
- * Sorted by mtime descending (most recent first).
- * Observer/telemetry project dirs (see {@link isObserverProjectDir}) are skipped.
+ * List all sessions across all project directories, counting the folders and
+ * files that could not be read. Sorted by mtime descending (most recent
+ * first). Observer/telemetry project dirs (see {@link isObserverProjectDir})
+ * are skipped. A missing projects folder is not an error (no sessions).
  */
-export async function listAllSessions(
+export async function listClaudeSessions(
   fs: FileSystem,
   projectsDir: string,
-): Promise<SessionMeta[]> {
+): Promise<ClaudeSessionList> {
   const out: SessionMeta[] = [];
-  if (!(await fs.exists(projectsDir))) return out;
-  const projectDirs = await fs.readDir(projectsDir);
+  let unreadable = 0;
+  let unreadableFolders = 0;
+  if (!(await fs.exists(projectsDir))) return { sessions: out, unreadable, unreadableFolders };
+  let projectDirs;
+  try {
+    projectDirs = await fs.readDir(projectsDir);
+  } catch {
+    return { sessions: out, unreadable, unreadableFolders: 1 };
+  }
   for (const proj of projectDirs) {
     if (!proj.isDirectory) continue;
     if (isObserverProjectDir(proj.name)) continue;
@@ -109,6 +128,7 @@ export async function listAllSessions(
     try {
       entries = await fs.readDir(projPath);
     } catch {
+      unreadableFolders++;
       continue;
     }
     for (const e of entries) {
@@ -118,6 +138,7 @@ export async function listAllSessions(
       try {
         stat = await fs.stat(filePath);
       } catch {
+        unreadable++;
         continue;
       }
       out.push({
@@ -129,7 +150,16 @@ export async function listAllSessions(
       });
     }
   }
-  return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return { sessions: out, unreadable, unreadableFolders };
+}
+
+/** listClaudeSessions without the counts (estimate's historical anchors). */
+export async function listAllSessions(
+  fs: FileSystem,
+  projectsDir: string,
+): Promise<SessionMeta[]> {
+  return (await listClaudeSessions(fs, projectsDir)).sessions;
 }
 
 /**

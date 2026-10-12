@@ -69,6 +69,8 @@ export interface LimitPeriod {
   readonly newestAt: number;
   /** One point per reading, oldest first. */
   readonly points: readonly PeriodPoint[];
+  /** plan_type of the newest reading (undefined when that reading has none). */
+  readonly planType?: string | undefined;
 }
 
 export interface LimitWindow {
@@ -83,6 +85,7 @@ interface OpenPeriod {
   usedPercent: number;
   newestAt: number;
   readonly points: PeriodPoint[];
+  planType: string | undefined;
 }
 
 function startsNewPeriod(cur: OpenPeriod, r: LimitReading): boolean {
@@ -114,12 +117,14 @@ export function buildPeriods(readings: readonly LimitReading[]): LimitWindow[] {
         usedPercent: r.usedPercent,
         newestAt: r.at,
         points: [{ at: r.at, usedPercent: r.usedPercent }],
+        planType: r.planType,
       });
       continue;
     }
     cur.usedPercent = Math.max(cur.usedPercent, r.usedPercent);
     cur.resetsAt = r.resetsAt;
     cur.newestAt = r.at;
+    cur.planType = r.planType;
     cur.points.push({ at: r.at, usedPercent: cur.usedPercent });
   }
   return [...open.values()]
@@ -138,6 +143,7 @@ export function buildPeriods(readings: readonly LimitReading[]): LimitWindow[] {
         usedPercent: p.usedPercent,
         newestAt: p.newestAt,
         points: p.points,
+        ...(p.planType !== undefined ? { planType: p.planType } : {}),
       })),
     }));
 }
