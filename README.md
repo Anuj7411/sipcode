@@ -203,6 +203,8 @@ Tokens per 1% of your weekly limit (gpt-5.4)
 
 `sipcode regress` checks your own Claude Code and Codex logs for regressions that arrive with an update, and names the version that brought each one. Each version is compared with your other versions, so no outside baseline is needed, and nothing leaves your machine.
 
+Example output (one machine's logs; your numbers will differ):
+
 ```
 sipcode regress · local only, no network
 Claude Code: 27,671 interactive requests in 42 sessions (710 subagent and Agent SDK requests left out of the comparison), 2026-05-04 to 2026-10-12, versions 2.1.121 to 2.1.295
@@ -225,19 +227,46 @@ No regressions detected in your logs.
 - Subagent and Agent SDK requests are left out: their cache policy differs by design.
 - `--bug-report` adds a block to paste into a GitHub issue: token counts, versions, dates and short session ids only. Review it before posting.
 - `--json` for scripts, `--agent claude-code` or `--agent codex` for one tool, `--min-n <n>` for the minimum requests per version a check needs (default 20).
-- If no logs can be read (for example a sandbox blocks the folders), it prints "Nothing to analyse ... This is NOT a clean result." and exits with code 2. With too little data it says "Not enough data to compare versions yet".
+- If no logs can be read (for example a sandbox blocks the folders), it prints "Nothing to analyse ... This is NOT a clean result." and exits with code 2. With too little data it says "Not enough data to compare versions yet". When one tool was compared and the other was read but had too little data, it names that tool ("Not enough data to compare Codex versions yet"), so a missing finding for it is not a clean result.
 - An independent counter that shares no code with Sipcode ([`scripts/verify-counts.mjs`](scripts/verify-counts.mjs)) recomputes the coverage, every check's table and the findings of `regress --json` from the same logs.
 
 ### Use Sipcode inside Codex
 
-The Sipcode plugin lets you ask Codex (the ChatGPT desktop app or the Codex CLI) about your own usage in plain words. Each answer comes from the `sipcode` CLI on your computer, reading your local logs.
+The Sipcode plugin lets you ask Codex about your own usage in plain words, in the ChatGPT desktop app or in the Codex CLI. Each answer comes from the `sipcode` command on your computer, reading your local logs.
 
-1. Install Sipcode once: `npm i -g sipcode` (Node.js 20 or newer). The plugin runs the installed `sipcode`; it does not use `npx`, because Codex's sandbox usually blocks downloads.
-2. Add the plugin:
-   - Run `codex plugin marketplace add Anuj7411/sipcode` once in a terminal.
-   - Codex CLI: open `/plugins` in Codex, choose the Sipcode marketplace and install **Sipcode**, then start a new session.
-   - ChatGPT desktop app: restart the app, open **Plugins**, choose the Sipcode marketplace as the source and install **Sipcode**, then start a new chat.
-3. Ask:
+**Step 1. Install Sipcode once** (Node.js 20 or newer), in a terminal:
+
+```bash
+npm i -g sipcode
+```
+
+The plugin runs this installed `sipcode`. It does not use `npx`, because Codex's sandbox usually blocks downloads.
+
+**Step 2. Add the plugin.** Follow the path that matches how you use Codex.
+
+*If you use Codex only in the ChatGPT desktop app* (typing `codex` in a terminal says it is not recognized):
+
+1. Open a terminal (PowerShell on Windows, Terminal on macOS) and run these two commands:
+
+   ```bash
+   npx -y @openai/codex plugin marketplace add Anuj7411/sipcode
+   npx -y @openai/codex plugin add sipcode@sipcode
+   ```
+
+   `npx` runs OpenAI's Codex CLI (npm package `@openai/codex`) without installing it; the first run downloads it, which can take a minute. The first command adds this repository as a plugin marketplace named `sipcode`, the second installs the Sipcode plugin from it. Both write to `~/.codex`, the folder the desktop app reads its plugins from.
+2. Quit the ChatGPT desktop app completely and open it again.
+3. Open **Plugins** and check that Sipcode is there (pick the `sipcode` marketplace as the source if the list does not show it). If it is not marked as installed, install it from there.
+4. Start a new chat.
+
+OpenAI's docs do not describe a button in the desktop app for adding a marketplace from GitHub on a personal account, which is why this path uses the CLI command once. You do not need to keep the CLI installed.
+
+*If you have the Codex CLI* (`codex --version` works):
+
+1. Run `codex plugin marketplace add Anuj7411/sipcode`.
+2. Run `codex plugin add sipcode@sipcode`, or open `/plugins` in Codex, choose the `sipcode` marketplace and install **Sipcode**.
+3. Start a new Codex session. If you also use the desktop app, quit and reopen it.
+
+**Step 3. Ask:**
 
 | Ask | Sipcode runs |
 |---|---|
@@ -246,7 +275,10 @@ The Sipcode plugin lets you ask Codex (the ChatGPT desktop app or the Codex CLI)
 | "Why was my last Codex session so expensive?" | `sipcode why --agent codex --json` |
 | "Did Codex or Claude Code get worse after an update?" | `sipcode regress --bug-report` |
 
-If Codex's sandbox blocks `~/.codex` or `~/.claude`, the plugin asks for permission to run the command with read access instead of reporting an empty result. Dollar figures are at API prices; on a ChatGPT plan you are not billed per token. The plugin is instructions only (four skills): no hooks, no MCP server, no network calls. Update it with `codex plugin marketplace upgrade sipcode`.
+- If Codex's sandbox blocks `~/.codex` or `~/.claude`, the plugin asks for permission to run the command with read access instead of reporting an empty result.
+- Dollar figures are at API prices; on a ChatGPT plan you are not billed per token.
+- The plugin is instructions only (four skills): no hooks, no MCP server, no network calls.
+- To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app. Update the `sipcode` command itself with `npm i -g sipcode@latest`.
 
 ---
 

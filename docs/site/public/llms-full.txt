@@ -201,7 +201,7 @@ When Claude's context window fills up with stale, repeated, or off-topic informa
 
 ### Does it work with Cursor or other AI tools?
 
-The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. Inside Codex, the Sipcode plugin (`codex plugin marketplace add Anuj7411/sipcode`, then install Sipcode) answers spend, limit, why-expensive and regression questions by running the installed `sipcode` CLI (`npm i -g sipcode` once). For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
+The proxy, hooks and rules work with Claude Code. Sipcode also reads OpenAI Codex session logs for spend analytics (`stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt`, `drift` with `--agent codex`). Writing rules to `AGENTS.md`, registering the MCP server in Codex, the proxy and hooks, `estimate` and `benchmark` are not supported for Codex yet. Inside Codex, the Sipcode plugin (`codex plugin marketplace add Anuj7411/sipcode`, then `codex plugin add sipcode@sipcode`; desktop-app-only users run both with `npx -y @openai/codex` and restart the app) answers spend, limit, why-expensive and regression questions by running the installed `sipcode` CLI (`npm i -g sipcode` once). For Cursor, `sipcode rules --agent cursor` writes the rules block to Cursor's rules file; Cursor's session logs are not read.
 
 ### How do I uninstall?
 

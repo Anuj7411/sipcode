@@ -50,8 +50,8 @@ Question 4 needs a new command. `sipcode regress` ports the prototype detector (
 ### 4.1 Install (README "Use Sipcode inside Codex")
 
 1. `npm i -g sipcode` once (Node 20+).
-2. Codex CLI: `codex plugin marketplace add Anuj7411/sipcode`, then `/plugins` in Codex and install **Sipcode**.
-3. ChatGPT desktop app: open the Plugins screen, add a marketplace with `https://github.com/Anuj7411/sipcode` (a third-party guide describes this as Plugins > Add more; OpenAI's docs only document the CLI command and marketplace files), then install **Sipcode** from it. The exact button names are confirmed in the manual acceptance step (section 10.5) before the README text is final.
+2. Codex CLI: `codex plugin marketplace add Anuj7411/sipcode`, then `codex plugin add sipcode@sipcode` (or `/plugins` in Codex and install **Sipcode**).
+3. ChatGPT desktop app only (no `codex` on PATH): `npx -y @openai/codex plugin marketplace add Anuj7411/sipcode` and `npx -y @openai/codex plugin add sipcode@sipcode`, quit and reopen the app, check **Plugins**, new chat. (Review 2026-10-12: OpenAI's docs describe no desktop button for adding a GitHub marketplace on a personal account; the only GitHub import UI is the enterprise admin one. The desktop app reads `[marketplaces.*]` and `[plugins."<plugin>@<marketplace>"]` from `~/.codex/config.toml`, which these commands write; the docs ask users not to edit those by hand. Verified with the desktop app's bundled codex 0.162.0-alpha.2 against an isolated CODEX_HOME: `marketplace add <repo path>` picks `.agents/plugins/marketplace.json` over the Claude Code `.claude-plugin/marketplace.json` of the same name, and `plugin add sipcode@sipcode` installs the 1.7.2 plugin with all four skills.)
 4. Ask in plain words, or pick a skill with `$` (Codex CLI) / `@` (ChatGPT).
 
 ### 4.2 Rules every skill follows
