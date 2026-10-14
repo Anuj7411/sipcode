@@ -61,9 +61,28 @@ describe("formatTerminal", () => {
     expect(out).toContain("top leaks");
     expect(out).toContain("duplicate reads");
     expect(out).toContain("idle context");
-    expect(out).toContain("most expensive tool calls");
+    expect(out).toContain("largest requests (the tool call each one made):");
+    expect(out).not.toContain("most expensive tool calls");
     expect(out).toContain("est. cost");
     expect(out).toContain("run `npx sipcode init`");
+  });
+
+  // The tokens of a "topExpensive" row are its whole request's tokens (the context sent
+  // with it plus its output, split across calls made in one request), not the call's cost.
+  it("largest requests: each row says the tokens are the request's, not the tool call's", () => {
+    const out = formatTerminal(sample(), { useColor: false, verbose: false });
+    expect(out).toContain("  · 80 tokens in the request that called Read [duplicate-read] (x.ts)");
+    expect(out).toContain(
+      "  (a request's tokens are mostly the context sent with it, not what the tool call cost; calls made in one request share its tokens)",
+    );
+  });
+
+  // why's output ratio leaves cache reads out of the denominator (tokens.ts, v1.4.0),
+  // so "of all tokens" was false next to a one-liner that counts every token.
+  it("output ratio is labelled as a share of the tokens not read from cache", () => {
+    const out = formatTerminal(sample(), { useColor: false, verbose: false });
+    expect(out).toContain("output ratio: 6% of the tokens not read from cache");
+    expect(out).not.toContain("of all tokens");
   });
 
   it("verbose=true includes the totals block", () => {

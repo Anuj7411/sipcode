@@ -145,7 +145,7 @@ export function formatHtml(
 
   const cards = [
     bigCard("total tokens", fmtNum(report.totals.totalTokens)),
-    bigCard("output ratio", fmtPct(report.totals.outputRatioPct), "code vs exploration"),
+    bigCard("output ratio", fmtPct(report.totals.outputRatioPct), "the rest is context sent with each request"),
     bigCard("est. cost", fmtUSD(report.totals.estCostUSD), `${report.sessionCount} sessions`),
   ].join("");
 

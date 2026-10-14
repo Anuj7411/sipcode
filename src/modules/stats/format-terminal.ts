@@ -6,6 +6,7 @@
  */
 import chalk from "chalk";
 import { formatNum, formatTokensShort } from "../../lib/format.js";
+import { formatPercent } from "../limits/format-terminal.js";
 import type { StatsResult } from "./types.js";
 import { sparkline, sparklineStats } from "./sparkline.js";
 
@@ -48,6 +49,17 @@ function usd(n: number): string {
 
 const humanTokens = formatTokensShort;
 
+/**
+ * ", 63% of it read from cache" for the output-ratio line; empty when nothing
+ * was read from cache. Every request re-sends the conversation so far, so the
+ * non-output tokens are that context, mostly read from cache.
+ */
+function cachedShare(t: StatsResult["totals"]): string {
+  const context = t.inputTokens + t.cacheReadTokens + t.cacheCreationTokens;
+  if (context <= 0 || t.cacheReadTokens <= 0) return "";
+  return `, ${formatPercent((t.cacheReadTokens / context) * 100)} of it read from cache`;
+}
+
 function windowLabel(raw: string): string {
   if (raw === "all") return "all time";
   if (/^\d+d$/.test(raw)) return `last ${raw.replace("d", " days")}`;
@@ -80,10 +92,10 @@ export function formatTerminal(
   const output = report.totals.outputTokens;
   const ratio = report.totals.outputRatioPct;
   lines.push(
-    `across ${formatNum(report.sessionCount)} sessions you burned ${c.bold(formatNum(total))} tokens.`,
+    `across ${formatNum(report.sessionCount)} sessions you used ${c.bold(formatNum(total))} tokens.`,
   );
   lines.push(
-    `output ratio: ${c.yellow(`${ratio}%`)} of all tokens — ${(100 - ratio).toFixed(1)}% was exploration, re-reads, and idle context.`,
+    `output ratio: ${c.yellow(`${ratio}%`)} of all tokens. the other ${(100 - ratio).toFixed(1)}% was context sent with each request${cachedShare(report.totals)}.`,
   );
   lines.push("");
 

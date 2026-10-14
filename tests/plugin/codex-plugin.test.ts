@@ -185,16 +185,80 @@ describe("Codex plugin: skills", () => {
     }
   });
 
-  it("every skill: published CLI only, install hint, no npx, sandbox escalation, no reading logs, exact numbers", () => {
+  it("every skill: published CLI only, install hint, no npx, sandbox escalation, no reading logs, no invented numbers", () => {
     for (const s of SKILLS) {
       const t = skillText(s);
       expect(t, s).toContain("Run `npm i -g sipcode` once in a terminal, then ask again.");
       expect(t, s).toContain("Do not try `npx`");
       expect(t, s).toContain("request permission to run the same command again with read access");
       expect(t, s).toContain("Never open, read, search or summarise the log files yourself");
-      expect(t, s).toContain("Quote numbers exactly as");
+      expect(t, s).toMatch(/never invent/i);
       expect(t, s).not.toMatch(/\bnpx sipcode\b/);
     }
+  });
+
+  // Codex once answered with raw JSON values ("$3.2481702571428572", "88.99999999999999%",
+  // "2026-10-14T06:25:29.384Z"). Skills that read JSON must round the way the terminal does.
+  it("JSON skills present numbers the way the terminal does: cents, whole percents, separators, no ISO times", () => {
+    for (const s of ["sipcode-spend", "sipcode-why"]) {
+      const t = skillText(s);
+      expect(t, s).not.toContain("Quote numbers exactly");
+      expect(t, s).toContain("Dollars to the cent: `$3.25`");
+      expect(t, s).toContain('"under $0.01"');
+      expect(t, s).toContain("Percents as whole numbers: `89%`");
+      expect(t, s).toContain("Below 1%, one decimal (`0.4%`)");
+      expect(t, s).toContain("Tokens with thousands separators: `107,733`");
+      expect(t, s).toContain("Never show an ISO string");
+      expect(t, s).toContain("Never change a number beyond this rounding");
+    }
+  });
+
+  it("limits: runs the terminal output (local times, rounded), never --json", () => {
+    const t = skillText("sipcode-limits");
+    expect(t).not.toContain("Quote numbers exactly");
+    expect(t).not.toMatch(/sipcode limits[^`\n]*--json/);
+    expect(t).toContain("in the user's local time zone");
+    expect(t).toContain("Never show an ISO string");
+    expect(t).toContain("Never change a number beyond this rounding");
+  });
+
+  // Codex once said "Weekly limit is 92% used ... reset-since, so its listed reset is stale".
+  // The skill repeats the terminal's two reset-since wordings (limits/format-terminal.ts) in
+  // plain words and never gives the old percent as current.
+  it("limits: a window that reset is described like the terminal does, never with the old percent", () => {
+    const t = skillText("sipcode-limits");
+    expect(t).toContain('"no readings since it reset (');
+    expect(t).toContain('"reset since your last Codex request (at ');
+    expect(t).toMatch(/never give a percent for that limit/i);
+    expect(t).not.toMatch(/\bstale\b/i);
+    expect(t).not.toContain("reset-since");
+    // usedBy is a "what used it" list for the current period, in points of the limit.
+    expect(t).toContain("what used this limit in the current period");
+  });
+
+  it("why: topExpensive is the largest requests, and their tokens are never a tool call's cost", () => {
+    const t = skillText("sipcode-why");
+    expect(t).toContain("`topExpensive` (the largest requests and the tool call each one made)");
+    expect(t).toContain("never say a tool call used or cost those tokens");
+  });
+
+  it("why: the non-output tokens are the context sent with each request, never exploration", () => {
+    const t = skillText("sipcode-why");
+    expect(t).toContain("`punchline.nonOutputTokens` are the context sent with each request");
+    expect(t).toContain("never call them exploration, re-reads or idle context");
+    // why's output ratio leaves cache reads out: it is not outputTokens / totalTokens.
+    expect(t).toContain("`punchline.outputRatioPct` is output as a share of the tokens not read from cache");
+  });
+
+  it("Claude Code why skill: output ratio over the tokens not read from cache, no stale typical range", () => {
+    const t = readFileSync(path.join(ROOT, "skills", "why", "SKILL.md"), "utf-8");
+    expect(t).toContain("as a share of the tokens not read from cache");
+    expect(t).not.toContain("0.3% to 2% is typical");
+    expect(t).not.toMatch(/[\u2013\u2014]/);
+  });
+
+  it("regress: its terminal output is already display-ready and is quoted as printed", () => {
+    expect(skillText("sipcode-regress")).toContain("Quote numbers exactly as printed");
   });
 
   it("copy rules: no em or en dashes, no 'stops hallucinations', 'nerfed' only in a prohibition", () => {
@@ -227,8 +291,8 @@ describe("Codex plugin: every command a skill runs exists in the CLI", () => {
       "sipcode today --agent codex --json",
       "sipcode forecast --agent codex --json",
       "sipcode stats --agent codex --since 7d --json",
-      "sipcode limits --json",
-      "sipcode limits --json --since all",
+      "sipcode limits",
+      "sipcode limits --since all",
       "sipcode why --agent codex --json",
       "sipcode why --agent codex --list",
       "sipcode why --agent codex --session <id> --json",

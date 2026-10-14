@@ -27,7 +27,7 @@ Answer "is it the tool or is it me?" from the user's own logs on this computer, 
    - If it prints a WARNING that files could not be read, say the result is partial and ask the user to allow read access, then run it again.
    - If it says "Not enough data to compare versions yet", say that, and that it is not a clean result either.
    - If it prints "Not enough data to compare Codex versions yet" or "Not enough data to compare Claude Code versions yet", that tool was read but not compared: say so, and do not include it in "no regressions".
-2. If there are findings, list each one with its versions, the evidence numbers and whether it matches a known, confirmed issue (R1 to R5). Quote numbers exactly as printed; do not round or recompute them.
+2. If there are findings, list each one with its versions, the evidence numbers and whether it matches a known, confirmed issue (R1 to R5). Quote numbers exactly as printed (they are already rounded for display); do not round or recompute them, and never invent one.
 3. A finding not in the known-issue catalog is a signal worth reporting, not proof of a bug. Say so plainly.
 4. A Codex finding ("Codex rate limit drains faster per token") could also be a limit change on the user's plan at the same time as the update, and Codex use on other devices or in the cloud shares the same limit: always say so, and call any limit change "possible".
 5. If there are no findings, say "No regressions detected in your logs" for the tools that were compared, and repeat the coverage, so the user knows what was checked. Do not speculate about causes.

@@ -15,7 +15,7 @@
   <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-2%2C206%20passing-28C840" alt="2206 tests passing" />
+  <img src="https://img.shields.io/badge/tests-2%2C222%20passing-28C840" alt="2222 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -271,12 +271,13 @@ OpenAI's docs do not describe a button in the desktop app for adding a marketpla
 | Ask | Sipcode runs |
 |---|---|
 | "How much did I spend on Codex this month?" | `sipcode forecast --agent codex --json` (also `today` and `stats`) |
-| "How close am I to my Codex limit? Did it shrink?" | `sipcode limits --json` |
+| "How close am I to my Codex limit? Did it shrink?" | `sipcode limits` (its terminal output, for local times) |
 | "Why was my last Codex session so expensive?" | `sipcode why --agent codex --json` |
 | "Did Codex or Claude Code get worse after an update?" | `sipcode regress --bug-report` |
 
 - If Codex's sandbox blocks `~/.codex` or `~/.claude`, the plugin asks for permission to run the command with read access instead of reporting an empty result.
 - Dollar figures are at API prices; on a ChatGPT plan you are not billed per token.
+- Answers show numbers the way the `sipcode` terminal output does: dollars to the cent, whole percents, and times in your local time zone, never raw JSON values.
 - The plugin is instructions only (four skills): no hooks, no MCP server, no network calls.
 - To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app. Update the `sipcode` command itself with `npm i -g sipcode@latest`.
 

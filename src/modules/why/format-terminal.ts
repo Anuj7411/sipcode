@@ -43,7 +43,7 @@ export function formatTerminal(
   // Punchline.
   lines.push(report.punchline.oneLiner);
   lines.push(
-    `output ratio: ${c.yellow(`${report.punchline.outputRatioPct}%`)} of all tokens`,
+    `output ratio: ${c.yellow(`${report.punchline.outputRatioPct}%`)} of the tokens not read from cache`,
   );
   lines.push("");
 
@@ -110,14 +110,21 @@ export function formatTerminal(
     lines.push("");
   }
 
-  // Top expensive tool calls.
+  // Largest requests. Each row's tokens are the whole request's (the context
+  // sent with it plus its output, split across the calls it made), not the
+  // tool call's own cost: say so on every row.
   if (report.topExpensive.length > 0) {
-    lines.push(c.bold("most expensive tool calls:"));
+    lines.push(c.bold("largest requests (the tool call each one made):"));
     for (const t of report.topExpensive) {
       lines.push(
-        `  · ${t.toolName} ${c.dim(`[${t.reason}]`)} — ${formatNum(t.tokens)} tokens ${c.dim(`(${t.label})`)}`,
+        `  · ${formatNum(t.tokens)} tokens in the request that called ${t.toolName} ${c.dim(`[${t.reason}]`)} ${c.dim(`(${t.label})`)}`,
       );
     }
+    lines.push(
+      c.dim(
+        "  (a request's tokens are mostly the context sent with it, not what the tool call cost; calls made in one request share its tokens)",
+      ),
+    );
     lines.push("");
   }
 

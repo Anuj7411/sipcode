@@ -1,9 +1,12 @@
 /**
- * Top-5 most expensive tool calls. Pure.
+ * The 5 largest requests, each named by the tool call it made. Pure.
  *
- * Each tool call inherits the cost of its parent assistant turn. Since
- * Claude Code can emit multiple tool_use blocks per assistant message,
- * we split the cost evenly across the same-turn calls.
+ * Each tool call is credited with the tokens of its parent assistant turn
+ * (input + output + cache read + cache creation: mostly the context sent with
+ * the request, not what the call itself cost). Since Claude Code can emit
+ * multiple tool_use blocks per assistant message, the tokens are split evenly
+ * across the same-turn calls. User-facing text must call these the request's
+ * tokens, never the tool call's cost.
  */
 import type { ParsedSession, ToolCall } from "../parse.js";
 import { normalizeFilePath } from "../../../lib/path-normalize.js";
@@ -17,7 +20,7 @@ export interface ExpensiveCall {
     | "long-output"
     | "duplicate-read"
     | "ordinary";
-  /** Token cost attributed to this single call. */
+  /** The tokens of the request that made this call, split across its calls. */
   readonly attributedTokens: number;
   /** Best-effort human label of what this call did (e.g. file path). */
   readonly label: string;

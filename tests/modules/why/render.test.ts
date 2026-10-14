@@ -8,7 +8,7 @@ import { analyzeDuplicateReads } from "../../../src/modules/transcript/analyzers
 import { analyzeIdleContext } from "../../../src/modules/transcript/analyzers/idleContext.js";
 import { analyzeTopExpensive } from "../../../src/modules/transcript/analyzers/topExpensive.js";
 import { analyzeCounterfactual } from "../../../src/modules/transcript/analyzers/counterfactual.js";
-import { renderReport } from "../../../src/modules/why/render.js";
+import { punchlineOneLiner, renderReport } from "../../../src/modules/why/render.js";
 import { loadPricingForDate, pricingAgeDays } from "../../../src/lib/pricing/load.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +63,30 @@ describe("renderReport", () => {
         report.topLeaks[i - 1]!.tokens,
       );
     }
+  });
+
+  // The non-output tokens are the context sent with each request (mostly re-sent
+  // conversation, much of it read from cache), not "exploration, re-reads and idle context".
+  it("oneLiner: output vs the context sent with each request, with the cache-read share", () => {
+    expect(buildReport("minimal-2turn.jsonl").punchline.oneLiner).toBe(
+      "you used 2,622 tokens. 120 were output (text, code and reasoning). the other 2,502 were context sent with each request, 48% of it read from cache.",
+    );
+    expect(buildReport("read-heavy.jsonl").punchline.oneLiner).toBe(
+      "you used 47,965 tokens. 970 were output (text, code and reasoning). the other 46,995 were context sent with each request, 78% of it read from cache.",
+    );
+  });
+
+  it("oneLiner: no cache clause when nothing was read from cache", () => {
+    expect(punchlineOneLiner({ outputTokens: 60, inputTokens: 940, cacheReadTokens: 0, cacheCreationTokens: 0 })).toBe(
+      "you used 1,000 tokens. 60 were output (text, code and reasoning). the other 940 were context sent with each request.",
+    );
+    expect(punchlineOneLiner({ outputTokens: 0, inputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0 })).toBe(
+      "you used 0 tokens. 0 were output (text, code and reasoning). the other 0 were context sent with each request.",
+    );
+    // A share above zero never reads 0%.
+    expect(punchlineOneLiner({ outputTokens: 0, inputTokens: 999_999, cacheReadTokens: 1, cacheCreationTokens: 0 })).toBe(
+      "you used 1,000,000 tokens. 0 were output (text, code and reasoning). the other 1,000,000 were context sent with each request, <0.1% of it read from cache.",
+    );
   });
 
   it("matches JSON snapshot for minimal-2turn", () => {
