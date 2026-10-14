@@ -93,7 +93,7 @@ Lists your N most recent Claude Code sessions from `~/.claude/projects`, newest 
 
 ### `audit_latest_session`
 
-Audits a Claude Code session and returns a JSON report: total spend, output ratio, duplicate file reads, idle context, top expensive tool calls, and what Sipcode would have saved. The exact equivalent of running `sipcode why` from the terminal.
+Audits a Claude Code session and returns a JSON report: total spend, output ratio, duplicate file reads, idle context, the largest requests (with the tool call each one made; the tokens are the whole request's, mostly context, not the tool call's cost), and what Sipcode would have saved. The exact equivalent of running `sipcode why` from the terminal.
 
 **When Claude uses it:** when you ask "where did my tokens go?" or "audit my last session" or "how am I doing on token spend?"
 

@@ -236,6 +236,12 @@ describe("Codex plugin: skills", () => {
     expect(t).toContain("what used this limit in the current period");
   });
 
+  it("why: topExpensive is the largest requests, and their tokens are never a tool call's cost", () => {
+    const t = skillText("sipcode-why");
+    expect(t).toContain("`topExpensive` (the largest requests and the tool call each one made)");
+    expect(t).toContain("never say a tool call used or cost those tokens");
+  });
+
   it("regress: its terminal output is already display-ready and is quoted as printed", () => {
     expect(skillText("sipcode-regress")).toContain("Quote numbers exactly as printed");
   });

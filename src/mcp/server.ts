@@ -632,7 +632,7 @@ const TOOL_DEFS = [
   {
     name: "audit_latest_session",
     description:
-      "Audit a Claude Code or Codex session and return a JSON report of where tokens went: total spend, output ratio, duplicate file reads, idle context, top expensive tool calls, and an estimate of what Sipcode COULD HAVE RECOVERED (potential, not realized; assumes optimizers were active). Defaults to the most recent session if no id is given. This is the equivalent of running `sipcode why` from the CLI. Note: 'estimatedSavings' fields are projections from the session data alone; they become measured-real numbers only after running `sipcode rules --install` and re-running impact.",
+      "Audit a Claude Code or Codex session and return a JSON report of where tokens went: total spend, output ratio, duplicate file reads, idle context, the largest requests (topExpensive: each row names the tool call the request made, and its tokens are the whole request's, mostly the context sent with it, not the cost of the tool call), and an estimate of what Sipcode COULD HAVE RECOVERED (potential, not realized; assumes optimizers were active). Defaults to the most recent session if no id is given. This is the equivalent of running `sipcode why` from the CLI. Note: 'estimatedSavings' fields are projections from the session data alone; they become measured-real numbers only after running `sipcode rules --install` and re-running impact.",
     inputSchema: {
       type: "object",
       properties: {

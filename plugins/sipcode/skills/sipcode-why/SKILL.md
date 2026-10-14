@@ -35,6 +35,7 @@ The JSON holds raw values such as `3.2481702571428572` or `88.99999999999999`. S
 ## Report the result
 
 - Start with the session (`header`), its total tokens (`punchline.totalTokens`) and cost at API prices (`totals.estCostUSD`). On a ChatGPT plan the user is not billed per token: say "at API prices".
-- Then where the tokens went, largest first: `topExpensive` (the costliest tool calls), `duplicates` (files read more than once, with the tokens the re-reads cost), `idle` (files kept in context without being used), and `topLeaks`.
+- Then where the tokens went, largest first: `topExpensive` (the largest requests and the tool call each one made), `duplicates` (files read more than once, with the tokens the re-reads cost), `idle` (files kept in context without being used), and `topLeaks`.
+- A `topExpensive` row's `tokens` are the whole request's: mostly the conversation context sent with it, plus its output, split evenly when one request made several tool calls. Say "the request that called <toolName> (<label>) used N tokens, mostly context"; never say a tool call used or cost those tokens.
 - `estimatedSavings` describes what Sipcode's setup saves in Claude Code. Sipcode does not act inside Codex, so do not present it as a saving the user can get in Codex.
 - Do not speculate beyond the output. If the user asks whether Codex itself got more expensive after an update, that is the sipcode-regress skill.
