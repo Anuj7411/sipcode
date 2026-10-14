@@ -254,7 +254,7 @@ describe("Codex plugin: skills", () => {
     const t = readFileSync(path.join(ROOT, "skills", "why", "SKILL.md"), "utf-8");
     expect(t).toContain("as a share of the tokens not read from cache");
     expect(t).not.toContain("0.3% to 2% is typical");
-    expect(t).not.toMatch(/[–—]/);
+    expect(t).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("regress: its terminal output is already display-ready and is quoted as printed", () => {
