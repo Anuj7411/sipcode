@@ -246,6 +246,15 @@ describe("Codex plugin: skills", () => {
     const t = skillText("sipcode-why");
     expect(t).toContain("`punchline.nonOutputTokens` are the context sent with each request");
     expect(t).toContain("never call them exploration, re-reads or idle context");
+    // why's output ratio leaves cache reads out: it is not outputTokens / totalTokens.
+    expect(t).toContain("`punchline.outputRatioPct` is output as a share of the tokens not read from cache");
+  });
+
+  it("Claude Code why skill: output ratio over the tokens not read from cache, no stale typical range", () => {
+    const t = readFileSync(path.join(ROOT, "skills", "why", "SKILL.md"), "utf-8");
+    expect(t).toContain("as a share of the tokens not read from cache");
+    expect(t).not.toContain("0.3% to 2% is typical");
+    expect(t).not.toMatch(/[–—]/);
   });
 
   it("regress: its terminal output is already display-ready and is quoted as printed", () => {

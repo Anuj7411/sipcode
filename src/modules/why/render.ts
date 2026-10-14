@@ -26,6 +26,7 @@ export interface RenderedReport {
     readonly totalTokens: number;
     readonly outputTokens: number;
     readonly nonOutputTokens: number;
+    /** output / (input + output + cache creation): cache reads are left out (tokens.ts). */
     readonly outputRatioPct: number; // e.g. 0.6
     readonly oneLiner: string;
   };

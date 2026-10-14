@@ -43,7 +43,7 @@ export function formatTerminal(
   // Punchline.
   lines.push(report.punchline.oneLiner);
   lines.push(
-    `output ratio: ${c.yellow(`${report.punchline.outputRatioPct}%`)} of all tokens`,
+    `output ratio: ${c.yellow(`${report.punchline.outputRatioPct}%`)} of the tokens not read from cache`,
   );
   lines.push("");
 

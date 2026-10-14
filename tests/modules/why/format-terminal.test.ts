@@ -77,6 +77,14 @@ describe("formatTerminal", () => {
     );
   });
 
+  // why's output ratio leaves cache reads out of the denominator (tokens.ts, v1.4.0),
+  // so "of all tokens" was false next to a one-liner that counts every token.
+  it("output ratio is labelled as a share of the tokens not read from cache", () => {
+    const out = formatTerminal(sample(), { useColor: false, verbose: false });
+    expect(out).toContain("output ratio: 6% of the tokens not read from cache");
+    expect(out).not.toContain("of all tokens");
+  });
+
   it("verbose=true includes the totals block", () => {
     const out = formatTerminal(sample(), { useColor: false, verbose: true });
     expect(out).toContain("totals:");
