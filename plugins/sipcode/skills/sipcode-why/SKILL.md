@@ -22,9 +22,18 @@ Answer from the user's own Codex logs on this computer, through the published `s
 
 The session you are in right now is also a Codex session: if the user means an earlier one, use `--list` and ask which one when it is not clear. Lines Sipcode prints on stderr that start with `note:` are part of the answer.
 
+## Present numbers
+
+The JSON holds raw values such as `3.2481702571428572` or `88.99999999999999`. Show them the way Sipcode's own terminal output does:
+
+- Dollars to the cent: `$3.25`. An amount above zero but below one cent is "under $0.01".
+- Percents as whole numbers: `89%`. Below 1%, one decimal (`0.4%`); above zero but below 0.1% is "under 0.1%". The output ratio (`punchline.outputRatioPct`) keeps one decimal, as the terminal shows it: `3.7%`.
+- Tokens with thousands separators: `107,733`. For large totals the compact form the terminal uses is fine: `3.1M`, `425K`.
+- Dates written out: `Wed 14 Oct`. Never show an ISO string such as `2026-10-14T06:25:29.384Z`.
+- Never change a number beyond this rounding, and never invent, add up or recompute one. If a value is null or missing, say it is not available.
+
 ## Report the result
 
-- Quote numbers exactly as Sipcode prints them. Do not round or recompute them.
 - Start with the session (`header`), its total tokens (`punchline.totalTokens`) and cost at API prices (`totals.estCostUSD`). On a ChatGPT plan the user is not billed per token: say "at API prices".
 - Then where the tokens went, largest first: `topExpensive` (the costliest tool calls), `duplicates` (files read more than once, with the tokens the re-reads cost), `idle` (files kept in context without being used), and `topLeaks`.
 - `estimatedSavings` describes what Sipcode's setup saves in Claude Code. Sipcode does not act inside Codex, so do not present it as a saving the user can get in Codex.

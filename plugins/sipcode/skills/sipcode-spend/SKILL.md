@@ -23,9 +23,18 @@ Answer from the user's own Codex logs on this computer, through the published `s
 
 Run it once. Lines Sipcode prints on stderr that start with `note:` are part of the answer.
 
+## Present numbers
+
+The JSON holds raw values such as `3.2481702571428572`, `88.99999999999999` or `2026-10-14T06:25:29.384Z`. Show them the way Sipcode's own terminal output does:
+
+- Dollars to the cent: `$3.25`. An amount above zero but below one cent is "under $0.01".
+- Percents as whole numbers: `89%`. Below 1%, one decimal (`0.4%`); above zero but below 0.1% is "under 0.1%". The output ratio (`outputRatioPct`) keeps one decimal, as the terminal shows it: `3.7%`. A change against the usual day of less than 0.5% is "about the same as usual".
+- Tokens with thousands separators: `107,733`. For large totals the compact form the terminal uses is fine: `3.1M`, `425K`.
+- Dates written out: `Wed 14 Oct`. Never show an ISO string such as `2026-10-14T06:25:29.384Z`. JSON times are in UTC: give a time of day only converted to the user's local time zone, and leave it out if you do not know that zone.
+- Never change a number beyond this rounding, and never invent, add up or recompute one. If a value is null or missing, say it is not available.
+
 ## Report the result
 
-- Quote numbers exactly as Sipcode prints them. Do not round, add up or recompute them.
 - Dollar amounts are what the tokens would cost at OpenAI's API prices. On a ChatGPT plan the user is not billed per token: say "at API prices", never "you were charged".
 - `today`: give `today.totalSpendUSD` and `today.totalTokens`, then the comparison with the usual day (`comparison.spendDeltaPct` against `baseline.medianSpendPerDayUSD`). If `status` is `no-sessions-today`, `no-baseline` or `no-data`, say that plainly (no Codex use today, not enough history to compare, or no Codex logs).
 - `forecast`: give `monthEnd.spendSoFarUSD`, then `monthEnd.projectedSpendUSD` with its range (`confidenceLowUSD` to `confidenceHighUSD`), and last month when `comparison.lastMonthSpendUSD` is not null. If `status` is not `ok`, say what it means (too little data, too close to month end, no recent activity, or no data) instead of giving a projection.

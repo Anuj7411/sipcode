@@ -271,12 +271,13 @@ OpenAI's docs do not describe a button in the desktop app for adding a marketpla
 | Ask | Sipcode runs |
 |---|---|
 | "How much did I spend on Codex this month?" | `sipcode forecast --agent codex --json` (also `today` and `stats`) |
-| "How close am I to my Codex limit? Did it shrink?" | `sipcode limits --json` |
+| "How close am I to my Codex limit? Did it shrink?" | `sipcode limits` (its terminal output, for local times) |
 | "Why was my last Codex session so expensive?" | `sipcode why --agent codex --json` |
 | "Did Codex or Claude Code get worse after an update?" | `sipcode regress --bug-report` |
 
 - If Codex's sandbox blocks `~/.codex` or `~/.claude`, the plugin asks for permission to run the command with read access instead of reporting an empty result.
 - Dollar figures are at API prices; on a ChatGPT plan you are not billed per token.
+- Answers show numbers the way the `sipcode` terminal output does: dollars to the cent, whole percents, and times in your local time zone, never raw JSON values.
 - The plugin is instructions only (four skills): no hooks, no MCP server, no network calls.
 - To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app. Update the `sipcode` command itself with `npm i -g sipcode@latest`.
 
