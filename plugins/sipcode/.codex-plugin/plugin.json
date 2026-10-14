@@ -1,6 +1,6 @@
 {
   "name": "sipcode",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "description": "Ask about your Codex usage in plain words: spend, usage limits, why a session was expensive, and whether Codex or Claude Code got worse after an update. Runs the Sipcode CLI on this computer, which reads your local Codex and Claude Code logs and makes no network calls.",
   "author": {
     "name": "Anuj Ojha",

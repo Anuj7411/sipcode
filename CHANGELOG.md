@@ -8,7 +8,21 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.7.3]._
+_Nothing landed since [1.7.4]._
+
+## [1.7.4] - 2026-10-14
+
+The Codex plugin uses fewer requests per answer.
+
+### Changed
+- **Codex plugin: one command per answer.** Each skill used to run `sipcode --version` before the real command. Every extra command is another request that re-sends the whole chat, so in a long chat that check cost about as much as the question itself (about 108,000 tokens in one measured chat on the maintainer's machine). Skills now run the real command straight away; if `sipcode` is not found they give the install hint, and if Sipcode does not know a command or option they give the update hint.
+- **README:** ask Sipcode questions in a new, short Codex chat, and start a new chat after updating the plugin (a chat keeps the skill instructions it started with).
+
+### Fixed
+- **Usage cache on Windows.** Saving the cache renames a temp file; antivirus scanning the new file, or another open handle, can refuse that rename for a moment (EPERM, EBUSY, EACCES), and the update was skipped. It is now retried for about a second.
+
+### Notes
+- Test count: 2,222 to 2,225 (`npx vitest run`, which includes the 20 e2e tests).
 
 ## [1.7.3] - 2026-10-14
 
@@ -391,7 +405,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.3...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.4...HEAD
+[1.7.4]: https://github.com/Anuj7411/sipcode/compare/v1.7.3...v1.7.4
 [1.7.3]: https://github.com/Anuj7411/sipcode/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Anuj7411/sipcode/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Anuj7411/sipcode/compare/v1.7.0...v1.7.1
