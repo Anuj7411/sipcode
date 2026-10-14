@@ -8,7 +8,22 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.7.2]._
+_Nothing landed since [1.7.3]._
+
+## [1.7.3] - 2026-10-14
+
+Clearer answers from the Codex plugin, and honest labels for two lines in `sipcode why` and `sipcode stats`.
+
+### Changed
+- **Codex plugin: numbers read the way the terminal shows them.** The spend and why skills round raw JSON values the way Sipcode's terminal does: dollars to the cent ("under $0.01" below a cent), whole percents (one decimal below 1%), thousands separators, and no ISO timestamps. They never invent, add up or recompute a number. Before, Codex could answer with values such as `$3.2481702571428572` or `88.99999999999999%`.
+- **Codex plugin: limits from the terminal output.** The limits skill runs `sipcode limits` without `--json`, because its answer is mostly times and Sipcode prints them in your local time zone. A limit that has reset is described as the terminal says it ("no readings since it reset", or "reset since your last Codex request"), never with the percent from before the reset. The "what used it" list is described as use of the limit in the current period.
+- **`why`: "largest requests", not "most expensive tool calls".** The list credits each tool call with the tokens of the whole request that made it: mostly the context sent with that request, split evenly when one request made several calls. It ranks the largest requests, not what each tool call cost. The heading is now "largest requests (the tool call each one made):", each row says "N tokens in the request that called ...", and a note under the list says what the tokens are. The MCP `audit_latest_session` description, `docs/MCP.md` and both why skills say the same. JSON keys are unchanged.
+- **`why` and `stats`: the tokens that are not output are context, not exploration.** Every request re-sends the conversation so far, so most non-output tokens are that context, much of it read from cache at a fraction of the price. The `why` one-liner now reads "you used N tokens. M were output (text, code and reasoning). the other K were context sent with each request, P% of it read from cache." `stats` says "the other Y% was context sent with each request, P% of it read from cache", and its HTML card says "the rest is context sent with each request". Only the `oneLiner` string changes in `why --json`.
+- **`why`: the output ratio says what it is a share of.** It leaves cache reads out (it has since 1.4.0), so the line now reads "of the tokens not read from cache" instead of "of all tokens".
+
+### Notes
+- A guard test keeps "expensive tool calls" and "exploration, re-reads, and idle context" out of user-facing files.
+- Test count: 2,206 to 2,222 (`npx vitest run`, which includes the 20 e2e tests).
 
 ## [1.7.2] - 2026-10-12
 
@@ -376,7 +391,9 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.3...HEAD
+[1.7.3]: https://github.com/Anuj7411/sipcode/compare/v1.7.2...v1.7.3
+[1.7.2]: https://github.com/Anuj7411/sipcode/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Anuj7411/sipcode/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/Anuj7411/sipcode/compare/v1.6.21...v1.7.0
 [1.6.21]: https://github.com/Anuj7411/sipcode/compare/v1.6.20...v1.6.21
