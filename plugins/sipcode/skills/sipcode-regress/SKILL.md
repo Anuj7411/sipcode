@@ -9,7 +9,7 @@ Answer "is it the tool or is it me?" from the user's own logs on this computer, 
 
 ## Run Sipcode
 
-1. Run `sipcode --version`. If the command is not found, tell the user: "Sipcode is not installed. Run `npm i -g sipcode` once in a terminal, then ask again." and stop. Do not try `npx` (the sandbox usually blocks network access) and do not install anything yourself. If the version is lower than 1.7.2, tell the user to run `npm i -g sipcode@latest` and stop.
+1. Run the command for the question below straight away. Do not check the Sipcode version first: every extra command is another request that re-sends this whole chat. If the shell says `sipcode` is not found or not recognized, tell the user: "Sipcode is not installed. Run `npm i -g sipcode` once in a terminal, then ask again." and stop. If Sipcode says the command or an option is unknown, tell the user: "Your Sipcode is older than this plugin. Run `npm i -g sipcode@latest`, then ask again." and stop. Do not try `npx` (the sandbox usually blocks network access) and do not install anything yourself.
 2. Run this once:
 
    ```bash

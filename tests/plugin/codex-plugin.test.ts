@@ -281,13 +281,27 @@ describe("Codex plugin: skills", () => {
   });
 });
 
+describe("Codex plugin: one request per answer, no pre-checks", () => {
+  // Every extra command is an extra model request that re-sends the whole chat context.
+  it("no skill runs a separate version check before the real command", () => {
+    for (const s of SKILLS) expect(commands(skillText(s)), s).not.toContain("sipcode --version");
+  });
+  it("every skill still handles a missing or outdated sipcode from the real command's error", () => {
+    for (const s of SKILLS) {
+      const t = skillText(s);
+      expect(t, s).toContain("npm i -g sipcode");
+      expect(t, s).toContain("npm i -g sipcode@latest");
+      expect(t, s).toContain("Do not check the Sipcode version first");
+    }
+  });
+});
+
 describe("Codex plugin: every command a skill runs exists in the CLI", () => {
   const all = SKILLS.flatMap((s) => commands(skillText(s)).map((c) => [s, c] as const));
 
   it("the skills name the commands the design calls for", () => {
     const cmds = all.map(([, c]) => c);
     for (const c of [
-      "sipcode --version",
       "sipcode today --agent codex --json",
       "sipcode forecast --agent codex --json",
       "sipcode stats --agent codex --since 7d --json",

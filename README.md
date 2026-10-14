@@ -279,7 +279,8 @@ OpenAI's docs do not describe a button in the desktop app for adding a marketpla
 - Dollar figures are at API prices; on a ChatGPT plan you are not billed per token.
 - Answers show numbers the way the `sipcode` terminal output does: dollars to the cent, whole percents, and times in your local time zone, never raw JSON values.
 - The plugin is instructions only (four skills): no hooks, no MCP server, no network calls.
-- To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app. Update the `sipcode` command itself with `npm i -g sipcode@latest`.
+- Ask in a new, short chat. Codex re-sends the whole conversation with every request, so the same question asked at the end of a long work chat uses far more of your limit than in a fresh one. Each answer runs one Sipcode command, with no extra checks first.
+- To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app and start a new chat (a chat keeps the skill instructions it started with). Update the `sipcode` command itself with `npm i -g sipcode@latest`.
 
 ---
 
