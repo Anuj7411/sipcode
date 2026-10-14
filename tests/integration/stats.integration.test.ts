@@ -464,7 +464,7 @@ describe("runStats: Claude Code and Codex sections", { timeout: 20_000 }, () => 
     expect(r.exitCode).toBe(0);
     expect(r.err).not.toContain("[E003]");
     expect(r.outLines[0]).toBe("detected agent: codex (auto). pass --agent to override.");
-    expect(r.out).toContain("across 1 sessions you burned 1,100 tokens.");
+    expect(r.out).toContain("across 1 sessions you used 1,100 tokens.");
     expect(r.out).not.toContain("──");
   });
 
@@ -474,7 +474,7 @@ describe("runStats: Claude Code and Codex sections", { timeout: 20_000 }, () => 
     const r = await run({ since: "30d" }, fs);
     expect(r.exitCode).toBe(0);
     expect(r.outLines[0]).toBe("detected agent: codex (auto). pass --agent to override.");
-    expect(r.out).toContain("across 1 sessions you burned 1,100 tokens.");
+    expect(r.out).toContain("across 1 sessions you used 1,100 tokens.");
     expect(r.out).not.toContain("──");
     expect(r.err).not.toContain("[E009]");
     const json = await run({ since: "30d", json: true }, fs);

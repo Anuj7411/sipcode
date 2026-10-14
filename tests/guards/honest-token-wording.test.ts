@@ -5,6 +5,9 @@
  *   the whole request that made it (the context sent with it plus its output,
  *   split evenly across calls made in one request), not with the call's own cost.
  *   The list ranks the largest requests and names the tool call each one made.
+ * - "the other N were exploration, re-reads, and idle context": most non-output
+ *   tokens are the conversation context sent with each request, mostly read
+ *   from cache at a fraction of the price.
  *
  * CHANGELOG history and captured sample output under docs/screenshots are left
  * as they were.
@@ -41,6 +44,10 @@ const FILES = [
 
 const FALSE_CLAIMS: ReadonlyArray<[string, RegExp]> = [
   ["a tool call is credited with its whole request's tokens", /expensive tool calls?|costliest tool calls?/i],
+  [
+    "non-output tokens are exploration, re-reads and idle context",
+    /exploration, re-reads|code vs\.? exploration|were code output|actual code output/i,
+  ],
 ];
 
 describe("honest token wording", () => {
@@ -55,7 +62,8 @@ describe("honest token wording", () => {
         readFileSync(path.join(root, f), "utf-8")
           .split(/\r?\n/)
           .forEach((line, i) => {
-            if (re.test(line)) hits.push(`${f}:${i + 1}: ${line.trim().slice(0, 120)}`);
+            // A prohibition ("never call them exploration, ...") names the claim to forbid it.
+            if (re.test(line) && !/\b(never|do not)\b/i.test(line)) hits.push(`${f}:${i + 1}: ${line.trim().slice(0, 120)}`);
           });
       }
       expect(hits).toEqual([]);

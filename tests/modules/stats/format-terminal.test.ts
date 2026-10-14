@@ -58,6 +58,29 @@ describe("formatTerminal", () => {
     expect(out).toContain("est. total cost:");
   });
 
+  // The non-output share is the context sent with each request (mostly re-sent
+  // conversation), not "exploration, re-reads, and idle context".
+  it("output ratio line: the rest is context sent with each request, with the cache-read share", () => {
+    const w = parseSince("30d", NOW);
+    if (!w.ok) throw new Error("setup");
+    const report = renderStats({
+      window: w.value,
+      agent: "claude-code",
+      sessions: [fixtureSession()],
+      topN: 5,
+      groupBy: "none",
+      pricing: loadPricingForDate(NOW),
+      pricingAgeDays: 18,
+      warnings: [],
+    });
+    const out = formatTerminal(report, { useColor: false });
+    expect(out).toContain("across 1 sessions you used 8,200 tokens.");
+    expect(out).toContain(
+      "output ratio: 2.4% of all tokens. the other 97.6% was context sent with each request, 63% of it read from cache.",
+    );
+    expect(out).not.toContain("exploration");
+  });
+
   it("does not include ANSI codes when useColor=false", () => {
     const w = parseSince("7d", NOW);
     if (!w.ok) throw new Error("setup");

@@ -58,6 +58,12 @@ describe("formatHtml", () => {
     expect(html).toContain("</html>");
   });
 
+  it("output ratio card: the rest is context sent with each request, not exploration", () => {
+    const html = formatHtml(makeReport());
+    expect(html).toContain("the rest is context sent with each request");
+    expect(html).not.toContain("exploration");
+  });
+
   it("inlines an SVG sparkline", () => {
     const html = formatHtml(makeReport());
     expect(html).toContain("<svg ");

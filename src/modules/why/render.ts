@@ -12,6 +12,7 @@ import type { CounterfactualSavings } from "../transcript/analyzers/counterfactu
 import type { SipcodeIssue } from "../../lib/errors.js";
 import type { AgentId } from "../agents/types.js";
 import { shortSessionId } from "../../lib/session-id.js";
+import { formatPercent } from "../limits/format-terminal.js";
 
 export interface RenderedReport {
   readonly schemaVersion: "sipcode-why/1";
@@ -113,6 +114,27 @@ function pct(n: number): number {
   return Math.round(n * 1000) / 10; // one decimal
 }
 
+/**
+ * "you used N tokens. M were output (...). the other K were context sent with
+ * each request, P% of it read from cache." Every request re-sends the
+ * conversation so far, so the non-output tokens are that context (mostly read
+ * from cache at a fraction of the price), not exploration or idle files.
+ */
+export function punchlineOneLiner(
+  t: Pick<TokenTotals, "inputTokens" | "outputTokens" | "cacheReadTokens" | "cacheCreationTokens">,
+): string {
+  const context = t.inputTokens + t.cacheReadTokens + t.cacheCreationTokens;
+  const total = context + t.outputTokens;
+  const cached =
+    context > 0 && t.cacheReadTokens > 0
+      ? `, ${formatPercent((t.cacheReadTokens / context) * 100)} of it read from cache`
+      : "";
+  return (
+    `you used ${formatNum(total)} tokens. ${formatNum(t.outputTokens)} were output (text, code and reasoning). ` +
+    `the other ${formatNum(context)} were context sent with each request${cached}.`
+  );
+}
+
 export function renderReport(input: RenderInput): RenderedReport {
   const { session, totals, duplicates, idle, topExpensive, counterfactual } =
     input;
@@ -163,9 +185,7 @@ export function renderReport(input: RenderInput): RenderedReport {
   const totalUSDApprox =
     totals.estCostUSD * (total > 0 ? counterfactual.total / total : 0);
 
-  const oneLiner =
-    `you burned ${formatNum(total)} tokens. ${formatNum(totals.outputTokens)} were code output. ` +
-    `the other ${formatNum(nonOutput)} were exploration, re-reads, and idle context.`;
+  const oneLiner = punchlineOneLiner(totals);
 
   return {
     schemaVersion: "sipcode-why/1",

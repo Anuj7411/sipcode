@@ -242,6 +242,12 @@ describe("Codex plugin: skills", () => {
     expect(t).toContain("never say a tool call used or cost those tokens");
   });
 
+  it("why: the non-output tokens are the context sent with each request, never exploration", () => {
+    const t = skillText("sipcode-why");
+    expect(t).toContain("`punchline.nonOutputTokens` are the context sent with each request");
+    expect(t).toContain("never call them exploration, re-reads or idle context");
+  });
+
   it("regress: its terminal output is already display-ready and is quoted as printed", () => {
     expect(skillText("sipcode-regress")).toContain("Quote numbers exactly as printed");
   });
