@@ -222,6 +222,20 @@ describe("Codex plugin: skills", () => {
     expect(t).toContain("Never change a number beyond this rounding");
   });
 
+  // Codex once said "Weekly limit is 92% used ... reset-since, so its listed reset is stale".
+  // The skill repeats the terminal's two reset-since wordings (limits/format-terminal.ts) in
+  // plain words and never gives the old percent as current.
+  it("limits: a window that reset is described like the terminal does, never with the old percent", () => {
+    const t = skillText("sipcode-limits");
+    expect(t).toContain('"no readings since it reset (');
+    expect(t).toContain('"reset since your last Codex request (at ');
+    expect(t).toMatch(/never give a percent for that limit/i);
+    expect(t).not.toMatch(/\bstale\b/i);
+    expect(t).not.toContain("reset-since");
+    // usedBy is a "what used it" list for the current period, in points of the limit.
+    expect(t).toContain("what used this limit in the current period");
+  });
+
   it("regress: its terminal output is already display-ready and is quoted as printed", () => {
     expect(skillText("sipcode-regress")).toContain("Quote numbers exactly as printed");
   });

@@ -38,6 +38,8 @@ The output is already rounded the way Sipcode shows it: whole percents (one deci
   - "lasts until reset": at this pace it lasts until the reset.
   - "limit reached": the limit is used up until the reset.
   - "not enough data yet for a pace": too soon after the reset to judge the pace.
-  - A line with no percent says the limit has reset since the readings: the old percent no longer applies.
-- What used it: the sessions under "What used your ... limit" (folder names and percent). "unattributed" is use with no request on this computer: Codex on another device or in the cloud.
+- A limit that has reset has no percent on its line. Say what the line says, in plain words, and never give a percent for that limit (any percent from before the reset belongs to the period that ended):
+  - "no readings since it reset (Mon 20 Apr)": "Your weekly limit reset on Mon 20 Apr, and Codex has not reported it since, so there is no current reading for it."
+  - "reset since your last Codex request (at Wed 14 Oct 11:55)": "Your 5-hour limit reset at Wed 14 Oct 11:55, after your last Codex request, so a new period has started. Your next Codex request will show how much of it is used."
+- What used it: the list under "What used your weekly limit (since Mon 13 Oct)" is what used this limit in the current period, from that day: up to five sessions (short id and folder name), the part of the limit each one used (in percent of the whole limit, so the lines add up to no more than the percent used, not to 100%) and its tokens. "codex-auto-review" is Codex's automatic code reviews. "unattributed" is use with no request on this computer: Codex on another device or in the cloud. A limit that has reset has no such list.
 - Did it shrink: "Tokens per 1% of your ... limit" lists how many tokens 1% bought in each finished period. If it prints "Possible limit cut around ...", say "a possible limit cut" around that date, about that many times fewer tokens per 1%, and always add that Codex use on other devices or in the cloud raises the percent without local tokens, so it can look like a cut. Never say it is confirmed, and never say Codex was "nerfed".
