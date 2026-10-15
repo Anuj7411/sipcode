@@ -15,7 +15,7 @@
   <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-2%2C225%20passing-28C840" alt="2225 tests passing" />
+  <img src="https://img.shields.io/badge/tests-2%2C275%20passing-28C840" alt="2275 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -164,7 +164,9 @@ Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.co
 
 **Prices.** Codex models are priced from OpenAI's API price table ([developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing), and each Codex model's page under developers.openai.com/api/docs/models, as of 2026-10-09), including the long-context rate for prompts over 272,000 input tokens. A model with no known price is shown as unpriced: its tokens are still counted, a line under the cost says how many were left out of it, and it is never shown as $0.
 
-**Not supported for Codex yet:** writing rules to `AGENTS.md` (`rules`, and the rules step of `init`), registering the MCP server in Codex, the proxy and hooks (`proxy`, `hygiene`), `estimate` and `benchmark`. `rules --agent codex` and `estimate --agent codex` stop with error E009 instead of showing Claude Code data. Compressed Codex logs (`.jsonl.zst`) are skipped, and a note says how many.
+**Not supported for Codex yet:** writing rules to `AGENTS.md` (`rules`, and the rules step of `init`), registering the MCP server in Codex, the proxy and hooks (`proxy`, `hygiene`), `estimate` and `benchmark`. `rules --agent codex` and `estimate --agent codex` stop with error E009 instead of showing Claude Code data.
+
+**Compressed Codex logs.** Codex compresses older session logs to `.jsonl.zst`. Sipcode reads them exactly like plain logs on Node.js 22.15 or newer. On an older Node.js it skips them and a note says how many, and that reading them needs Node.js 22.15 or newer.
 
 ### Codex limits: `sipcode limits`
 
@@ -286,7 +288,7 @@ OpenAI's docs do not describe a button in the desktop app for adding a marketpla
 
 ## How to install (more detail)
 
-Sipcode works on Mac, Linux, and Windows. You need Node.js 20 or newer.
+Sipcode works on Mac, Linux, and Windows. You need Node.js 20 or newer, and Node.js 22.15 or newer to read the session logs Codex compresses (`.jsonl.zst`).
 
 ### Step 1. Install Node.js
 
@@ -487,7 +489,7 @@ Run any of them with `--help` for full options.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20 or newer. Node.js 22.15 or newer to read the session logs Codex compresses (`.jsonl.zst`); on an older Node.js they are skipped with a note.
 - Claude Code installed (for the proxy hook). Sipcode also works as standalone CLI tools (benchmark, score, etc.) without Claude Code installed.
 - Optional: OpenAI Codex CLI, for Codex spend analytics.
 

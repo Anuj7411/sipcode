@@ -8,7 +8,24 @@ This log starts at v1.6.5 (the reliability-pillar repositioning). Earlier histor
 
 ## [Unreleased]
 
-_Nothing landed since [1.7.4]._
+_Nothing landed since [1.7.5]._
+
+## [1.7.5] - 2026-10-15
+
+Codex now compresses its older session logs, and Sipcode reads them.
+
+### Fixed
+- **Compressed Codex logs are read.** Current Codex compresses older session logs to `rollout-*.jsonl.zst` and keeps only the newest ones as plain `.jsonl`. Sipcode skipped the compressed ones, so it saw almost none of a Codex user's history: `forecast` said it needed more days, `limits` started again at 0%, and `stats`, `why`, `today`, `trend`, `impact` and `regress` missed most sessions. Sipcode now reads them exactly like plain logs, on Node.js 22.15 or newer (zstd ships in Node's own zlib, so there is no new dependency and still no network). A session with both a plain and a compressed log is read once, from the plain log. A damaged or cut-off compressed log is counted as unreadable, never a crash.
+- **Older Node.js: a clear note.** On a Node.js without zstd the compressed logs are still counted, with the note "N compressed Codex log(s) (.jsonl.zst) skipped: reading them needs Node.js 22.15 or newer (you have vX)." JSON output is unchanged.
+- **`regress --bug-report` with nothing to report says so.** With no finding, the flag used to print only the plain result, which Codex read as "no output". It now ends with "No bug report: there is no finding to report." The answer was and is always on stdout.
+
+### Changed
+- **Codex plugin: `regress` gets time.** A first `regress` over large Claude Code logs can take a minute or more (49 seconds on 5.4 GB on the maintainer's machine; about 1 second once the usage cache is warm), and Codex stopped the command after about 10 seconds with empty output. The regress skill now gives the command a timeout of at least 3 minutes and never reports empty output as a result.
+- **README:** Node.js 22.15 or newer is needed to read compressed Codex logs.
+
+### Notes
+- `scripts/verify-counts.mjs` (the independent counter) reads `.jsonl.zst` too, decoding it with `node:zlib` itself, so it cannot agree with a Sipcode that skips them. On the maintainer's frozen logs it matches Sipcode on all 17 Codex logs (15 of them compressed).
+- Test count: 2,225 to 2,275 (`npx vitest run`, which includes the 20 e2e tests).
 
 ## [1.7.4] - 2026-10-14
 
@@ -405,7 +422,8 @@ This release rolls v1.6.9's B3 work (bumped but never published to npm) together
 
 ---
 
-[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.4...HEAD
+[Unreleased]: https://github.com/Anuj7411/sipcode/compare/v1.7.5...HEAD
+[1.7.5]: https://github.com/Anuj7411/sipcode/compare/v1.7.4...v1.7.5
 [1.7.4]: https://github.com/Anuj7411/sipcode/compare/v1.7.3...v1.7.4
 [1.7.3]: https://github.com/Anuj7411/sipcode/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Anuj7411/sipcode/compare/v1.7.1...v1.7.2
