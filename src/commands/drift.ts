@@ -21,7 +21,7 @@
 import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
 void ASSERT_NO_NETWORK;
 import path from "node:path";
-import { RealFileSystem, type FileSystem } from "../lib/fs.js";
+import { readLogText, RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
@@ -242,7 +242,7 @@ export async function runDriftCommand(
       }
       let content: string;
       try {
-        content = await fs.readFile(s.filePath);
+        content = await readLogText(fs, s.filePath);
       } catch {
         metrics.set(s, null);
         continue;

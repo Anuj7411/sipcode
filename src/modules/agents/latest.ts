@@ -15,6 +15,7 @@
  *   - Inside one agent, a prefix matching several sessions picks the newest
  *     (unchanged). Matches in more than one agent are flagged `ambiguous`.
  */
+import { readLogText } from "../../lib/fs.js";
 import { issue, type SipcodeIssue } from "../../lib/errors.js";
 import { MESSAGES } from "../../lib/messages.js";
 import { shortSessionId } from "../../lib/session-id.js";
@@ -92,7 +93,7 @@ export async function pickFrom(
     for (const meta of metas) {
       let content: string;
       try {
-        content = await deps.fs.readFile(meta.filePath);
+        content = await readLogText(deps.fs, meta.filePath);
       } catch {
         continue;
       }

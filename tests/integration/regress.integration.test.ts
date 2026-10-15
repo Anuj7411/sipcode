@@ -47,6 +47,7 @@ function blocked(base: InMemoryFs, fail: (p: string) => boolean): FileSystem {
     exists: (p) => base.exists(p),
     readFile: async (p) => (guard(p), base.readFile(p)),
     readHead: async (p, n) => (guard(p), base.readHead(p, n)),
+    readBytes: async (p) => (guard(p), base.readBytes(p)),
     readDir: async (p) => (guard(p), base.readDir(p)),
     stat: (p) => base.stat(p),
   };

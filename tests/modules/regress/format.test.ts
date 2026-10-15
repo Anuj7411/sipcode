@@ -54,7 +54,9 @@ describe("formatRegressTerminal", () => {
 
   it("names compressed logs it skipped", () => {
     const out = formatRegressTerminal(report({ access: { ...NO_ACCESS_ISSUES, skippedCompressed: 2 } }), OPTS);
-    expect(out).toContain("note: 2 compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.");
+    expect(out).toContain(
+      `note: 2 compressed Codex log(s) (.jsonl.zst) skipped: reading them needs Node.js 22.15 or newer (you have ${process.version}).`,
+    );
   });
 });
 

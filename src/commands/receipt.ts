@@ -17,7 +17,7 @@ void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 
-import { RealFileSystem, type FileSystem } from "../lib/fs.js";
+import { readLogText, RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import {
@@ -196,7 +196,7 @@ export async function runReceipt(
   if (agent.id === "claude-code") {
     let contents: string;
     try {
-      contents = await fs.readFile(chosen.filePath);
+      contents = await readLogText(fs, chosen.filePath);
     } catch {
       stderr(MESSAGES.malformedTranscript(path.basename(chosen.filePath), 0));
       return { exitCode: 1 };

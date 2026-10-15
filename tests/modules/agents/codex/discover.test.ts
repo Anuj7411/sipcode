@@ -1,14 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import zlib from "node:zlib";
 import { InMemoryFs, type FileSystem } from "../../../../src/lib/fs.js";
 import { FakeProcessEnv } from "../../../../src/lib/process.js";
-import { listCodexSessions, resolveCodexHome } from "../../../../src/modules/agents/codex/discover.js";
+import { hasCodexRollout, listCodexSessions, resolveCodexHome } from "../../../../src/modules/agents/codex/discover.js";
+import { setZstdCodecForTests } from "../../../../src/lib/zstd.js";
+
+const zst = (s: string): Buffer => (zlib as unknown as { zstdCompressSync: (b: Buffer) => Buffer }).zstdCompressSync(Buffer.from(s, "utf8"));
 
 const meta = (id: string, cwd: string) => JSON.stringify({ timestamp: "2026-10-01T10:00:00Z", type: "session_meta", payload: { id, session_id: id, cwd, cli_version: "0.160.0" } });
 const turn = JSON.stringify({ timestamp: "2026-10-01T10:00:01Z", type: "event_msg", payload: { type: "token_count", info: null } });
 
 /** Wraps a FileSystem, counting full reads and optionally failing some paths. */
 function spyFs(base: FileSystem, fail: (p: string, op: string) => boolean = () => false) {
-  const calls = { readFile: 0, readHead: 0, headSizes: [] as number[] };
+  const calls = { readFile: 0, readHead: 0, readBytes: 0, headSizes: [] as number[] };
   const guard = (p: string, op: string) => {
     if (fail(p.replace(/\\/g, "/"), op)) throw Object.assign(new Error(`EACCES: ${p}`), { code: "EACCES" });
   };
@@ -24,6 +28,11 @@ function spyFs(base: FileSystem, fail: (p: string, op: string) => boolean = () =
       calls.headSizes.push(n);
       guard(p, "readHead");
       return base.readHead(p, n);
+    },
+    readBytes: async (p) => {
+      calls.readBytes++;
+      guard(p, "readBytes");
+      return base.readBytes(p);
     },
     readDir: async (p) => {
       guard(p, "readDir");
@@ -43,14 +52,15 @@ describe("Codex discovery", () => {
     expect(resolveCodexHome(new FakeProcessEnv({ homeDir: "/h" }))).toMatch(/[\\/]h[\\/]\.codex$/);
   });
 
-  it("finds rollouts in sessions and archived_sessions, preferring sessions for the same file", async () => {
+  it("finds rollouts in sessions and archived_sessions, preferring sessions for the same file (a Node.js without zstd skips .zst)", async () => {
     const fs = new InMemoryFs();
     fs.writeFile("/c/sessions/2026/10/01/rollout-2026-10-01T10-00-00-aaa.jsonl", meta("aaa", "C:\\p"), 3);
     fs.writeFile("/c/archived_sessions/rollout-2026-10-01T10-00-00-aaa.jsonl", meta("aaa", "C:\\old"), 1);
     fs.writeFile("/c/archived_sessions/rollout-2026-09-01T10-00-00-bbb.jsonl", meta("bbb", "C:\\q"), 2);
     fs.writeFile("/c/sessions/2026/10/01/rollout-2026-10-01T11-00-00-ccc.jsonl.zst", "binary", 4);
     fs.writeFile("/c/sessions/2026/10/01/notes.txt", "x", 5);
-    const r = await listCodexSessions(fs, "/c");
+    setZstdCodecForTests(null);
+    const r = await listCodexSessions(fs, "/c").finally(() => setZstdCodecForTests(undefined));
     expect(r.sessions.map((s) => [s.sessionId, s.cwd])).toEqual([["aaa", "C:\\p"], ["bbb", "C:\\q"]]);
     expect(r.skippedCompressed).toBe(1);
     expect(r.unreadable).toBe(0);
@@ -161,5 +171,87 @@ describe("Codex discovery", () => {
       ["new", 20, meta("new", "/p").length],
       ["old", 10, meta("old", "/p").length],
     ]);
+  });
+});
+
+describe("Codex discovery: compressed rollouts (.jsonl.zst)", () => {
+  afterEach(() => setZstdCodecForTests(undefined));
+  const DAY = "/c/sessions/2026/10/01";
+
+  it("lists a compressed rollout with the id and cwd from its line 1, size and mtime from the file", async () => {
+    const mem = new InMemoryFs();
+    const bytes = zst([meta("zzz", "C:\\p"), turn, turn].join("\n") + "\n");
+    mem.writeBytes(`${DAY}/rollout-2026-10-01T10-00-00-zzz.jsonl.zst`, bytes, 9);
+    const { fs, calls } = spyFs(mem);
+    const r = await listCodexSessions(fs, "/c");
+    expect(r.sessions.map((s) => [s.sessionId, s.cwd, s.mtimeMs, s.size, s.cliVersion])).toEqual([
+      ["zzz", "C:\\p", 9, bytes.length, "0.160.0"],
+    ]);
+    expect(r.sessions[0]!.filePath).toMatch(/rollout-2026-10-01T10-00-00-zzz\.jsonl\.zst$/);
+    expect([r.skippedCompressed, r.unreadable]).toEqual([0, 0]);
+    expect(calls.readFile).toBe(0); // line 1 only, decoded by streaming
+    expect(calls.readBytes).toBe(1);
+  });
+
+  it("falls back to the file name without .jsonl.zst when line 1 is not session_meta", async () => {
+    const mem = new InMemoryFs();
+    mem.writeBytes(`${DAY}/rollout-2026-10-01T10-00-00-nometa.jsonl.zst`, zst(turn), 1);
+    const r = await listCodexSessions(mem, "/c");
+    expect(r.sessions.map((s) => s.sessionId)).toEqual(["rollout-2026-10-01T10-00-00-nometa"]);
+  });
+
+  it("reads one log per rollout name: the plain .jsonl over the .zst, in either folder", async () => {
+    const mem = new InMemoryFs();
+    // Same folder: plain wins.
+    mem.writeFile(`${DAY}/rollout-a.jsonl`, meta("a", "/plain"), 5);
+    mem.writeBytes(`${DAY}/rollout-a.jsonl.zst`, zst(meta("a", "/zst")), 4);
+    // Compressed in sessions/, plain in archived_sessions/: plain still wins.
+    mem.writeBytes(`${DAY}/rollout-b.jsonl.zst`, zst(meta("b", "/zst")), 6);
+    mem.writeFile("/c/archived_sessions/rollout-b.jsonl", meta("b", "/archived-plain"), 3);
+    // Both compressed: sessions/ wins, as for plain files.
+    mem.writeBytes(`${DAY}/rollout-c.jsonl.zst`, zst(meta("c", "/sessions")), 2);
+    mem.writeBytes("/c/archived_sessions/rollout-c.jsonl.zst", zst(meta("c", "/archived")), 1);
+    const r = await listCodexSessions(mem, "/c");
+    expect(r.sessions.map((s) => [s.sessionId, s.cwd])).toEqual([
+      ["a", "/plain"],
+      ["b", "/archived-plain"],
+      ["c", "/sessions"],
+    ]);
+    expect([r.skippedCompressed, r.unreadable]).toEqual([0, 0]);
+  });
+
+  it("without zstd, counts only the compressed rollouts it cannot replace with a plain copy", async () => {
+    setZstdCodecForTests(null);
+    const mem = new InMemoryFs();
+    mem.writeFile(`${DAY}/rollout-a.jsonl`, meta("a", "/p"), 5);
+    mem.writeBytes(`${DAY}/rollout-a.jsonl.zst`, zst(meta("a", "/p")), 4);
+    mem.writeBytes(`${DAY}/rollout-b.jsonl.zst`, zst(meta("b", "/p")), 3);
+    mem.writeBytes("/c/archived_sessions/rollout-c.jsonl.zst", zst(meta("c", "/p")), 2);
+    const { fs, calls } = spyFs(mem);
+    const r = await listCodexSessions(fs, "/c");
+    expect(r.sessions.map((s) => s.sessionId)).toEqual(["a"]);
+    expect(r.skippedCompressed).toBe(2);
+    expect(r.unreadable).toBe(0);
+    expect(calls.readBytes).toBe(0); // never opened
+  });
+
+  it("counts a damaged or truncated .zst as unreadable, never a crash", async () => {
+    const mem = new InMemoryFs();
+    const good = zst([meta("ok", "/p"), turn].join("\n"));
+    const long = zst([meta("cut", "/p"), ...Array.from({ length: 2000 }, (_, i) => `{"n":${i},"pad":"${"q".repeat(80)}"}`)].join("\n"));
+    mem.writeBytes(`${DAY}/rollout-ok.jsonl.zst`, good, 3);
+    mem.writeBytes(`${DAY}/rollout-cut.jsonl.zst`, long.subarray(0, long.length - 5), 2);
+    mem.writeBytes(`${DAY}/rollout-junk.jsonl.zst`, Buffer.from(meta("junk", "/p")), 1);
+    mem.writeBytes(`${DAY}/rollout-empty.jsonl.zst`, Buffer.alloc(0), 1);
+    const r = await listCodexSessions(mem, "/c");
+    expect(r.sessions.map((s) => s.sessionId)).toEqual(["ok"]);
+    expect(r.unreadable).toBe(3);
+    expect(r.skippedCompressed).toBe(0);
+  });
+
+  it("hasCodexRollout finds a compressed-only folder", async () => {
+    const mem = new InMemoryFs();
+    mem.writeBytes(`${DAY}/rollout-a.jsonl.zst`, zst(meta("a", "/p")), 1);
+    expect(await hasCodexRollout(mem, "/c/sessions")).toBe(true);
   });
 });

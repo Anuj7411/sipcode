@@ -12,6 +12,7 @@ function failing(base: InMemoryFs, fail: (p: string, op: string) => boolean): Fi
     exists: (p) => base.exists(p),
     readFile: async (p) => (guard(p, "readFile"), base.readFile(p)),
     readHead: async (p, n) => (guard(p, "readHead"), base.readHead(p, n)),
+    readBytes: async (p) => (guard(p, "readBytes"), base.readBytes(p)),
     readDir: async (p) => (guard(p, "readDir"), base.readDir(p)),
     stat: async (p) => (guard(p, "stat"), base.stat(p)),
   };

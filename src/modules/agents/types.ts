@@ -90,7 +90,7 @@ export interface SessionDiscovery {
   readonly unreadable: number;
   /** Folders that could not be listed (reported apart from files). Default 0. */
   readonly unreadableFolders?: number;
-  /** Compressed logs (Codex `.jsonl.zst`) skipped on purpose, reported as one count. Default 0. */
+  /** Compressed logs (Codex `.jsonl.zst`) skipped because this Node.js has no zstd, reported as one count. Default 0. */
   readonly skippedCompressed?: number;
   /** Other problems discovery wants surfaced. */
   readonly issues: readonly SipcodeIssue[];

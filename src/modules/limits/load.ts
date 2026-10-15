@@ -4,6 +4,7 @@
  * and the usage cache are reused unchanged). Files that cannot be read are
  * skipped here; the session loader's stderr note counts them.
  */
+import { readLogText } from "../../lib/fs.js";
 import { scanCodexRateLimits, type LimitReading } from "../agents/codex/rateLimits.js";
 import { discoverAgentSessions, type LoadedSession } from "../agents/loadSessions.js";
 import { getAgentById } from "../agents/registry.js";
@@ -32,7 +33,7 @@ export async function loadCodexReadings(deps: AgentDeps): Promise<CodexReadings>
   const sessions = found.value.sessions;
   for (let i = 0; i < sessions.length; i += READ_AHEAD) {
     const batch = sessions.slice(i, i + READ_AHEAD);
-    const texts = await Promise.all(batch.map((m) => deps.fs.readFile(m.filePath).catch(() => undefined)));
+    const texts = await Promise.all(batch.map((m) => readLogText(deps.fs, m.filePath).catch(() => undefined)));
     batch.forEach((meta, j) => {
       const text = texts[j];
       if (text === undefined) return;

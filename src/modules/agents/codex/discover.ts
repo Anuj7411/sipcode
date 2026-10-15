@@ -1,14 +1,23 @@
 /**
- * Codex rollout discovery: $CODEX_HOME/{sessions,archived_sessions}/**\/rollout-*.jsonl.
+ * Codex rollout discovery: $CODEX_HOME/{sessions,archived_sessions}/**\/rollout-*.jsonl
+ * and rollout-*.jsonl.zst (Codex compresses older rollouts; mtimes are kept).
  *
  * Only line 1 (`session_meta`) is read here, for the session id and cwd; the
- * full file is read once, later, by loadSessions. `.jsonl.zst` (Codex's
- * optional compression of old rollouts) is listed as skipped, and folders or
- * files that cannot be read are counted: neither is ever silently dropped.
+ * full file is read once, later, by loadSessions (readLogText decodes a
+ * compressed one). On a Node.js without zstd, compressed rollouts are counted
+ * as skipped; folders or files that cannot be read (a damaged `.zst` too) are
+ * counted as unreadable: none is ever silently dropped.
  * A missing sessions/ or archived_sessions/ folder is normal, not an error.
+ *
+ * One log per rollout name: when `X.jsonl` and `X.jsonl.zst` both exist (in
+ * either folder), the plain `X.jsonl` is read. It is the one Codex may still
+ * be appending to (a resumed session), and the compressed copy can be one
+ * whose plain file was not removed yet. Between two copies of the same kind,
+ * sessions/ wins over archived_sessions/.
  */
 import path from "node:path";
-import type { FileSystem } from "../../../lib/fs.js";
+import { isCompressedLog, readCompressedLogFirstLine, type FileSystem } from "../../../lib/fs.js";
+import { zstdCodec } from "../../../lib/zstd.js";
 import type { ProcessEnv } from "../../../lib/process.js";
 import type { SessionMeta } from "../../transcript/discover.js";
 import { cwdToProjectHash } from "../../transcript/discover.js";
@@ -27,6 +36,7 @@ export function resolveCodexHome(env: ProcessEnv): string {
 
 export interface CodexDiscovery {
   readonly sessions: SessionMeta[];
+  /** Compressed rollouts not read because this Node.js has no zstd. */
   readonly skippedCompressed: number;
   /** Rollout files that could not be read. */
   readonly unreadable: number;
@@ -41,7 +51,6 @@ interface Found {
 }
 
 interface Counters {
-  compressed: string[];
   unreadable: number;
   unreadableFolders: number;
 }
@@ -57,22 +66,30 @@ async function walk(fs: FileSystem, dir: string, out: Found[], counters: Counter
   for (const e of entries) {
     const p = path.join(dir, e.name);
     if (e.isDirectory) await walk(fs, p, out, counters);
-    else if (e.isFile && e.name.startsWith("rollout-")) {
-      if (e.name.endsWith(".jsonl.zst")) counters.compressed.push(p);
-      else if (e.name.endsWith(".jsonl")) {
-        try {
-          const s = await fs.stat(p);
-          out.push({ file: p, mtimeMs: s.mtimeMs, size: s.size });
-        } catch {
-          counters.unreadable++;
-        }
+    else if (e.isFile && isRolloutName(e.name)) {
+      try {
+        const s = await fs.stat(p);
+        out.push({ file: p, mtimeMs: s.mtimeMs, size: s.size });
+      } catch {
+        counters.unreadable++;
       }
     }
   }
 }
 
+/** `rollout-*.jsonl` or `rollout-*.jsonl.zst`. */
+function isRolloutName(name: string): boolean {
+  return name.startsWith("rollout-") && (name.endsWith(".jsonl") || name.endsWith(".jsonl.zst"));
+}
+
+/** The plain log's name: `X.jsonl` for both `X.jsonl` and `X.jsonl.zst`. */
+function plainName(file: string): string {
+  return path.basename(file).replace(/\.zst$/, "");
+}
+
 /** Line 1 of a rollout, reading the whole file only when line 1 outgrows the largest head window. */
 async function readFirstLine(fs: FileSystem, file: string): Promise<string> {
+  if (isCompressedLog(file)) return readCompressedLogFirstLine(fs, file);
   for (let n = HEAD_START_BYTES; n <= HEAD_MAX_BYTES; n *= 2) {
     const head = await fs.readHead(file, n);
     const nl = head.indexOf("\n");
@@ -86,7 +103,7 @@ async function readFirstLine(fs: FileSystem, file: string): Promise<string> {
   return fullNl >= 0 ? full.slice(0, fullNl) : full;
 }
 
-/** True as soon as one `rollout-*.jsonl` is found under `dir` (stops walking there). */
+/** True as soon as one `rollout-*.jsonl` or `.jsonl.zst` is found under `dir` (stops walking there). */
 export async function hasCodexRollout(fs: FileSystem, dir: string): Promise<boolean> {
   let entries;
   try {
@@ -95,7 +112,7 @@ export async function hasCodexRollout(fs: FileSystem, dir: string): Promise<bool
     return false;
   }
   for (const e of entries) {
-    if (e.isFile && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl")) return true;
+    if (e.isFile && isRolloutName(e.name)) return true;
   }
   for (const e of entries) {
     if (e.isDirectory && (await hasCodexRollout(fs, path.join(dir, e.name)))) return true;
@@ -104,7 +121,7 @@ export async function hasCodexRollout(fs: FileSystem, dir: string): Promise<bool
 }
 
 export async function listCodexSessions(fs: FileSystem, home: string): Promise<CodexDiscovery> {
-  const counters: Counters = { compressed: [], unreadable: 0, unreadableFolders: 0 };
+  const counters: Counters = { unreadable: 0, unreadableFolders: 0 };
   const byName = new Map<string, Found>();
   for (const sub of ["sessions", "archived_sessions"]) {
     const dir = path.join(home, sub);
@@ -112,12 +129,20 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
     const found: Found[] = [];
     await walk(fs, dir, found, counters);
     for (const f of found) {
-      const name = path.basename(f.file);
-      if (!byName.has(name)) byName.set(name, f); // sessions/ is walked first and wins
+      const name = plainName(f.file);
+      const kept = byName.get(name);
+      // The plain log wins over a compressed one; otherwise sessions/ (walked first) wins.
+      if (!kept || (isCompressedLog(kept.file) && !isCompressedLog(f.file))) byName.set(name, f);
     }
   }
+  const canDecompress = zstdCodec() !== null;
+  let skippedCompressed = 0;
   const sessions: SessionMeta[] = [];
   for (const f of byName.values()) {
+    if (!canDecompress && isCompressedLog(f.file)) {
+      skippedCompressed++;
+      continue;
+    }
     let line1: string;
     try {
       line1 = await readFirstLine(fs, f.file);
@@ -127,7 +152,7 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
     }
     // Subagent status: the parser owns it (ParsedSession.isSubagent); this copy marks listings.
     const m = parseCodexMeta(line1);
-    const id = m.id ?? path.basename(f.file).replace(/\.jsonl$/, "");
+    const id = m.id ?? plainName(f.file).replace(/\.jsonl$/, "");
     sessions.push({
       sessionId: id,
       filePath: f.file,
@@ -143,7 +168,7 @@ export async function listCodexSessions(fs: FileSystem, home: string): Promise<C
   sessions.sort((a, b) => b.mtimeMs - a.mtimeMs);
   return {
     sessions,
-    skippedCompressed: counters.compressed.length,
+    skippedCompressed,
     unreadable: counters.unreadable,
     unreadableFolders: counters.unreadableFolders,
   };

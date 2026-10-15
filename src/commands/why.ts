@@ -5,7 +5,7 @@
 import { ASSERT_NO_NETWORK } from "../lib/privacy.js";
 void ASSERT_NO_NETWORK;
 import path from "node:path";
-import { RealFileSystem, type FileSystem } from "../lib/fs.js";
+import { readLogText, RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
@@ -162,7 +162,7 @@ export async function runWhy(
   if (agent.id === "claude-code") {
     let contents: string;
     try {
-      contents = await fs.readFile(chosen.filePath);
+      contents = await readLogText(fs, chosen.filePath);
     } catch {
       stderr(
         MESSAGES.malformedTranscript(
