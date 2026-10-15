@@ -102,6 +102,26 @@ async function removeStaleTemps(file: string): Promise<void> {
 }
 
 /** The cache on disk. Writes go to a temp file renamed into place. */
+/**
+ * On Windows a rename can be refused for a moment while antivirus scans the freshly written
+ * temp file or another handle has the target open (EPERM, EBUSY, EACCES). Retry briefly
+ * (about 1 s in all) before giving up; giving up only skips this cache update.
+ */
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  const waits = [20, 50, 100, 200, 300, 400];
+  for (let i = 0; ; i++) {
+    try {
+      await nodeFs.rename(from, to);
+      return;
+    } catch (e) {
+      const code = (e as { code?: unknown }).code;
+      const transient = code === "EPERM" || code === "EBUSY" || code === "EACCES";
+      if (!transient || i >= waits.length) throw e;
+      await new Promise((r) => setTimeout(r, waits[i]));
+    }
+  }
+}
+
 export function fileUsageCacheIO(file: string): UsageCacheIO {
   return {
     async *lines() {
@@ -159,7 +179,7 @@ export function fileUsageCacheIO(file: string): UsageCacheIO {
           await close();
           try {
             if (failed) throw new Error("cache write failed");
-            await nodeFs.rename(tmp, file);
+            await renameWithRetry(tmp, file);
           } catch {
             await nodeFs.rm(tmp, { force: true }).catch(() => {});
           }

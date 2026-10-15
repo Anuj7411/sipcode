@@ -267,7 +267,38 @@ describe("loadSessions with the usage cache", () => {
 });
 
 describe("fileUsageCacheIO", () => {
-  it("concurrent writers in one process (MCP tools in parallel) leave a whole file, read back line by line", async () => {
+  it("a rename refused for a moment (Windows antivirus or another handle: EPERM/EBUSY/EACCES) is retried, so the cache is still saved", async () => {
+    const fsMod = await import("node:fs");
+    const os = await import("node:os");
+    const { vi } = await import("vitest");
+    const dir = fsMod.mkdtempSync(path.join(os.tmpdir(), "sipcode-usage-cache-"));
+    const real = fsMod.promises.rename.bind(fsMod.promises);
+    let refused = 0;
+    const spy = vi.spyOn(fsMod.promises, "rename").mockImplementation(async (from, to) => {
+      if (refused < 2) {
+        refused++;
+        throw Object.assign(new Error("locked"), { code: refused === 1 ? "EPERM" : "EBUSY" });
+      }
+      return real(from, to);
+    });
+    try {
+      const file = path.join(dir, "codex.json");
+      const w = fileUsageCacheIO(file).writer();
+      await w.add("header");
+      await w.add("row");
+      await w.commit();
+      expect(refused).toBe(2);
+      expect(fsMod.readFileSync(file, "utf-8")).toBe("header\nrow\n");
+      expect(fsMod.readdirSync(dir)).toEqual(["codex.json"]);
+    } finally {
+      spy.mockRestore();
+      fsMod.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // About 0.3 s alone; it writes ~40 MB, and under full-suite load on Windows it has run past
+  // the 5 s default, so it gets a measured limit like the other heavy tests.
+  it("concurrent writers in one process (MCP tools in parallel) leave a whole file, read back line by line", { timeout: 30_000 }, async () => {
     const { mkdtempSync, readFileSync: read, readdirSync, rmSync } = await import("node:fs");
     const os = await import("node:os");
     const dir = mkdtempSync(path.join(os.tmpdir(), "sipcode-usage-cache-"));

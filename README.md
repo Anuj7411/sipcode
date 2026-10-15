@@ -15,7 +15,7 @@
   <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-2%2C222%20passing-28C840" alt="2222 tests passing" />
+  <img src="https://img.shields.io/badge/tests-2%2C225%20passing-28C840" alt="2225 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -279,7 +279,8 @@ OpenAI's docs do not describe a button in the desktop app for adding a marketpla
 - Dollar figures are at API prices; on a ChatGPT plan you are not billed per token.
 - Answers show numbers the way the `sipcode` terminal output does: dollars to the cent, whole percents, and times in your local time zone, never raw JSON values.
 - The plugin is instructions only (four skills): no hooks, no MCP server, no network calls.
-- To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app. Update the `sipcode` command itself with `npm i -g sipcode@latest`.
+- Ask in a new, short chat. Codex re-sends the whole conversation with every request, so the same question asked at the end of a long work chat uses far more of your limit than in a fresh one. Each answer runs one Sipcode command, with no extra checks first.
+- To update the plugin later, run `npx -y @openai/codex plugin marketplace upgrade sipcode` (or `codex plugin marketplace upgrade sipcode`), then restart the desktop app and start a new chat (a chat keeps the skill instructions it started with). Update the `sipcode` command itself with `npm i -g sipcode@latest`.
 
 ---
 
