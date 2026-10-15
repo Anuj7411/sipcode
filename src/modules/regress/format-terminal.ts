@@ -45,6 +45,14 @@ export function formatRegressTerminal(
   report: RegressReport,
   opts: { readonly bugReport: boolean; readonly version: string },
 ): string {
+  const lines = body(report, opts);
+  // --bug-report with nothing to report still answers the flag: a run that only
+  // repeated the plain result read as "no output" to Codex.
+  if (opts.bugReport && report.findings.length === 0) lines.push("", MESSAGES.regressNoBugReport);
+  return lines.join("\n");
+}
+
+function body(report: RegressReport, opts: { readonly bugReport: boolean; readonly version: string }): string[] {
   const lines = ["sipcode regress · local only, no network"];
   if (report.claude) {
     lines.push(claudeLine(report));
@@ -60,11 +68,11 @@ export function formatRegressTerminal(
   lines.push("");
   if (a.nothingRead) {
     lines.push(MESSAGES.regressNothingToAnalyse);
-    return lines.join("\n");
+    return lines;
   }
   if (report.findings.length === 0 && !report.comparable) {
     lines.push(MESSAGES.regressNotEnoughData(report.minN, report.agents));
-    return lines.join("\n");
+    return lines;
   }
   if (report.findings.length === 0) lines.push(MESSAGES.regressNoFindings);
   for (const f of report.findings) lines.push(...findingLines(f));
@@ -74,5 +82,5 @@ export function formatRegressTerminal(
   if (opts.bugReport && report.findings.length > 0) {
     lines.push("", "---- paste into a GitHub issue (review it first) ----", "", formatBugReport(report, opts.version)!);
   }
-  return lines.join("\n");
+  return lines;
 }

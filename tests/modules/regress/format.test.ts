@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MESSAGES } from "../../../src/lib/messages.js";
 import { formatBugReport } from "../../../src/modules/regress/bug-report.js";
 import { formatRegressJson } from "../../../src/modules/regress/format-json.js";
 import { formatRegressTerminal } from "../../../src/modules/regress/format-terminal.js";
@@ -57,6 +58,23 @@ describe("formatRegressTerminal", () => {
     expect(out).toContain(
       `note: 2 compressed Codex log(s) (.jsonl.zst) skipped: reading them needs Node.js 22.15 or newer (you have ${process.version}).`,
     );
+  });
+
+  // Codex reported "no output" for `regress --bug-report` with no findings: the
+  // flag was silently ignored. Every state now says why there is no bug report.
+  it("--bug-report without findings says so on its own line, in every state", () => {
+    const BR = { ...OPTS, bugReport: true };
+    const clean = report({ claude: [file("2.1.60", healthy(30)), file("2.1.61", healthy(30), 1)] });
+    expect(clean.findings).toEqual([]);
+    const notEnough = report({ claude: [file("2.1.60", healthy(5))] });
+    const nothing = report({ claude: [], access: { ...NO_ACCESS_ISSUES, missingDirs: ["/h/.claude/projects"] } });
+    for (const r of [clean, notEnough, nothing]) {
+      const out = formatRegressTerminal(r, BR);
+      expect(out.split("\n").at(-1)).toBe(MESSAGES.regressNoBugReport);
+      expect(formatRegressTerminal(r, OPTS)).not.toContain(MESSAGES.regressNoBugReport);
+    }
+    expect(formatRegressTerminal(report(), BR)).not.toContain(MESSAGES.regressNoBugReport);
+    expect(formatRegressTerminal(report(), BR)).toContain("paste into a GitHub issue");
   });
 });
 

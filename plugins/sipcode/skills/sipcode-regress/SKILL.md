@@ -17,6 +17,8 @@ Answer "is it the tool or is it me?" from the user's own logs on this computer, 
    ```
 
    It reads `~/.claude/projects` and `~/.codex` and compares each version with the user's other versions. If the user asked only about Codex, run `sipcode regress --bug-report --agent codex`; only about Claude Code, `sipcode regress --bug-report --agent claude-code`. Use no other options.
+
+   On large logs it can take a minute or more. Give the command a timeout of at least 3 minutes. A run cut off by a timeout prints nothing, and empty output is never a result: if the command returns no output at all, run it again with a longer timeout before answering.
 3. If the sandbox blocks a log folder (the output says "Not found or not readable", prints a WARNING that files could not be read, or the command exits with code 2), request permission to run the same command again with read access to those folders, for example by running it outside the sandbox. Do not report a result from a blocked run.
 4. Never open, read, search or summarise the log files yourself, and never paste their contents. Work only from Sipcode's output.
 

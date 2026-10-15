@@ -293,6 +293,9 @@ export const MESSAGES = {
 
   regressNoFindings: "No regressions detected in your logs.",
 
+  /** regress --bug-report with no finding: say why no bug report follows (never a silent no-op). */
+  regressNoBugReport: "No bug report: there is no finding to report.",
+
   /** What each tool needs before its versions can be compared (regress). */
   regressNeeds: (agent: "claude-code" | "codex", minN: number) =>
     agent === "claude-code"

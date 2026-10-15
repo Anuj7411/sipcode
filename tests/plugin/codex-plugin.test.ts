@@ -261,6 +261,14 @@ describe("Codex plugin: skills", () => {
     expect(skillText("sipcode-regress")).toContain("Quote numbers exactly as printed");
   });
 
+  it("regress: a long first run gets a long timeout, and empty output is never reported as a result", () => {
+    // Codex's script runner killed `regress --bug-report` after about 10 s with no output (a cold run over
+    // large Claude Code logs takes far longer).
+    const t = skillText("sipcode-regress");
+    expect(t).toContain("Give the command a timeout of at least 3 minutes.");
+    expect(t).toContain("empty output is never a result");
+  });
+
   it("copy rules: no em or en dashes, no 'stops hallucinations', 'nerfed' only in a prohibition", () => {
     const texts = [...SKILLS.map(skillText), JSON.stringify(manifest), JSON.stringify(overlay), JSON.stringify(marketplace)];
     for (const t of texts) {
