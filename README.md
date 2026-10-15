@@ -15,7 +15,7 @@
   <a href="https://github.com/Anuj7411/sipcode/stargazers"><img src="https://img.shields.io/github/stars/Anuj7411/sipcode?color=5B4FCF&label=stars" alt="GitHub stars" /></a>
   <a href="https://www.npmjs.com/package/sipcode"><img src="https://img.shields.io/npm/dm/sipcode?color=5B4FCF&label=downloads" alt="npm downloads per month" /></a>
   <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-5B4FCF" alt="MIT licensed" /></a>
-  <img src="https://img.shields.io/badge/tests-2%2C275%20passing-28C840" alt="2275 tests passing" />
+  <img src="https://img.shields.io/badge/tests-2%2C409%20passing-28C840" alt="2409 tests passing" />
   <img src="https://img.shields.io/badge/network%20calls-0-2D3142" alt="zero network calls" />
 </p>
 
@@ -166,7 +166,7 @@ Sipcode also reads OpenAI Codex CLI session logs (`~/.codex/sessions` and `~/.co
 
 **Not supported for Codex yet:** writing rules to `AGENTS.md` (`rules`, and the rules step of `init`), registering the MCP server in Codex, the proxy and hooks (`proxy`, `hygiene`), `estimate` and `benchmark`. `rules --agent codex` and `estimate --agent codex` stop with error E009 instead of showing Claude Code data.
 
-**Compressed Codex logs.** Codex compresses older session logs to `.jsonl.zst`. Sipcode reads them exactly like plain logs on Node.js 22.15 or newer. On an older Node.js it skips them and a note says how many, and that reading them needs Node.js 22.15 or newer.
+**Compressed Codex logs.** Codex compresses older session logs to `.jsonl.zst`. Sipcode reads them exactly like plain logs on Node.js 22.15 or newer. On an older Node.js it skips them, and every report starts with a warning that says how many it could not read and that reading them needs Node.js 22.15 or newer. A damaged or unreadable log gets the same kind of warning. With `--json` the warning is a note on stderr and the JSON is unchanged.
 
 ### Codex limits: `sipcode limits`
 
@@ -489,7 +489,7 @@ Run any of them with `--help` for full options.
 
 ## Requirements
 
-- Node.js 20 or newer. Node.js 22.15 or newer to read the session logs Codex compresses (`.jsonl.zst`); on an older Node.js they are skipped with a note.
+- Node.js 20 or newer. Node.js 22.15 or newer to read the session logs Codex compresses (`.jsonl.zst`); on an older Node.js they are skipped, with a warning at the top of each report.
 - Claude Code installed (for the proxy hook). Sipcode also works as standalone CLI tools (benchmark, score, etc.) without Claude Code installed.
 - Optional: OpenAI Codex CLI, for Codex spend analytics.
 
