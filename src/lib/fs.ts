@@ -9,6 +9,7 @@ import * as nodeFs from "node:fs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
+import { decompressZstd, zstdCodec, zstdFirstLine, ZstdUnavailableError } from "./zstd.js";
 
 export interface DirEntry {
   readonly name: string;
@@ -29,6 +30,8 @@ export interface FileSystem {
    * character cut at the limit is dropped, never decoded as U+FFFD.
    */
   readHead(p: string, maxBytes: number): Promise<string>;
+  /** The file's raw bytes (compressed logs are decoded by readLogText, not here). */
+  readBytes(p: string): Promise<Buffer>;
   readDir(p: string): Promise<DirEntry[]>;
   stat(p: string): Promise<FileStat>;
 }
@@ -53,6 +56,9 @@ export class RealFileSystem implements FileSystem {
     // with "utf-8" Node kept the previous large file alive while the next one
     // was read (a 467 MB log needed 1.6 GB of heap instead of 0.9 GB).
     return (await fs.readFile(p)).toString("utf8");
+  }
+  async readBytes(p: string): Promise<Buffer> {
+    return fs.readFile(p);
   }
   async readHead(p: string, maxBytes: number): Promise<string> {
     const handle = await fs.open(p, "r");
@@ -85,7 +91,8 @@ export class RealFileSystem implements FileSystem {
 
 interface InMemoryFile {
   readonly kind: "file";
-  readonly content: string;
+  /** Text, or raw bytes (writeBytes: a compressed log). */
+  readonly content: string | Buffer;
   readonly mtimeMs: number;
 }
 interface InMemoryDir {
@@ -114,6 +121,12 @@ export class InMemoryFs implements FileSystem {
     this.nodes.set(norm, { kind: "file", content, mtimeMs });
   }
 
+  /** A file of raw bytes, e.g. a `.jsonl.zst` log made with zlib.zstdCompressSync. */
+  writeBytes(p: string, content: Buffer, mtimeMs = 0): void {
+    this.writeFile(p, "", mtimeMs);
+    this.nodes.set(this.norm(p), { kind: "file", content: Buffer.from(content), mtimeMs });
+  }
+
   mkdir(p: string): void {
     const norm = this.norm(p);
     const parts = norm.split("/");
@@ -128,16 +141,24 @@ export class InMemoryFs implements FileSystem {
   async exists(p: string): Promise<boolean> {
     return this.nodes.has(this.norm(p));
   }
-  async readFile(p: string): Promise<string> {
+  private file(p: string): InMemoryFile {
     const n = this.nodes.get(this.norm(p));
     if (!n || n.kind !== "file") {
       throw Object.assign(new Error(`ENOENT: ${p}`), { code: "ENOENT" });
     }
-    return n.content;
+    return n;
+  }
+  async readFile(p: string): Promise<string> {
+    const c = this.file(p).content;
+    return typeof c === "string" ? c : c.toString("utf8");
+  }
+  async readBytes(p: string): Promise<Buffer> {
+    const c = this.file(p).content;
+    return typeof c === "string" ? Buffer.from(c, "utf-8") : Buffer.from(c);
   }
   async readHead(p: string, maxBytes: number): Promise<string> {
-    const content = await this.readFile(p);
-    return decodeUtf8Prefix(Buffer.from(content, "utf-8").subarray(0, Math.max(0, maxBytes)));
+    const content = await this.readBytes(p);
+    return decodeUtf8Prefix(content.subarray(0, Math.max(0, maxBytes)));
   }
   async readDir(p: string): Promise<DirEntry[]> {
     const norm = this.norm(p);
@@ -183,8 +204,38 @@ export class InMemoryFs implements FileSystem {
       throw Object.assign(new Error(`ENOENT: ${p}`), { code: "ENOENT" });
     }
     if (n.kind === "file") {
+      // Text: its length in characters (what tests have always compared); bytes: their count.
       return { mtimeMs: n.mtimeMs, size: n.content.length };
     }
     return { mtimeMs: 0, size: 0 };
   }
+}
+
+/**
+ * Session logs: the one way to read one, plain or compressed.
+ *
+ * Codex compresses older rollouts to `rollout-*.jsonl.zst`. Every reader of
+ * a session log goes through readLogText (and Codex discovery through
+ * readCompressedLogFirstLine), so a compressed log reads exactly like the
+ * plain log it was made from. A `.zst` log throws ZstdUnavailableError on a
+ * Node.js without zstd (discovery skips those logs with a note first) and
+ * CorruptZstdError when it is truncated or damaged; callers count both as
+ * unreadable, like any other read error.
+ */
+export function isCompressedLog(p: string): boolean {
+  return p.endsWith(".zst");
+}
+
+export async function readLogText(fs: FileSystem, p: string): Promise<string> {
+  if (!isCompressedLog(p)) return fs.readFile(p);
+  const codec = zstdCodec();
+  if (!codec) throw new ZstdUnavailableError();
+  return decompressZstd(await fs.readBytes(p), codec).toString("utf8");
+}
+
+/** Line 1 of a compressed log (without its newline), decoding only up to it. */
+export async function readCompressedLogFirstLine(fs: FileSystem, p: string): Promise<string> {
+  const codec = zstdCodec();
+  if (!codec) throw new ZstdUnavailableError();
+  return zstdFirstLine(await fs.readBytes(p), codec);
 }
