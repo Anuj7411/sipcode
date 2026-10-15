@@ -20,7 +20,7 @@ Answer from the limit readings Codex writes into its own logs on this computer, 
 | how close they are, when it resets, what used it | `sipcode limits` |
 | whether a limit shrank, or the history | `sipcode limits --since all` |
 
-Run it once, without `--json`. This answer is mostly times (resets, run-out estimates), and Sipcode prints them in the user's local time zone, which it reads from this computer; the JSON has UTC timestamps and unrounded values that you would have to convert. Lines Sipcode prints on stderr that start with `note:` are part of the answer.
+Run it once, without `--json`. This answer is mostly times (resets, run-out estimates), and Sipcode prints them in the user's local time zone, which it reads from this computer; the JSON has UTC timestamps and unrounded values that you would have to convert. Lines Sipcode prints on stderr that start with `note:` are part of the answer. If Sipcode prints a line starting "warning:" that log files could not be read, say it first in your answer, as printed: the numbers leave those logs out.
 
 ## Present numbers
 

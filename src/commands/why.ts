@@ -35,6 +35,7 @@ import {
   pickFrom,
   priceProvider,
   sessionPickError,
+  UnreadOutput,
 } from "../modules/agents/latest.js";
 
 export interface WhyOptions {
@@ -68,8 +69,12 @@ export async function runWhy(
   const fs = deps.fs ?? new RealFileSystem();
   const clock = deps.clock ?? new RealClock();
   const env = deps.env ?? new RealProcessEnv();
-  const stdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
-  const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+  const rawStdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
+  const rawStderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+  // Logs that could not be read are reported before the first line printed after discovery.
+  const unread = new UnreadOutput(opts.json ?? false, rawStdout, rawStderr);
+  const stdout = unread.stdout;
+  const stderr = unread.stderr;
   const cwd = opts.cwd ?? process.cwd();
 
   // Which tools to look at: Claude Code and/or Codex (JSON: one tool).
@@ -102,6 +107,7 @@ export async function runWhy(
 
   const agentDeps = { fs, env, clock };
   const lists = await listAgentSessions({ agents, deps: agentDeps, cwd, here: opts.here });
+  unread.watch(lists);
   const scopedCount = lists.reduce((n, l) => n + l.scoped.length, 0);
 
   if (opts.list) {
@@ -141,7 +147,11 @@ export async function runWhy(
   // report; drift guards the same way), falling back to the newest.
   // A resumed session (or a Codex fork) repeats requests another file holds:
   // the pick carries only this session's own, as the period commands count them.
-  const picked = await pickFrom(lists, agentDeps, { sessionIdPrefix: opts.session, ownRequests: true });
+  const picked = await pickFrom(lists, agentDeps, {
+    sessionIdPrefix: opts.session,
+    ownRequests: true,
+    onUnreadable: unread.unreadable,
+  });
   const pickError = sessionPickError({
     command: "why",
     picked,

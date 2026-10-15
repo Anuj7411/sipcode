@@ -9,7 +9,7 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes, loadSessions, type LoadedSession } from "../modules/agents/loadSessions.js";
+import { loadSessions, type LoadedSession } from "../modules/agents/loadSessions.js";
 import { defaultUsageCaches, type UsageCaches } from "../modules/agents/usageSessions.js";
 import {
   agentLabel,
@@ -140,8 +140,8 @@ async function todayForAgent(agent: Agent, ctx: TodayContext): Promise<SectionRe
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return o.result(1);
   }
-  // JSON too (on stderr, as stats does): the totals leave these logs out.
-  for (const n of discoveryNotes(loaded.value)) stderr(n);
+  // Logs left out of the totals: a warning at the top of stdout (terminal), notes on stderr (--json).
+  o.unread(agent.displayName, loaded.value, opts.json ?? false);
 
   const sessions: TodaySession[] = [];
   // Unpriced tokens behind "spend so far": today's sessions only.

@@ -285,6 +285,12 @@ describe("Codex plugin: skills", () => {
     expect(t).not.toMatch(/Run this once:\s*```bash\r?\n\s*sipcode regress --bug-report\r?\n/);
   });
 
+  it("every skill: Sipcode's unread-logs warning is said first", () => {
+    for (const s of SKILLS) {
+      expect(skillText(s), s).toContain('If Sipcode prints a line starting "warning:" that log files could not be read, say it first in your answer');
+    }
+  });
+
   it("copy rules: no em or en dashes, no 'stops hallucinations', 'nerfed' only in a prohibition", () => {
     const texts = [...SKILLS.map(skillText), JSON.stringify(manifest), JSON.stringify(overlay), JSON.stringify(marketplace)];
     for (const t of texts) {

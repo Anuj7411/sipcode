@@ -26,16 +26,17 @@ Answer "is it the tool or is it me?" from the user's own logs on this computer, 
 
 ## Report the result
 
-1. Start with the coverage lines, quoted exactly as printed: requests, sessions, date range and versions, and (for Claude Code) which known-regression windows the logs cover.
+1. If Sipcode prints a line starting "warning:" that log files could not be read, say it first in your answer, quoted as printed: the result leaves those logs out, so it is partial.
+2. Then the coverage lines, quoted exactly as printed: requests, sessions, date range and versions, and (for Claude Code) which known-regression windows the logs cover.
    - If the output says "Nothing to analyse", or the command exited with code 2, tell the user no logs could be read and that this is not a clean result. Never say "no regressions".
    - If it prints a WARNING that files could not be read, say the result is partial and ask the user to allow read access, then run it again.
    - If it says "Not enough data to compare versions yet", say that, and that it is not a clean result either.
    - If it prints "Not enough data to compare Codex versions yet" or "Not enough data to compare Claude Code versions yet", that tool was read but not compared: say so, and do not include it in "no regressions".
-2. If there are findings, list each one with its versions, the evidence numbers and whether it matches a known, confirmed issue (R1 to R5). Quote numbers exactly as printed (they are already rounded for display); do not round or recompute them, and never invent one.
-3. A finding not in the known-issue catalog is a signal worth reporting, not proof of a bug. Say so plainly.
-4. A Codex finding ("Codex rate limit drains faster per token") could also be a limit change on the user's plan at the same time as the update, and Codex use on other devices or in the cloud shares the same limit: always say so, and call any limit change "possible".
-5. If there are no findings, say "No regressions detected in your logs" for the tools that were compared, and repeat the coverage, so the user knows what was checked. Do not speculate about causes.
-6. Offer the bug-report block (after "paste into a GitHub issue") for a GitHub issue. It holds token counts, versions, dates and short session ids only, never prompts or code. Tell the user to review it before posting.
+3. If there are findings, list each one with its versions, the evidence numbers and whether it matches a known, confirmed issue (R1 to R5). Quote numbers exactly as printed (they are already rounded for display); do not round or recompute them, and never invent one.
+4. A finding not in the known-issue catalog is a signal worth reporting, not proof of a bug. Say so plainly.
+5. A Codex finding ("Codex rate limit drains faster per token") could also be a limit change on the user's plan at the same time as the update, and Codex use on other devices or in the cloud shares the same limit: always say so, and call any limit change "possible".
+6. If there are no findings, say "No regressions detected in your logs" for the tools that were compared, and repeat the coverage, so the user knows what was checked. Do not speculate about causes.
+7. Offer the bug-report block (after "paste into a GitHub issue") for a GitHub issue. It holds token counts, versions, dates and short session ids only, never prompts or code. Tell the user to review it before posting.
 
 ## Rules
 

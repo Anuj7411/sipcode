@@ -21,7 +21,13 @@ import { MESSAGES } from "../../lib/messages.js";
 import { shortSessionId } from "../../lib/session-id.js";
 import { loadPricingForDate, type PriceProvider } from "../../lib/pricing/load.js";
 import { analyzeTokens, isEmptySession } from "../transcript/analyzers/tokens.js";
-import { discoverAgentSessions, dropCopiedRequests } from "./loadSessions.js";
+import {
+  discoverAgentSessions,
+  discoveryNotes,
+  dropCopiedRequests,
+  unreadWarnings,
+  type UnreadCounts,
+} from "./loadSessions.js";
 import type { ParsedSession, SessionMeta } from "./shared.js";
 import type { Agent, AgentDeps } from "./types.js";
 
@@ -45,6 +51,8 @@ export interface AgentSessions {
   readonly all: SessionMeta[];
   /** `all` filtered by `--here` (equal to `all` without it). */
   readonly scoped: SessionMeta[];
+  /** What discovery could not read (UnreadOutput reports it). */
+  readonly counts: UnreadCounts;
 }
 
 export async function listAgentSessions(i: {
@@ -61,6 +69,7 @@ export async function listAgentSessions(i: {
       agent,
       all,
       scoped: i.here ? all.filter((m) => agent.matchesCwd(m, i.cwd)) : all,
+      counts: d.ok ? d.value : { unreadable: 0, unreadableFolders: 0, skippedCompressed: 0, issues: [] },
     });
   }
   return out;
@@ -76,6 +85,8 @@ export interface PickOptions {
    * file (resumed, nothing new logged yet), as it skips an empty one.
    */
   readonly ownRequests?: boolean | undefined;
+  /** Called for each session log the pick could not read or parse (UnreadOutput.unreadable). */
+  readonly onUnreadable?: ((agent: Agent) => void) | undefined;
 }
 
 export async function pickFrom(
@@ -95,10 +106,14 @@ export async function pickFrom(
       try {
         content = await readLogText(deps.fs, meta.filePath);
       } catch {
+        opts.onUnreadable?.(agent);
         continue;
       }
       const p = agent.parseTranscript(content);
-      if (!p.ok) continue;
+      if (!p.ok) {
+        opts.onUnreadable?.(agent);
+        continue;
+      }
       let candidate: PickedSession = { agent, meta, parsed: p.value };
       if (!prefix) {
         // Helper threads (Codex subagents, auto-review) are never "your latest session".
@@ -162,6 +177,56 @@ export async function ownRequestsOnly(i: {
     all,
   });
   return r.sessions[0]!;
+}
+
+/**
+ * Output for a single-session command (why / receipt / drift) that never
+ * hides logs it could not read: the first line the command prints, on either
+ * stream, is preceded by them. In the terminal, a warning per reason at the
+ * top of stdout (unreadWarnings); with --json, the usual notes on stderr
+ * (prefixed with the tool's name when several tools were looked at). Counts
+ * are discovery's plus the logs reported through `unreadable` so far. Prints
+ * nothing extra when everything was read.
+ */
+export class UnreadOutput {
+  private readonly extra = new Map<Agent, number>();
+  private lists: ReadonlyArray<AgentSessions> = [];
+  private flushed = false;
+  constructor(
+    private readonly json: boolean,
+    private readonly rawOut: (s: string) => void,
+    private readonly rawErr: (s: string) => void,
+  ) {}
+  /** The tools looked at (from listAgentSessions); output before this is printed as is. */
+  watch(lists: ReadonlyArray<AgentSessions>): void {
+    this.lists = lists;
+  }
+  /** One more log of `agent` the command could not read or parse. */
+  readonly unreadable = (agent: Agent): void => {
+    this.extra.set(agent, (this.extra.get(agent) ?? 0) + 1);
+  };
+  readonly stdout = (s: string): void => {
+    this.flush();
+    this.rawOut(s);
+  };
+  readonly stderr = (s: string): void => {
+    this.flush();
+    this.rawErr(s);
+  };
+  private flush(): void {
+    if (this.flushed || this.lists.length === 0) return;
+    this.flushed = true;
+    const many = this.lists.length > 1;
+    const warnings: string[] = [];
+    for (const l of this.lists) {
+      const counts = { ...l.counts, unreadable: l.counts.unreadable + (this.extra.get(l.agent) ?? 0) };
+      if (this.json) for (const n of discoveryNotes(counts)) this.rawErr(many ? `${l.agent.displayName}: ${n}` : n);
+      else warnings.push(...unreadWarnings(l.agent.displayName, counts));
+    }
+    if (warnings.length === 0) return;
+    for (const w of warnings) this.rawOut(w);
+    this.rawOut("");
+  }
 }
 
 /** With --here, the suggested command keeps it (without it, --agent picks the newest anywhere). */

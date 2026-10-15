@@ -21,7 +21,7 @@ Answer from the user's own Codex logs on this computer, through the published `s
 | this month, month end, "what will this month cost" | `sipcode forecast --agent codex --json` |
 | a period: last 7 days, since a date, all time | `sipcode stats --agent codex --since 7d --json` (use `7d`, `30d`, `90d`, `all` or a `yyyy-mm-dd` date) |
 
-Run it once. Lines Sipcode prints on stderr that start with `note:` are part of the answer.
+Run it once. Lines Sipcode prints on stderr that start with `note:` are part of the answer. If Sipcode prints a line starting "warning:" that log files could not be read, say it first in your answer, as printed: the numbers leave those logs out. With `--json` the same thing comes on stderr as a `note:` that log files or folders could not be read or parsed, or that compressed logs were skipped: say that first too.
 
 ## Present numbers
 

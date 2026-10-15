@@ -34,6 +34,7 @@ import {
   solTurn,
   withoutZstd,
   zstdSkipMessage,
+  zstdSkipWarning,
 } from "./codex-fixtures.js";
 import { addCodexDataset } from "./regress-fixtures.js";
 
@@ -188,12 +189,15 @@ describe("Codex logs compressed (.jsonl.zst) read exactly like plain ones", { ti
     expect(await today(spy, true, { usageCaches: caches })).toBe(await today(home("plain"), true));
   });
 
-  it("on a Node.js without zstd: compressed logs are skipped with a note naming the Node version needed", async () => {
+  it("on a Node.js without zstd: compressed logs are skipped with a warning naming the Node version needed", async () => {
     const out = await withoutZstd(() => COMMANDS[0]![1](home("mixed"), false));
     const n = scenario().files.filter((f, i) => /\/rollout-[^/]*\.jsonl$/.test(f.p) && i % 2 === 0).length;
+    expect(out.split("\n").slice(0, 2)).toEqual(["exit 0", zstdSkipWarning(n)]);
     expect(out).toContain(`[E009] ${zstdSkipMessage(n)}`);
     const reg = await withoutZstd(() => COMMANDS[6]![1](home("mixed"), false));
-    expect(reg).toContain(`note: ${zstdSkipMessage(n)}`);
+    expect(reg.split("\n").slice(0, 2)).toEqual(["exit 0", zstdSkipWarning(n)]);
+    // JSON: the note stays on stderr.
+    expect(await withoutZstd(() => COMMANDS[6]![1](home("mixed"), true))).toContain(`stderr: note: ${zstdSkipMessage(n)}`);
   });
 });
 

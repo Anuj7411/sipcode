@@ -152,11 +152,17 @@ export async function discoverAgentSessions(
   });
 }
 
+/** What a command could not read for one agent: loadSessions' counts, or discovery's. */
+export type UnreadCounts = Pick<LoadCounts, "unreadable" | "unreadableFolders" | "skippedCompressed"> & {
+  readonly issues: readonly unknown[];
+};
+
 /**
- * The stderr notes every period command prints about logs it could not use:
- * unreadable or unparseable files, unreadable folders, skipped compressed logs.
+ * The --json stderr notes about logs a command could not use: unreadable or
+ * unparseable files, unreadable folders, skipped compressed logs. (In the
+ * terminal, unreadWarnings says the same at the top of stdout.)
  */
-export function discoveryNotes(o: LoadCounts): string[] {
+export function discoveryNotes(o: UnreadCounts): string[] {
   const notes: string[] = [];
   const files = o.unreadable + o.issues.length;
   if (files > 0) {
@@ -171,6 +177,32 @@ export function discoveryNotes(o: LoadCounts): string[] {
 
 export function compressedSkippedMessage(n: number, nodeVersion: string = process.version): string {
   return `${n} compressed Codex log(s) (.jsonl.zst) skipped: reading them needs Node.js ${ZSTD_MIN_NODE} or newer (you have ${nodeVersion}).`;
+}
+
+const UNREAD_TAIL = "Numbers below leave them out.";
+
+/**
+ * The terminal warnings about logs a command could not read, one line per
+ * reason, printed at the top of stdout (runSections, UnreadOutput) so they are
+ * never missed. Empty when everything was read.
+ */
+export function unreadWarnings(agentName: string, o: UnreadCounts, nodeVersion: string = process.version): string[] {
+  const out: string[] = [];
+  if (o.skippedCompressed > 0) {
+    out.push(
+      `warning: ${o.skippedCompressed} ${agentName} log file(s) could not be read (compressed .jsonl.zst logs need Node.js ${ZSTD_MIN_NODE} or newer; you have ${nodeVersion}). ${UNREAD_TAIL}`,
+    );
+  }
+  const files = o.unreadable + o.issues.length;
+  if (files > 0) {
+    out.push(`warning: ${files} ${agentName} log file(s) could not be read (unreadable or damaged). ${UNREAD_TAIL}`);
+  }
+  if (o.unreadableFolders > 0) {
+    out.push(
+      `warning: ${o.unreadableFolders} ${agentName} log folder(s) could not be read (the folder could not be listed). ${UNREAD_TAIL}`,
+    );
+  }
+  return out;
 }
 
 type Read =

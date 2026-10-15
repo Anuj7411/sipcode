@@ -2,3 +2,6 @@
 # this, core.autocrlf=true on Windows checks them out as CRLF, vitest rewrites
 # them as LF on the next run, and git reports them modified.
 *.snap text eol=lf
+
+# Golden output files compared byte for byte (vitest toMatchFileSnapshot writes LF).
+tests/integration/__golden__/* text eol=lf

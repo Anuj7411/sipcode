@@ -60,6 +60,29 @@ describe("formatRegressTerminal", () => {
     );
   });
 
+  it("unread-log warnings come first; the compressed note below is then not repeated", () => {
+    const top = ["warning: 2 Codex log file(s) could not be read (x). Numbers below leave them out."];
+    const r = report({ access: { ...NO_ACCESS_ISSUES, skippedCompressed: 2 } });
+    const out = formatRegressTerminal(r, { ...OPTS, unreadWarnings: top }).split("\n");
+    expect(out.slice(0, 3)).toEqual([top[0], "", "sipcode regress · local only, no network"]);
+    expect(out.join("\n")).not.toContain("compressed Codex log(s)");
+    // No warnings: exactly the output without the option.
+    expect(formatRegressTerminal(r, { ...OPTS, unreadWarnings: [] })).toBe(formatRegressTerminal(r, OPTS));
+  });
+
+  it("the unreadable WARNING names only the folders that were read (no empty Claude Code folder for --agent codex)", () => {
+    const access = { ...NO_ACCESS_ISSUES, unreadableFiles: 2 };
+    const codexOnly = formatRegressTerminal(
+      report({ claude: null, claudeDir: "", codex: { readings: [], requests: [] }, access }),
+      OPTS,
+    );
+    expect(codexOnly).toContain("allow read access to /h/.codex and run it again.");
+    expect(codexOnly).not.toContain("to  and");
+    expect(formatRegressTerminal(report({ access }), OPTS)).toContain(
+      "allow read access to /h/.claude/projects and /h/.codex and run it again.",
+    );
+  });
+
   // Codex reported "no output" for `regress --bug-report` with no findings: the
   // flag was silently ignored. Every state now says why there is no bug report.
   it("--bug-report without findings says so on its own line, in every state", () => {

@@ -11,6 +11,7 @@ import {
   resolveDisplayAgents,
   runSections,
   sectionHeader,
+  SectionOutput,
   type SectionResult,
 } from "../../../src/modules/agents/multi.js";
 import type { Agent } from "../../../src/modules/agents/types.js";
@@ -272,6 +273,52 @@ describe("runSections", () => {
     expect(r.err).toEqual(["Claude Code: [E009] unsupported"]);
     // Only one section has totals, so there is no combined line.
     expect(r.out).toEqual(["── Claude Code ──", "", "── Codex ──", "codex report", ""]);
+  });
+
+  it("warnings about unread logs lead stdout, above the banner and every section", async () => {
+    const one = await sections(
+      [{ exitCode: 0, writes: [w("stdout", "a")], warnings: ["warning: 1 Claude Code log file(s) could not be read (x)."] }],
+      [claudeCodeAgent],
+    );
+    expect(one.out).toEqual([
+      "warning: 1 Claude Code log file(s) could not be read (x).",
+      "",
+      "detected agent: claude-code (auto). pass --agent to override.",
+      "a",
+    ]);
+    const two = await sections([
+      { exitCode: 0, writes: [w("stdout", "claude report")] },
+      { exitCode: 0, writes: [w("stdout", "codex report")], warnings: ["warning: 2 Codex log file(s) (y).", "warning: 1 Codex log folder(s) (z)."] },
+    ]);
+    expect(two.out).toEqual([
+      "warning: 2 Codex log file(s) (y).",
+      "warning: 1 Codex log folder(s) (z).",
+      "",
+      "── Claude Code ──",
+      "claude report",
+      "",
+      "── Codex ──",
+      "codex report",
+      "",
+    ]);
+  });
+
+  it("SectionOutput.unread: a warning in the terminal, the usual notes on stderr with --json", () => {
+    const counts = { unreadable: 1, unreadableFolders: 0, skippedCompressed: 0, issues: [] };
+    const term = new SectionOutput();
+    term.unread("Codex", counts, false);
+    expect(term.result(0).warnings).toEqual([
+      "warning: 1 Codex log file(s) could not be read (unreadable or damaged). Numbers below leave them out.",
+    ]);
+    expect(term.writes).toEqual([]);
+    const json = new SectionOutput();
+    json.unread("Codex", counts, true);
+    expect(json.result(0).warnings).toBeUndefined();
+    expect(json.writes).toEqual([w("stderr", "note: 1 transcript file(s) could not be read or parsed; totals exclude them.")]);
+    // Nothing unread: nothing at all (the result has no warnings key).
+    const clean = new SectionOutput();
+    clean.unread("Codex", { ...counts, unreadable: 0 }, false);
+    expect(clean.result(0)).toEqual({ exitCode: 0, writes: [] });
   });
 
   it("ends with the combined line when two sections have totals", async () => {

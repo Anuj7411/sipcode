@@ -6,7 +6,7 @@ import { runStats } from "../../src/commands/stats.js";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
-import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn, withoutZstd, zstdSkipMessage } from "./codex-fixtures.js";
+import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn, withoutZstd, zstdSkipMessage, zstdSkipWarning } from "./codex-fixtures.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.resolve(__dirname, "../fixtures/transcripts");
@@ -577,14 +577,16 @@ describe("runStats: Claude Code and Codex sections", { timeout: 20_000 }, () => 
     expect(r.out).toMatch(/Both tools: .* \+ ~\$0\.00 \(\+ unpriced\)$/m);
   });
 
-  it("on a Node.js without zstd, reports skipped compressed Codex logs as one line, apart from unreadable files", async () => {
+  it("on a Node.js without zstd, reports skipped compressed Codex logs as one reason, apart from unreadable files", async () => {
     const fs = codexOnly();
     fs.writeFile(`${CODEX_SESSIONS}/2026/05/11/rollout-a.jsonl.zst`, "z", 1);
     fs.writeFile(`${CODEX_SESSIONS}/2026/05/12/rollout-b.jsonl.zst`, "z", 1);
     const r = await withoutZstd(() => run({ since: "30d" }, fs));
+    // The warning leads stdout; the report's own warnings list keeps its line.
+    expect(r.out.split("\n").slice(0, 2)).toEqual([zstdSkipWarning(2), ""]);
     expect(r.out).toContain(`[E009] ${zstdSkipMessage(2)}`);
-    expect(r.out).not.toMatch(/couldn't read \d+ transcript file/);
-    expect(r.out.match(/\.jsonl\.zst/g)).toHaveLength(1);
+    expect(r.out).not.toMatch(/couldn't read \d+ transcript file|log file\(s\) could not be read \(unreadable/);
+    expect(r.out.match(/\.jsonl\.zst/g)).toHaveLength(2);
   });
 
   it("--since all counts days from the earliest session, not from 1970", async () => {

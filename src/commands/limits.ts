@@ -14,7 +14,7 @@ import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
 import { parseAgentFlag } from "../modules/agents/cli.js";
 import { isWithinFolder } from "../modules/agents/codex/adapter.js";
-import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import { discoveryNotes, loadSessions, unreadWarnings, type UnreadCounts } from "../modules/agents/loadSessions.js";
 import { getAgentById } from "../modules/agents/registry.js";
 import { defaultUsageCaches, type UsageCaches } from "../modules/agents/usageSessions.js";
 import { parseSince } from "../modules/stats/window.js";
@@ -71,6 +71,16 @@ export async function runLimits(opts: LimitsOptions = {}, deps: LimitsDeps = {})
     stderr(MESSAGES.statsBadSince(rawSince, "limits"));
     return { exitCode: 1 };
   }
+  /** Logs left out: a warning at the top of stdout (terminal), notes on stderr (--json). */
+  const unread = (counts: UnreadCounts): void => {
+    if (opts.json) {
+      for (const n of discoveryNotes(counts)) stderr(n);
+      return;
+    }
+    const lines = unreadWarnings(getAgentById("codex").displayName, counts);
+    for (const l of lines) stdout(l);
+    if (lines.length > 0) stdout("");
+  };
   const empty = (): LimitsExit => {
     stdout(opts.json ? formatLimitsJson(null) : MESSAGES.limitsNoReadings);
     return { exitCode: 0 };
@@ -79,7 +89,11 @@ export async function runLimits(opts: LimitsOptions = {}, deps: LimitsDeps = {})
   const agentDeps = { fs, env, clock };
   const scan = await loadCodexReadings(agentDeps);
   if (scan.malformed > 0) stderr(MESSAGES.limitsMalformed(scan.malformed));
-  if (scan.readings.length === 0) return empty();
+  if (scan.readings.length === 0) {
+    // "No readings" when every log was skipped must not pass for a clean answer.
+    unread(scan.unread);
+    return empty();
+  }
 
   const cwd = opts.cwd ?? process.cwd();
   const loaded = await loadSessions({
@@ -94,7 +108,7 @@ export async function runLimits(opts: LimitsOptions = {}, deps: LimitsDeps = {})
     stderr(loaded.error.map((e) => e.message).join("\n"));
     return { exitCode: 1 };
   }
-  for (const n of discoveryNotes(loaded.value)) stderr(n);
+  unread(loaded.value);
   const requests: LimitRequest[] = [];
   for (const s of loaded.value.sessions) for (const r of s.value) requests.push(r);
 

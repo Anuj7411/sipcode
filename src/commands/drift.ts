@@ -38,6 +38,7 @@ import {
   otherAgentHint,
   pickFrom,
   sessionPickError,
+  UnreadOutput,
 } from "../modules/agents/latest.js";
 import { computeSessionMetrics } from "../modules/drift/metrics.js";
 import { buildDriftReport } from "../modules/drift/runDrift.js";
@@ -111,8 +112,12 @@ export async function runDriftCommand(
   opts: DriftOptions = {},
   deps: DriftDeps = {},
 ): Promise<DriftResult> {
-  const stdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
-  const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+  const rawStdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
+  const rawStderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+  // Logs that could not be read are reported before the first line printed after discovery.
+  const unread = new UnreadOutput(opts.json ?? false, rawStdout, rawStderr);
+  const stdout = unread.stdout;
+  const stderr = unread.stderr;
   const fs = deps.fs ?? new RealFileSystem();
   const env = deps.env ?? new RealProcessEnv();
   const clock = deps.clock ?? new RealClock();
@@ -160,11 +165,16 @@ export async function runDriftCommand(
   // thread). When the cache already answers that, nothing is parsed.
   const agentDeps = { fs, env, clock };
   const lists = await listAgentSessions({ agents, deps: agentDeps, cwd, here: opts.here });
+  unread.watch(lists);
   let picked: DriftPick | undefined = opts.session ? undefined : pickFromCache(lists, fresh);
   /** The chosen session's own requests, when the pick parsed it. */
   let chosenParsed: ParsedSession | undefined;
   if (!picked) {
-    const r = await pickFrom(lists, agentDeps, { sessionIdPrefix: opts.session, ownRequests: true });
+    const r = await pickFrom(lists, agentDeps, {
+      sessionIdPrefix: opts.session,
+      ownRequests: true,
+      onUnreadable: unread.unreadable,
+    });
     if (r?.ambiguous || (!r && opts.session)) {
       stderr(
         sessionPickError({
@@ -244,10 +254,12 @@ export async function runDriftCommand(
       try {
         content = await readLogText(fs, s.filePath);
       } catch {
+        unread.unreadable(agent);
         metrics.set(s, null);
         continue;
       }
       const p = agent.parseTranscript(content);
+      if (!p.ok) unread.unreadable(agent);
       if (!p.ok || (p.value.isSubagent && s !== chosen)) {
         metrics.set(s, null);
         continue;

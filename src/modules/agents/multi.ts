@@ -11,6 +11,7 @@ import type { ProcessEnv } from "../../lib/process.js";
 import { hasClaudeTranscripts, resolveProjectsDir } from "../transcript/discover.js";
 import { parseAgentFlag } from "./cli.js";
 import { detectAgent, type AgentDetectResult } from "./detect.js";
+import { discoveryNotes, unreadWarnings, type UnreadCounts } from "./loadSessions.js";
 import { getAgentById } from "./registry.js";
 import type { Agent, AgentId } from "./types.js";
 
@@ -143,6 +144,8 @@ export interface SectionResult {
   readonly emptyWindow?: boolean;
   /** Totals for the combined line (stats / today / forecast). */
   readonly totals?: CombinedPart;
+  /** Logs it could not read (unreadWarnings): printed at the very top of stdout. */
+  readonly warnings?: readonly string[];
 }
 
 /** Collects a section's output in order instead of printing it. */
@@ -154,6 +157,16 @@ export class SectionOutput {
   readonly err = (text: string): void => {
     this.writes.push({ stream: "stderr", text });
   };
+  /** Lines runSections prints at the top of stdout, before every section. */
+  readonly warnings: string[] = [];
+  /**
+   * Logs this section could not read: in the terminal a warning at the top of
+   * stdout, with --json the usual notes on stderr (the JSON is unchanged).
+   */
+  unread(agentName: string, counts: UnreadCounts, json: boolean): void {
+    if (json) for (const n of discoveryNotes(counts)) this.err(n);
+    else this.warnings.push(...unreadWarnings(agentName, counts));
+  }
   result(
     exitCode: 0 | 1,
     extra: { emptyWindow?: boolean; totals?: CombinedPart | undefined } = {},
@@ -161,6 +174,7 @@ export class SectionOutput {
     const r: SectionResult = { exitCode, writes: this.writes };
     return {
       ...r,
+      ...(this.warnings.length > 0 ? { warnings: this.warnings } : {}),
       ...(extra.emptyWindow ? { emptyWindow: true } : {}),
       ...(extra.totals ? { totals: extra.totals } : {}),
     };
@@ -179,27 +193,41 @@ export interface RunSectionsInput {
   readonly run: (agent: Agent, index: number) => Promise<SectionResult>;
 }
 
+/** The sections' warnings about logs they could not read, then a blank line; nothing when there are none. */
+function printWarnings(results: readonly SectionResult[], stdout: (s: string) => void): void {
+  const lines = results.flatMap((r) => r.warnings ?? []);
+  if (lines.length === 0) return;
+  for (const l of lines) stdout(l);
+  stdout("");
+}
+
 /**
  * One agent: exactly the command's single-agent output. Several: a header per
  * agent, each section's output, then the combined line. The exit code is 1 only
  * for a real error, never for a section that merely had nothing in the window.
+ * Warnings about logs a section could not read come first, above everything.
  */
 export async function runSections(i: RunSectionsInput): Promise<0 | 1> {
   if (i.agents.length === 1) {
     const agent = i.agents[0]!;
+    const r = await i.run(agent, 0);
+    printWarnings([r], i.stdout);
     if (i.banner && !i.detect.explicit) {
       i.stdout(MESSAGES.agentDetectedAuto(agent.id));
       if (i.detect.ambiguous && agent.id === i.detect.agent) i.stdout(MESSAGES.agentAmbiguous());
     }
-    const r = await i.run(agent, 0);
     for (const w of r.writes) (w.stream === "stdout" ? i.stdout : i.stderr)(w.text);
     return r.exitCode;
   }
+  // Every section runs before anything is printed, so all warnings can lead.
+  const results: SectionResult[] = [];
+  for (const [index, agent] of i.agents.entries()) results.push(await i.run(agent, index));
+  printWarnings(results, i.stdout);
   const totals: CombinedPart[] = [];
   let exitCode: 0 | 1 = 0;
   for (const [index, agent] of i.agents.entries()) {
     i.stdout(sectionHeader(agent.displayName));
-    const r = await i.run(agent, index);
+    const r = results[index]!;
     for (const w of r.writes) {
       if (w.stream === "stdout" || r.emptyWindow) i.stdout(w.text);
       else i.stderr(w.text === "" ? "" : `${agent.displayName}: ${w.text}`);

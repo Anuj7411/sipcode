@@ -4,7 +4,7 @@ import { runTodayCmd } from "../../src/commands/today.js";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
-import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn, withoutZstd, zstdSkipMessage } from "./codex-fixtures.js";
+import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn, withoutZstd, zstdSkipMessage, zstdSkipWarning } from "./codex-fixtures.js";
 
 const NOW = new Date("2026-05-10T15:00:00.000Z");
 
@@ -105,11 +105,13 @@ describe("runTodayCmd: Claude Code and Codex sections", { timeout: 20_000 }, () 
     expect(r.out).toMatch(/\(\+ unpriced\)$/m);
   });
 
-  it("on a Node.js without zstd, reports skipped compressed Codex logs once, on stderr", async () => {
+  it("on a Node.js without zstd, warns about skipped compressed Codex logs once, at the top of stdout", async () => {
     const fs = withCodex(new InMemoryFs());
     fs.writeFile(`${CODEX_SESSIONS}/2026/05/09/rollout-a.jsonl.zst`, "z", 1);
     fs.writeFile(`${CODEX_SESSIONS}/2026/05/09/rollout-b.jsonl.zst`, "z", 1);
     const r = await withoutZstd(() => run({}, fs));
-    expect(r.err).toBe(`note: ${zstdSkipMessage(2)}`);
+    expect(r.out.split("\n").slice(0, 2)).toEqual([zstdSkipWarning(2), ""]);
+    expect(r.out.match(/\.jsonl\.zst/g)).toHaveLength(1);
+    expect(r.err).toBe("");
   });
 });
