@@ -5399,8 +5399,8 @@ sipcode · session 0199a0f7-11aa-7b02 · 12h 0m · Oct 08, 2026
 
   prices as of 2026-10-09
 
-wrote C:/nonexistent-sipcode-unread/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
-→ file://C:/nonexistent-sipcode-unread/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+wrote <cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+→ file://<cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
 
 Claude Code also has a recent session (sess0043): run with --agent claude-code.
 === receipt --agent codex
@@ -5414,8 +5414,8 @@ sipcode · session 0199a0f7-11aa-7b02 · 12h 0m · Oct 08, 2026
 
   prices as of 2026-10-09
 
-wrote C:/nonexistent-sipcode-unread/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
-→ file://C:/nonexistent-sipcode-unread/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+wrote <cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+→ file://<cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
 === receipt --agent claude-code
 exit 0
 sipcode · session sess · 24m 1s · Aug 29, 2026
@@ -5428,14 +5428,14 @@ sipcode · session sess · 24m 1s · Aug 29, 2026
 
   prices as of 2026-06-11
 
-wrote C:/nonexistent-sipcode-unread/.sipcode/receipts/sess/receipt.html
-→ file://C:/nonexistent-sipcode-unread/.sipcode/receipts/sess/receipt.html
+wrote <cwd>/.sipcode/receipts/sess/receipt.html
+→ file://<cwd>/.sipcode/receipts/sess/receipt.html
 === receipt --json
 exit 0
 {
   "schemaVersion": "sipcode-receipt/1",
   "variant": "post-install",
-  "htmlPath": "C:/nonexistent-sipcode-unread/.sipcode/receipts/sess/receipt.html",
+  "htmlPath": "<cwd>/.sipcode/receipts/sess/receipt.html",
   "pngPath": null,
   "hero": {
     "tokens": 24640,
@@ -5466,7 +5466,7 @@ exit 0
 {
   "schemaVersion": "sipcode-receipt/1",
   "variant": "pre-install",
-  "htmlPath": "C:/nonexistent-sipcode-unread/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html",
+  "htmlPath": "<cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html",
   "pngPath": null,
   "hero": {
     "tokens": 3100000,
@@ -5491,7 +5491,7 @@ exit 0
 {
   "schemaVersion": "sipcode-receipt/1",
   "variant": "post-install",
-  "htmlPath": "C:/nonexistent-sipcode-unread/.sipcode/receipts/sess/receipt.html",
+  "htmlPath": "<cwd>/.sipcode/receipts/sess/receipt.html",
   "pngPath": null,
   "hero": {
     "tokens": 24640,

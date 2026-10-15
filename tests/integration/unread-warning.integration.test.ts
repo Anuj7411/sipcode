@@ -159,7 +159,14 @@ const CASES: Array<{ name: string; run: Run; json: boolean; agent: string | unde
 /** stdout as lines (a command may print several lines in one write). */
 const lines = (o: Out): string[] => o.out.join("\n").split("\n");
 
-const show = (o: Out): string => [`exit ${o.exitCode}`, ...o.out, ...o.err.map((l) => `stderr: ${l}`)].join("\n");
+// The fake cwd resolves to "C:/…" or "D:/…" on Windows and "/…" on Linux (receipt prints the
+// path it wrote), so it is replaced with one placeholder before the golden comparison.
+const machineFree = (s: string): string =>
+  s
+    .replace(/file:\/\/\/?(?:[A-Za-z]:)?\/nonexistent-sipcode-unread/g, "file://<cwd>")
+    .replace(/(?:[A-Za-z]:)?\/nonexistent-sipcode-unread/g, "<cwd>");
+const show = (o: Out): string =>
+  machineFree([`exit ${o.exitCode}`, ...o.out, ...o.err.map((l) => `stderr: ${l}`)].join("\n"));
 
 describe("nothing skipped: output byte-identical to before", { timeout: 60_000 }, () => {
   it("every command, terminal and JSON", async () => {
