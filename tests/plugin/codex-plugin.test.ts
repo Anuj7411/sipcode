@@ -269,6 +269,22 @@ describe("Codex plugin: skills", () => {
     expect(t).toContain("empty output is never a result");
   });
 
+  it("regress: defaults to the Codex logs; reads Claude Code logs only when the user asks about Claude Code", () => {
+    // A cold run over every Claude Code log took 49 s (5.4 GB) and Codex's runner stopped it at about 10 s;
+    // the Codex logs alone take about 1 s.
+    const t = skillText("sipcode-regress");
+    const fenced = [...t.matchAll(/```[a-z]*\r?\n([\s\S]*?)```/g)].map((m) => m[1]!.trim());
+    expect(fenced[0]).toBe("sipcode regress --bug-report --agent codex");
+    expect(t).toContain("If the user asks about Codex or does not name a tool, run the Codex check");
+    expect(t).toContain("Run the Claude Code check only when the user explicitly asks about Claude Code");
+    expect(t).toContain("`sipcode regress --bug-report --agent claude-code`");
+    // Both tools: no --agent.
+    expect(t).toContain("`sipcode regress --bug-report` (no `--agent`)");
+    expect(t).toContain("the first run can take a minute or more");
+    // The plain all-logs command is never the default.
+    expect(t).not.toMatch(/Run this once:\s*```bash\r?\n\s*sipcode regress --bug-report\r?\n/);
+  });
+
   it("copy rules: no em or en dashes, no 'stops hallucinations', 'nerfed' only in a prohibition", () => {
     const texts = [...SKILLS.map(skillText), JSON.stringify(manifest), JSON.stringify(overlay), JSON.stringify(marketplace)];
     for (const t of texts) {
