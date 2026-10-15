@@ -13,7 +13,7 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import { loadSessions } from "../modules/agents/loadSessions.js";
 import {
   resolveDisplayAgents,
   runSections,
@@ -181,8 +181,8 @@ async function trendForAgent(agent: Agent, ctx: TrendContext): Promise<SectionRe
     stderr(loaded.error.map((e: { message: string }) => e.message).join("\n"));
     return o.result(1);
   }
-  // JSON too (on stderr, as stats does): the totals leave these logs out.
-  for (const n of discoveryNotes(loaded.value)) stderr(n);
+  // Logs left out of the totals: a warning at the top of stdout (terminal), notes on stderr (--json).
+  o.unread(agent.displayName, loaded.value, opts.json ?? false);
 
   const sessions: TrendSession[] = [];
   let unpriced = NO_UNPRICED;

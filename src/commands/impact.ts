@@ -15,7 +15,7 @@ void ASSERT_NO_NETWORK;
 import { RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
-import { discoveryNotes, loadSessions } from "../modules/agents/loadSessions.js";
+import { loadSessions } from "../modules/agents/loadSessions.js";
 import {
   agentLabel,
   resolveDisplayAgents,
@@ -171,8 +171,8 @@ async function impactForAgent(agent: Agent, ctx: ImpactContext): Promise<Section
       for (const i of loaded.error) stderr(i.message);
       return o.result(1);
     }
-    // JSON too (on stderr, as stats does): the totals leave these logs out.
-    for (const n of discoveryNotes(loaded.value)) stderr(n);
+    // Logs left out of the totals: a warning at the top of stdout (terminal), notes on stderr (--json).
+    o.unread(agent.displayName, loaded.value, opts.json ?? false);
     for (const { value } of loaded.value.sessions) {
       if (!value) continue;
       unpriced = addUnpriced(unpriced, value.unpriced);

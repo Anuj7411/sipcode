@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import zlib from "node:zlib";
+import { setZstdCodecForTests } from "../../../../src/lib/zstd.js";
 import { InMemoryFs, type FileSystem } from "../../../../src/lib/fs.js";
 import { FakeClock } from "../../../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../../../src/lib/process.js";
@@ -49,11 +51,22 @@ describe("codex agent", () => {
       fs.mkdir("/c/sessions/2026/10/01");
       expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(false);
     });
-    it("is false when sessions holds no rollout-*.jsonl", async () => {
+    it("is false when sessions holds no rollout-*.jsonl or rollout-*.jsonl.zst", async () => {
       const fs = new InMemoryFs();
       fs.writeFile("/c/sessions/2026/10/01/notes.txt", "x", 1);
-      fs.writeFile("/c/sessions/2026/10/01/rollout-a.jsonl.zst", "z", 1);
+      fs.writeFile("/c/sessions/2026/10/01/rollout-a.json", "x", 1);
       expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(false);
+    });
+    it("is true when every rollout is compressed (Codex compresses older ones), with or without zstd", async () => {
+      const fs = new InMemoryFs();
+      fs.writeBytes("/c/sessions/2026/10/01/rollout-a.jsonl.zst", (zlib as unknown as { zstdCompressSync: (b: Buffer) => Buffer }).zstdCompressSync(Buffer.from("{}\n")), 1);
+      expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(true);
+      setZstdCodecForTests(null);
+      try {
+        expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(true);
+      } finally {
+        setZstdCodecForTests(undefined);
+      }
     });
     it("is true when a rollout exists anywhere under sessions", async () => {
       const fs = new InMemoryFs();
@@ -66,7 +79,7 @@ describe("codex agent", () => {
       expect(await codexAgent.isInstalled(deps(fs), "/")).toBe(true);
       const zstOnly = new InMemoryFs();
       zstOnly.writeFile("/c/archived_sessions/rollout-x.jsonl.zst", "z", 1);
-      expect(await codexAgent.isInstalled(deps(zstOnly), "/")).toBe(false);
+      expect(await codexAgent.isInstalled(deps(zstOnly), "/")).toBe(true);
     });
   });
 
@@ -138,7 +151,7 @@ describe("codex agent", () => {
     expect(r.ok && r.value.agent).toBe("codex");
   });
 
-  it("discoverSessions reports skipped compressed rollouts and unreadable folders", async () => {
+  it("discoverSessions reports skipped compressed rollouts (a Node.js without zstd) and unreadable folders", async () => {
     const mem = new InMemoryFs();
     mem.writeFile("/c/sessions/2026/10/01/rollout-a.jsonl", rollout("a", "/p", record("r1", 100, 10)), 2);
     mem.writeFile("/c/sessions/2026/10/01/rollout-z.jsonl.zst", "z", 1);
@@ -147,13 +160,17 @@ describe("codex agent", () => {
       exists: (p) => mem.exists(p),
       readFile: (p) => mem.readFile(p),
       readHead: (p, n) => mem.readHead(p, n),
+      readBytes: (p) => mem.readBytes(p),
       stat: (p) => mem.stat(p),
       readDir: async (p) => {
         if (p.replace(/\\/g, "/").endsWith("/10/02")) throw new Error("EACCES");
         return mem.readDir(p);
       },
     };
-    const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/", analyze: (x) => x.parsed });
+    setZstdCodecForTests(null);
+    const r = await loadSessions({ agent: codexAgent, deps: deps(fs), cwd: "/", analyze: (x) => x.parsed }).finally(() =>
+      setZstdCodecForTests(undefined),
+    );
     if (!r.ok) throw new Error("load failed");
     expect(r.value.sessions.map((s) => s.meta.sessionId)).toEqual(["a"]);
     // A folder is not a file: counted apart. Compressed logs are one count, not one issue each.

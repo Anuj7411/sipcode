@@ -245,6 +245,9 @@ async function statsForAgent(agent: Agent, ctx: StatsContext): Promise<SectionRe
     for (const i of loaded.error) stderr(i.message);
     return o.result(1);
   }
+  // Logs left out of the totals: a warning at the top of stdout. (--json keeps
+  // them in its `warnings` array only, as before.)
+  if (!opts.json) o.unread(agent.displayName, loaded.value, false);
   // Raw count before any --here scoping — lets us tell a brand-new user
   // (zero transcripts anywhere) from "none in this window/cwd".
   const totalDiscovered = loaded.value.discovered;

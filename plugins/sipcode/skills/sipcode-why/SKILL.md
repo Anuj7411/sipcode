@@ -20,7 +20,7 @@ Answer from the user's own Codex logs on this computer, through the published `s
 | the last (most recent) session | `sipcode why --agent codex --json` |
 | a specific session | `sipcode why --agent codex --list` to find its id, then `sipcode why --agent codex --session <id> --json` |
 
-The session you are in right now is also a Codex session: if the user means an earlier one, use `--list` and ask which one when it is not clear. Lines Sipcode prints on stderr that start with `note:` are part of the answer.
+The session you are in right now is also a Codex session: if the user means an earlier one, use `--list` and ask which one when it is not clear. Lines Sipcode prints on stderr that start with `note:` are part of the answer. If Sipcode prints a line starting "warning:" that log files could not be read, say it first in your answer, as printed: the numbers leave those logs out. With `--json` the same thing comes on stderr as a `note:` that log files or folders could not be read or parsed, or that compressed logs were skipped: say that first too.
 
 ## Present numbers
 

@@ -4,6 +4,7 @@ import { runRegress } from "../../src/commands/regress.js";
 import { InMemoryFs, type FileSystem } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
+import { MESSAGES } from "../../src/lib/messages.js";
 import {
   addClaudeDataset,
   addClaudeSession,
@@ -47,6 +48,7 @@ function blocked(base: InMemoryFs, fail: (p: string) => boolean): FileSystem {
     exists: (p) => base.exists(p),
     readFile: async (p) => (guard(p), base.readFile(p)),
     readHead: async (p, n) => (guard(p), base.readHead(p, n)),
+    readBytes: async (p) => (guard(p), base.readBytes(p)),
     readDir: async (p) => (guard(p), base.readDir(p)),
     stat: (p) => base.stat(p),
   };
@@ -346,5 +348,33 @@ describe("sipcode regress: one tool compared, the other not (review fix)", () =>
     expect(r.exitCode).toBe(2);
     expect(r.out).toMatch(/Claude Code: no interactive requests in \S+ \(30 subagent and Agent SDK requests left out of the comparison\)/);
     expect(r.out).toContain("Nothing to analyse: no interactive Claude Code requests and no Codex requests could be read. This is NOT a clean result.");
+  });
+});
+
+describe("sipcode regress --bug-report: the answer is always on stdout (Codex showed a run as 'no output')", () => {
+  const states: Array<[string, () => InMemoryFs, 0 | 2]> = [
+    ["no regression", () => dataset(false), 0],
+    ["not enough data", () => {
+      const fs = new InMemoryFs();
+      addCodexRollout(fs, "0199a000-0000-7000-8000-00000000000a", "0.140.0", 0, 2);
+      return fs;
+    }, 0],
+    ["nothing read", () => new InMemoryFs(), 2],
+  ];
+  for (const [name, make, code] of states) {
+    it(`${name}: exit ${code}, result and the no-bug-report line on stdout, nothing on stderr`, async () => {
+      const r = await run({ bugReport: true }, make());
+      expect(r.exitCode).toBe(code);
+      expect(r.err).toBe("");
+      expect(r.out.split("\n")[0]).toBe("sipcode regress · local only, no network");
+      expect(r.out.split("\n").at(-1)).toBe(MESSAGES.regressNoBugReport);
+    });
+  }
+
+  it("with a finding: the bug report follows on stdout, without the no-bug-report line", async () => {
+    const r = await run({ bugReport: true }, dataset(true));
+    expect(r.exitCode).toBe(0);
+    expect(r.out).toContain("---- paste into a GitHub issue (review it first) ----");
+    expect(r.out).not.toContain(MESSAGES.regressNoBugReport);
   });
 });

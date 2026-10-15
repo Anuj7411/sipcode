@@ -43,8 +43,30 @@ function findingLines(f: Finding): string[] {
 
 export function formatRegressTerminal(
   report: RegressReport,
-  opts: { readonly bugReport: boolean; readonly version: string },
+  opts: {
+    readonly bugReport: boolean;
+    readonly version: string;
+    /**
+     * Per-tool warnings about logs that could not be read (unreadWarnings),
+     * printed first. They name the skipped compressed logs, so the note below
+     * the coverage lines is then left out.
+     */
+    readonly unreadWarnings?: readonly string[];
+  },
 ): string {
+  const top = opts.unreadWarnings ?? [];
+  const lines = [...top, ...(top.length > 0 ? [""] : []), ...body(report, opts, top.length > 0)];
+  // --bug-report with nothing to report still answers the flag: a run that only
+  // repeated the plain result read as "no output" to Codex.
+  if (opts.bugReport && report.findings.length === 0) lines.push("", MESSAGES.regressNoBugReport);
+  return lines.join("\n");
+}
+
+function body(
+  report: RegressReport,
+  opts: { readonly bugReport: boolean; readonly version: string },
+  warnedAbove: boolean,
+): string[] {
   const lines = ["sipcode regress · local only, no network"];
   if (report.claude) {
     lines.push(claudeLine(report));
@@ -55,16 +77,18 @@ export function formatRegressTerminal(
   const a = report.access;
   for (const d of a.missingDirs) lines.push(`Not found or not readable: ${d}`);
   const unreadable = a.unreadableFiles + a.unreadableFolders;
-  if (unreadable > 0) lines.push(MESSAGES.regressUnreadable(unreadable, report.claudeDir, report.codexDir));
-  if (a.skippedCompressed > 0) lines.push(`note: ${compressedSkippedMessage(a.skippedCompressed)}`);
+  // Only the folders this run read (the other one is "" with --agent).
+  const dirs = [report.claudeDir, report.codexDir].filter((d) => d !== "");
+  if (unreadable > 0) lines.push(MESSAGES.regressUnreadable(unreadable, dirs));
+  if (a.skippedCompressed > 0 && !warnedAbove) lines.push(`note: ${compressedSkippedMessage(a.skippedCompressed)}`);
   lines.push("");
   if (a.nothingRead) {
     lines.push(MESSAGES.regressNothingToAnalyse);
-    return lines.join("\n");
+    return lines;
   }
   if (report.findings.length === 0 && !report.comparable) {
     lines.push(MESSAGES.regressNotEnoughData(report.minN, report.agents));
-    return lines.join("\n");
+    return lines;
   }
   if (report.findings.length === 0) lines.push(MESSAGES.regressNoFindings);
   for (const f of report.findings) lines.push(...findingLines(f));
@@ -74,5 +98,5 @@ export function formatRegressTerminal(
   if (opts.bugReport && report.findings.length > 0) {
     lines.push("", "---- paste into a GitHub issue (review it first) ----", "", formatBugReport(report, opts.version)!);
   }
-  return lines.join("\n");
+  return lines;
 }

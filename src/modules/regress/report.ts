@@ -21,7 +21,7 @@ export interface RegressAccess {
   readonly unreadableFiles: number;
   /** Log folders that could not be listed. */
   readonly unreadableFolders: number;
-  /** Compressed Codex logs (.jsonl.zst) skipped on purpose. */
+  /** Compressed Codex logs (.jsonl.zst) skipped: this Node.js has no zstd. */
   readonly skippedCompressed: number;
 }
 

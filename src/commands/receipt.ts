@@ -17,7 +17,7 @@ void ASSERT_NO_NETWORK;
 import path from "node:path";
 import { promises as nodeFs } from "node:fs";
 
-import { RealFileSystem, type FileSystem } from "../lib/fs.js";
+import { readLogText, RealFileSystem, type FileSystem } from "../lib/fs.js";
 import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import {
@@ -50,6 +50,7 @@ import {
   pickFrom,
   priceProvider,
   sessionPickError,
+  UnreadOutput,
 } from "../modules/agents/latest.js";
 
 import { renderReceipt } from "../modules/receipt/render.js";
@@ -120,8 +121,12 @@ export async function runReceipt(
   const fs = deps.fs ?? new RealFileSystem();
   const clock = deps.clock ?? new RealClock();
   const env = deps.env ?? new RealProcessEnv();
-  const stdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
-  const stderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+  const rawStdout = deps.stdout ?? ((s: string) => process.stdout.write(s + "\n"));
+  const rawStderr = deps.stderr ?? ((s: string) => process.stderr.write(s + "\n"));
+  // Logs that could not be read are reported before the first line printed after discovery.
+  const unread = new UnreadOutput(opts.json ?? false, rawStdout, rawStderr);
+  const stdout = unread.stdout;
+  const stderr = unread.stderr;
   const writeFile = deps.writeFile ?? realWriteFile;
   const clipboard = deps.clipboard ?? new RealClipboard(env);
 
@@ -157,6 +162,7 @@ export async function runReceipt(
   }
   const agentDeps = { fs, env, clock };
   const lists = await listAgentSessions({ agents, deps: agentDeps, cwd, here: opts.here });
+  unread.watch(lists);
 
   if (lists.every((l) => l.scoped.length === 0)) {
     stderr(
@@ -175,6 +181,7 @@ export async function runReceipt(
     sessionIdPrefix: opts.session,
     skipEmpty: false,
     ownRequests: true,
+    onUnreadable: unread.unreadable,
   });
   const pickError = sessionPickError({
     command: "receipt",
@@ -196,7 +203,7 @@ export async function runReceipt(
   if (agent.id === "claude-code") {
     let contents: string;
     try {
-      contents = await fs.readFile(chosen.filePath);
+      contents = await readLogText(fs, chosen.filePath);
     } catch {
       stderr(MESSAGES.malformedTranscript(path.basename(chosen.filePath), 0));
       return { exitCode: 1 };

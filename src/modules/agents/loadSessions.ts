@@ -19,6 +19,8 @@
  * zero usage. With a usage cache (today / forecast), unchanged files are
  * served from it instead of being read.
  */
+import { isCompressedLog, readLogText } from "../../lib/fs.js";
+import { ZSTD_MIN_NODE } from "../../lib/zstd.js";
 import { ok, type Result } from "../../lib/result.js";
 import type { SipcodeIssue } from "../../lib/errors.js";
 import { dedupeAcrossSessions, DedupeIndex } from "../transcript/dedupe.js";
@@ -72,7 +74,7 @@ export interface LoadCounts {
   readonly unreadable: number;
   /** Folders discovery could not list. */
   readonly unreadableFolders: number;
-  /** Compressed logs skipped on purpose (Codex `.jsonl.zst`). */
+  /** Compressed logs (Codex `.jsonl.zst`) skipped because this Node.js has no zstd. */
   readonly skippedCompressed: number;
   /** Files read for their request keys only (they can hold copies), not returned. */
   readonly scannedOnly: number;
@@ -150,11 +152,17 @@ export async function discoverAgentSessions(
   });
 }
 
+/** What a command could not read for one agent: loadSessions' counts, or discovery's. */
+export type UnreadCounts = Pick<LoadCounts, "unreadable" | "unreadableFolders" | "skippedCompressed"> & {
+  readonly issues: readonly unknown[];
+};
+
 /**
- * The stderr notes every period command prints about logs it could not use:
- * unreadable or unparseable files, unreadable folders, skipped compressed logs.
+ * The --json stderr notes about logs a command could not use: unreadable or
+ * unparseable files, unreadable folders, skipped compressed logs. (In the
+ * terminal, unreadWarnings says the same at the top of stdout.)
  */
-export function discoveryNotes(o: LoadCounts): string[] {
+export function discoveryNotes(o: UnreadCounts): string[] {
   const notes: string[] = [];
   const files = o.unreadable + o.issues.length;
   if (files > 0) {
@@ -167,8 +175,34 @@ export function discoveryNotes(o: LoadCounts): string[] {
   return notes;
 }
 
-export function compressedSkippedMessage(n: number): string {
-  return `${n} compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.`;
+export function compressedSkippedMessage(n: number, nodeVersion: string = process.version): string {
+  return `${n} compressed Codex log(s) (.jsonl.zst) skipped: reading them needs Node.js ${ZSTD_MIN_NODE} or newer (you have ${nodeVersion}).`;
+}
+
+const UNREAD_TAIL = "Numbers below leave them out.";
+
+/**
+ * The terminal warnings about logs a command could not read, one line per
+ * reason, printed at the top of stdout (runSections, UnreadOutput) so they are
+ * never missed. Empty when everything was read.
+ */
+export function unreadWarnings(agentName: string, o: UnreadCounts, nodeVersion: string = process.version): string[] {
+  const out: string[] = [];
+  if (o.skippedCompressed > 0) {
+    out.push(
+      `warning: ${o.skippedCompressed} ${agentName} log file(s) could not be read (compressed .jsonl.zst logs need Node.js ${ZSTD_MIN_NODE} or newer; you have ${nodeVersion}). ${UNREAD_TAIL}`,
+    );
+  }
+  const files = o.unreadable + o.issues.length;
+  if (files > 0) {
+    out.push(`warning: ${files} ${agentName} log file(s) could not be read (unreadable or damaged). ${UNREAD_TAIL}`);
+  }
+  if (o.unreadableFolders > 0) {
+    out.push(
+      `warning: ${o.unreadableFolders} ${agentName} log folder(s) could not be read (the folder could not be listed). ${UNREAD_TAIL}`,
+    );
+  }
+  return out;
 }
 
 type Read =
@@ -192,7 +226,7 @@ async function readParse(
 ): Promise<Read> {
   let text: string;
   try {
-    text = await deps.fs.readFile(meta.filePath);
+    text = await readLogText(deps.fs, meta.filePath);
   } catch {
     return { ok: false, unreadable: true, issues: [] };
   }
@@ -249,7 +283,7 @@ export async function loadSessions<R>(
       const meta = all[i]!;
       let text: string;
       try {
-        text = await deps.fs.readFile(meta.filePath);
+        text = await readLogText(deps.fs, meta.filePath);
       } catch {
         unreadable++;
         continue;
@@ -337,7 +371,10 @@ export async function loadSessions<R>(
   // next read).
   const parseOne = async (i: number): Promise<void> => {
     const meta = all[i]!;
-    const r = await readParse(agent, deps, meta, undefined, cache !== null);
+    // A compressed log is complete once it decodes (readLogText checks every frame), so its
+    // decoded size need not match the file size discovery saw.
+    const compressed = isCompressedLog(meta.filePath);
+    const r = await readParse(agent, deps, meta, undefined, cache !== null && !compressed);
     if (cache) {
       parsedNow[i] = 1;
       cacheDirty = true;
@@ -349,7 +386,7 @@ export async function loadSessions<R>(
     }
     added[i] = 1;
     textChars.set(i, r.chars);
-    if (cache && r.bytes === meta.size) {
+    if (cache && (compressed || r.bytes === meta.size)) {
       if (!writer) {
         writer = cache.writer();
         await writer.add(cacheHeader());
@@ -455,7 +492,7 @@ const COPY_WINDOW_SLACK_MS = 60 * 60 * 1000;
  * names (SessionMeta.lineage). A request is copied only from a thread into
  * the threads forked or spawned from it, so two logs holding the same
  * request are in one family. A family is open (null) when a link names a
- * thread with no readable log (deleted, compressed): the logs on its other
+ * thread with no readable log (deleted, damaged, or compressed on a Node.js without zstd): the logs on its other
  * side cannot be told apart, so an open log is a candidate for every target.
  * A log without lineage is open too.
  */
@@ -580,7 +617,7 @@ export async function dropCopiedRequests(i: {
     const meta = i.all[k]!;
     let content: string;
     try {
-      content = await deps.fs.readFile(meta.filePath);
+      content = await readLogText(deps.fs, meta.filePath);
     } catch {
       continue;
     }

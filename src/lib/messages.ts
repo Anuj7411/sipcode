@@ -285,13 +285,17 @@ export const MESSAGES = {
       `next: npx sipcode regress --min-n 20`,
     ].join("\n"),
 
-  regressUnreadable: (n: number, claudeDir: string, codexDir: string) =>
-    `WARNING: ${n} log file(s) or folder(s) could not be read. Results cover only what was readable. If this runs inside a sandbox (for example Codex), allow read access to ${claudeDir} and ${codexDir} and run it again.`,
+  /** `dirs`: the log folders regress read (one with --agent). */
+  regressUnreadable: (n: number, dirs: readonly string[]) =>
+    `WARNING: ${n} log file(s) or folder(s) could not be read. Results cover only what was readable. If this runs inside a sandbox (for example Codex), allow read access to ${dirs.join(" and ")} and run it again.`,
 
   regressNothingToAnalyse:
     "Nothing to analyse: no interactive Claude Code requests and no Codex requests could be read. This is NOT a clean result.",
 
   regressNoFindings: "No regressions detected in your logs.",
+
+  /** regress --bug-report with no finding: say why no bug report follows (never a silent no-op). */
+  regressNoBugReport: "No bug report: there is no finding to report.",
 
   /** What each tool needs before its versions can be compared (regress). */
   regressNeeds: (agent: "claude-code" | "codex", minN: number) =>

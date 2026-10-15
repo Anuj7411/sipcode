@@ -17,7 +17,7 @@
  * at 60 most-recent sessions for speed.
  */
 import path from "node:path";
-import type { FileSystem } from "../../lib/fs.js";
+import { readLogText, type FileSystem } from "../../lib/fs.js";
 import type { ProcessEnv } from "../../lib/process.js";
 import {
   listAllSessions,
@@ -180,7 +180,7 @@ export async function loadAnchors(
   for (const sess of limited) {
     let content: string;
     try {
-      content = await fs.readFile(sess.filePath);
+      content = await readLogText(fs, sess.filePath);
     } catch {
       continue;
     }

@@ -2,10 +2,12 @@
  * Codex limit inputs from disk: readings, scanned from every rollout Codex
  * discovery lists, and requests, from the shared session loader (so dedupe
  * and the usage cache are reused unchanged). Files that cannot be read are
- * skipped here; the session loader's stderr note counts them.
+ * skipped here and counted (`unread`); once sessions are loaded, the session
+ * loader's counts report them.
  */
+import { readLogText } from "../../lib/fs.js";
 import { scanCodexRateLimits, type LimitReading } from "../agents/codex/rateLimits.js";
-import { discoverAgentSessions, type LoadedSession } from "../agents/loadSessions.js";
+import { discoverAgentSessions, type LoadedSession, type UnreadCounts } from "../agents/loadSessions.js";
 import { getAgentById } from "../agents/registry.js";
 import type { AgentDeps } from "../agents/types.js";
 import type { LimitRequest } from "./attribute.js";
@@ -17,6 +19,8 @@ export interface CodexReadings {
   readonly readings: LimitReading[];
   /** Lines or windows that could not be read (MESSAGES.limitsMalformed). */
   readonly malformed: number;
+  /** Rollouts the scan could not read: discovery's counts plus files that failed to read. */
+  readonly unread: UnreadCounts;
 }
 
 /** Rollouts read at once. Small, so a few large logs never sit in memory together. */
@@ -26,22 +30,27 @@ export async function loadCodexReadings(deps: AgentDeps): Promise<CodexReadings>
   const readings: LimitReading[] = [];
   let malformed = 0;
   const found = await discoverAgentSessions(getAgentById("codex"), deps);
-  if (!found.ok) return { readings, malformed };
+  if (!found.ok) return { readings, malformed, unread: { unreadable: 0, unreadableFolders: 0, skippedCompressed: 0, issues: [] } };
+  let unreadable = found.value.unreadable;
   // Up to READ_AHEAD files are read at once (`today` waits on this scan);
   // they are scanned in discovery order, so the result never depends on timing.
   const sessions = found.value.sessions;
   for (let i = 0; i < sessions.length; i += READ_AHEAD) {
     const batch = sessions.slice(i, i + READ_AHEAD);
-    const texts = await Promise.all(batch.map((m) => deps.fs.readFile(m.filePath).catch(() => undefined)));
+    const texts = await Promise.all(batch.map((m) => readLogText(deps.fs, m.filePath).catch(() => undefined)));
     batch.forEach((meta, j) => {
       const text = texts[j];
-      if (text === undefined) return;
+      if (text === undefined) {
+        unreadable++;
+        return;
+      }
       const scan = scanCodexRateLimits(text, { sessionId: meta.sessionId });
       for (const r of scan.readings) readings.push(r);
       malformed += scan.malformed;
     });
   }
-  return { readings, malformed };
+  const { unreadableFolders, skippedCompressed, issues } = found.value;
+  return { readings, malformed, unread: { unreadable, unreadableFolders, skippedCompressed, issues } };
 }
 
 /** A loaded Codex session's requests with tokens and a time (loadSessions `analyze`). */

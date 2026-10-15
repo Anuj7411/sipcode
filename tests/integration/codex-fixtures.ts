@@ -1,7 +1,26 @@
 /** Codex rollout builders shared by the period-command integration tests. */
 import type { InMemoryFs } from "../../src/lib/fs.js";
+import { setZstdCodecForTests } from "../../src/lib/zstd.js";
 
 export const CODEX_SESSIONS = "/home/u/.codex/sessions";
+
+/** Runs `fn` as on a Node.js without zstd: compressed rollouts are skipped with a note. */
+export async function withoutZstd<T>(fn: () => Promise<T>): Promise<T> {
+  setZstdCodecForTests(null);
+  try {
+    return await fn();
+  } finally {
+    setZstdCodecForTests(undefined);
+  }
+}
+
+/** The skipped-compressed message on a Node.js without zstd (this process's version). */
+export const zstdSkipMessage = (n: number): string =>
+  `${n} compressed Codex log(s) (.jsonl.zst) skipped: reading them needs Node.js 22.15 or newer (you have ${process.version}).`;
+
+/** The terminal warning at the top of stdout for the same skipped logs. */
+export const zstdSkipWarning = (n: number): string =>
+  `warning: ${n} Codex log file(s) could not be read (compressed .jsonl.zst logs need Node.js 22.15 or newer; you have ${process.version}). Numbers below leave them out.`;
 
 const line = (o: unknown): string => JSON.stringify(o);
 

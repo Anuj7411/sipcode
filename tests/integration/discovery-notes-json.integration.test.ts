@@ -2,7 +2,7 @@
  * Logs Sipcode skipped (compressed, unreadable) are reported in --json mode
  * too: on stderr, as stats does, so the JSON on stdout stays unchanged.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
@@ -10,9 +10,11 @@ import { runTodayCmd } from "../../src/commands/today.js";
 import { runForecastCmd } from "../../src/commands/forecast.js";
 import { runTrend } from "../../src/commands/trend.js";
 import { runImpactCommand } from "../../src/commands/impact.js";
-import { addCodexRollout, CODEX_SESSIONS, solTurn } from "./codex-fixtures.js";
+import { setZstdCodecForTests } from "../../src/lib/zstd.js";
+import { addCodexRollout, CODEX_SESSIONS, solTurn, zstdSkipMessage } from "./codex-fixtures.js";
 
-const NOTE = "note: 1 compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.";
+const NOTE = `note: ${zstdSkipMessage(1)}`;
+const UNREADABLE = "note: 1 transcript file(s) could not be read or parsed; totals exclude them.";
 
 function logs(): InMemoryFs {
   const fs = new InMemoryFs();
@@ -29,7 +31,9 @@ const cmds: Array<[string, Cmd]> = [
   ["impact", (fs, d) => runImpactCommand({ json: true, agent: "codex", cwd: "/nonexistent-sipcode-notes" }, { fs, ...d })],
 ];
 
-describe("--json: discovery notes go to stderr", () => {
+describe("--json: discovery notes go to stderr (a Node.js without zstd)", () => {
+  beforeEach(() => setZstdCodecForTests(null));
+  afterEach(() => setZstdCodecForTests(undefined));
   for (const [name, run] of cmds) {
     it(name, async () => {
       const out: string[] = [];
@@ -42,6 +46,25 @@ describe("--json: discovery notes go to stderr", () => {
       });
       expect(r.exitCode).toBe(0);
       expect(err).toContain(NOTE);
+      expect(() => JSON.parse(out.join("\n"))).not.toThrow();
+    });
+  }
+});
+
+describe("--json: a damaged compressed log is an unreadable file (Node.js with zstd)", () => {
+  for (const [name, run] of cmds) {
+    it(name, async () => {
+      const out: string[] = [];
+      const err: string[] = [];
+      const r = await run(logs(), {
+        env: new FakeProcessEnv({ homeDir: "/home/u", platform: "linux", vars: { NO_COLOR: "1" } }),
+        clock: new FakeClock(new Date("2026-05-20T12:00:00Z")),
+        stdout: (s: string) => out.push(s),
+        stderr: (s: string) => err.push(s),
+      });
+      expect(r.exitCode).toBe(0);
+      expect(err).toContain(UNREADABLE);
+      expect(err.join("\n")).not.toContain("compressed Codex log");
       expect(() => JSON.parse(out.join("\n"))).not.toThrow();
     });
   }

@@ -1,8 +1,17 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
-import { InMemoryFs, RealFileSystem, type FileSystem } from "../../src/lib/fs.js";
+import zlib from "node:zlib";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  InMemoryFs,
+  isCompressedLog,
+  readCompressedLogFirstLine,
+  readLogText,
+  RealFileSystem,
+  type FileSystem,
+} from "../../src/lib/fs.js";
+import { CorruptZstdError, setZstdCodecForTests, ZstdUnavailableError } from "../../src/lib/zstd.js";
 
 // "é" is 2 bytes and "€" is 3 bytes in UTF-8: "aé€b" = 1 + 2 + 3 + 1 = 7 bytes.
 const MIXED = "aé€b";
@@ -93,5 +102,65 @@ describe("InMemoryFs", () => {
     const s = await fs.stat("/x");
     expect(s.size).toBe(3);
     expect(s.mtimeMs).toBe(42);
+  });
+});
+
+describe("compressed session logs (readLogText)", () => {
+  const zstdCompress = (s: string): Buffer =>
+    (zlib as unknown as { zstdCompressSync: (b: Buffer) => Buffer }).zstdCompressSync(Buffer.from(s, "utf8"));
+  const TEXT = `{"type":"session_meta","payload":{"id":"a"}}\n{"n":"${MIXED}"}\n`;
+
+  afterEach(() => setZstdCodecForTests(undefined));
+
+  it("InMemoryFs stores raw bytes: readBytes returns them, stat counts them", async () => {
+    const fs = new InMemoryFs();
+    const bytes = zstdCompress(TEXT);
+    fs.writeBytes("/c/rollout-a.jsonl.zst", bytes, 7);
+    expect((await fs.readBytes("/c/rollout-a.jsonl.zst")).equals(bytes)).toBe(true);
+    expect(await fs.stat("/c/rollout-a.jsonl.zst")).toEqual({ mtimeMs: 7, size: bytes.length });
+    expect((await fs.readDir("/c")).map((e) => e.name)).toEqual(["rollout-a.jsonl.zst"]);
+    fs.writeFile("/c/plain.jsonl", TEXT);
+    expect((await fs.readBytes("/c/plain.jsonl")).toString("utf8")).toBe(TEXT);
+  });
+
+  it("reads a plain log as text and a .zst log decompressed, on both file systems", async () => {
+    const mem = new InMemoryFs();
+    mem.writeFile("/c/a.jsonl", TEXT);
+    mem.writeBytes("/c/a.jsonl.zst", zstdCompress(TEXT));
+    expect(isCompressedLog("/c/a.jsonl")).toBe(false);
+    expect(isCompressedLog("/c/a.jsonl.zst")).toBe(true);
+    expect(await readLogText(mem, "/c/a.jsonl")).toBe(TEXT);
+    expect(await readLogText(mem, "/c/a.jsonl.zst")).toBe(TEXT);
+    expect(await readCompressedLogFirstLine(mem, "/c/a.jsonl.zst")).toBe(TEXT.split("\n")[0]);
+
+    const dir = mkdtempSync(path.join(tmpdir(), "sipcode-zst-"));
+    try {
+      const p = path.join(dir, "rollout-a.jsonl.zst");
+      writeFileSync(p, zstdCompress(TEXT));
+      const real = new RealFileSystem();
+      expect(await readLogText(real, p)).toBe(TEXT);
+      expect(await readCompressedLogFirstLine(real, p)).toBe(TEXT.split("\n")[0]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("a damaged .zst log throws (callers count it as unreadable)", async () => {
+    const mem = new InMemoryFs();
+    const full = zstdCompress(TEXT.repeat(50));
+    mem.writeBytes("/c/cut.jsonl.zst", full.subarray(0, full.length - 3));
+    mem.writeBytes("/c/junk.jsonl.zst", Buffer.from("not zstd"));
+    await expect(readLogText(mem, "/c/cut.jsonl.zst")).rejects.toThrow(CorruptZstdError);
+    await expect(readLogText(mem, "/c/junk.jsonl.zst")).rejects.toThrow(CorruptZstdError);
+  });
+
+  it("on a Node.js without zstd, a .zst log throws ZstdUnavailableError naming the version needed", async () => {
+    setZstdCodecForTests(null);
+    const mem = new InMemoryFs();
+    mem.writeBytes("/c/a.jsonl.zst", zstdCompress(TEXT));
+    mem.writeFile("/c/b.jsonl", TEXT);
+    await expect(readLogText(mem, "/c/a.jsonl.zst")).rejects.toThrow(ZstdUnavailableError);
+    await expect(readLogText(mem, "/c/a.jsonl.zst")).rejects.toThrow(/Node\.js 22\.15 or newer/);
+    expect(await readLogText(mem, "/c/b.jsonl")).toBe(TEXT);
   });
 });

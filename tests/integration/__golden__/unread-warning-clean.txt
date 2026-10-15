@@ -1,0 +1,7242 @@
+=== stats
+exit 0
+── Claude Code ──
+sipcode stats · all time · 45 sessions · claude-opus-4-8
+
+across 45 sessions you used 149,570,386 tokens.
+output ratio: 0.4% of all tokens. the other 99.6% was context sent with each request, 91% of it read from cache.
+
+estimated wasted on patterns sipcode catches:
+  · duplicate file reads                     0 tokens   ($0.0000)
+  · idle context                             0 tokens   ($0.0000)
+  · cache-creation overhead         13,593,600 tokens   ($25.49)
+
+trend: token spend per day (223 days)
+  ▃▂▃▁▄▂▃▁▁▂▁▂▃▁▁▁▁▁▁▁▁▁██▂▁▁▁▁▁
+  min: 0  ·  max: 30.8M  ·  median: 0
+
+top 5 most expensive sessions:
+  1. 2026-08-19 · sess0045 · 3h 59m · 30,768,720 tok · $22.03
+  2. 2026-08-18 · sess0044 · 3h 59m · 30,768,720 tok · $22.03
+  3. 2026-04-22 · sess0023 · 1h 43m · 2,517,090 tok · $3.54
+  4. 2026-04-21 · sess0022 · 1h 43m · 2,517,090 tok · $3.54
+  5. 2026-04-20 · sess0021 · 1h 43m · 2,517,090 tok · $3.54
+
+projects (top 1 by spend):
+  · demo                 100% · 45 sessions · $225.55
+
+est. total cost: $225.55
+prices from 2026-10-08 (1 days old)
+
+── Codex ──
+sipcode stats · all time · 8 sessions · gpt-5.4
+
+across 8 sessions you used 108,472,703 tokens.
+output ratio: 2.3% of all tokens. the other 97.7% was context sent with each request, 45% of it read from cache.
+
+estimated wasted on patterns sipcode catches:
+  · duplicate file reads                     0 tokens   ($0.0000)
+  · idle context                             0 tokens   ($0.0000)
+  · cache-creation overhead                  0 tokens   ($0.0000)
+
+trend: token spend per day (144 days)
+  ▁▁▄▁▄▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▂
+  min: 0  ·  max: 46.0M  ·  median: 0
+
+top 5 most expensive sessions:
+  1. 2026-09-01 · 0199a000-0000-7000 · 887h 00m · 46,000,000 tok · $230.00
+  2. 2026-06-15 · 0199a000-0000-7000 · 2h 30m · 18,750,000 tok · $41.63
+  3. 2026-06-08 · 0199a000-0000-7000 · 2h 30m · 18,750,000 tok · $41.63
+  4. 2026-06-01 · 0199a000-0000-7000 · 2h 30m · 18,750,000 tok · $41.63
+  5. 2026-10-08 · 0199a0f7-11aa-7b02 · 12h 00m · 3,100,000 tok · $17.25
+
+projects (top 3 by spend):
+  · proj                 91.1% · 4 sessions · $354.88
+  · my-app               4.4% · 1 sessions · $17.25
+  · sipcode              4.4% · 2 sessions · $17.25
+
+est. total cost: $389.38
+20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+prices from 2026-10-09 (0 days old)
+
+Both tools: 258.0M tokens · ~$226 + ~$389 (+ unpriced)
+=== stats --agent codex
+exit 0
+sipcode stats · all time · 8 sessions · gpt-5.4
+
+across 8 sessions you used 108,472,703 tokens.
+output ratio: 2.3% of all tokens. the other 97.7% was context sent with each request, 45% of it read from cache.
+
+estimated wasted on patterns sipcode catches:
+  · duplicate file reads                     0 tokens   ($0.0000)
+  · idle context                             0 tokens   ($0.0000)
+  · cache-creation overhead                  0 tokens   ($0.0000)
+
+trend: token spend per day (144 days)
+  ▁▁▄▁▄▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▂
+  min: 0  ·  max: 46.0M  ·  median: 0
+
+top 5 most expensive sessions:
+  1. 2026-09-01 · 0199a000-0000-7000 · 887h 00m · 46,000,000 tok · $230.00
+  2. 2026-06-15 · 0199a000-0000-7000 · 2h 30m · 18,750,000 tok · $41.63
+  3. 2026-06-08 · 0199a000-0000-7000 · 2h 30m · 18,750,000 tok · $41.63
+  4. 2026-06-01 · 0199a000-0000-7000 · 2h 30m · 18,750,000 tok · $41.63
+  5. 2026-10-08 · 0199a0f7-11aa-7b02 · 12h 00m · 3,100,000 tok · $17.25
+
+projects (top 3 by spend):
+  · proj                 91.1% · 4 sessions · $354.88
+  · my-app               4.4% · 1 sessions · $17.25
+  · sipcode              4.4% · 2 sessions · $17.25
+
+est. total cost: $389.38
+20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+prices from 2026-10-09 (0 days old)
+=== stats --agent claude-code
+exit 0
+sipcode stats · all time · 45 sessions · claude-opus-4-8
+
+across 45 sessions you used 149,570,386 tokens.
+output ratio: 0.4% of all tokens. the other 99.6% was context sent with each request, 91% of it read from cache.
+
+estimated wasted on patterns sipcode catches:
+  · duplicate file reads                     0 tokens   ($0.0000)
+  · idle context                             0 tokens   ($0.0000)
+  · cache-creation overhead         13,593,600 tokens   ($25.49)
+
+trend: token spend per day (223 days)
+  ▃▂▃▁▄▂▃▁▁▂▁▂▃▁▁▁▁▁▁▁▁▁██▂▁▁▁▁▁
+  min: 0  ·  max: 30.8M  ·  median: 0
+
+top 5 most expensive sessions:
+  1. 2026-08-19 · sess0045 · 3h 59m · 30,768,720 tok · $22.03
+  2. 2026-08-18 · sess0044 · 3h 59m · 30,768,720 tok · $22.03
+  3. 2026-04-22 · sess0023 · 1h 43m · 2,517,090 tok · $3.54
+  4. 2026-04-21 · sess0022 · 1h 43m · 2,517,090 tok · $3.54
+  5. 2026-04-20 · sess0021 · 1h 43m · 2,517,090 tok · $3.54
+
+projects (top 1 by spend):
+  · demo                 100% · 45 sessions · $225.55
+
+est. total cost: $225.55
+prices from 2026-10-08 (1 days old)
+=== stats --json
+exit 0
+{
+  "schemaVersion": "sipcode-stats/1",
+  "window": {
+    "sinceIso": "2026-03-01T00:00:00.000Z",
+    "untilIso": "2026-10-10T00:00:00.000Z",
+    "days": 223,
+    "raw": "all"
+  },
+  "agent": "claude-code",
+  "primaryModel": "claude-opus-4-8",
+  "sessionCount": 45,
+  "totals": {
+    "inputTokens": 164911,
+    "outputTokens": 634800,
+    "cacheReadTokens": 135177075,
+    "cacheCreationTokens": 13593600,
+    "totalTokens": 149570386,
+    "outputRatioPct": 0.4,
+    "estCostUSD": 225.5493
+  },
+  "savings": {
+    "duplicateReadsTokens": 0,
+    "idleContextTokens": 0,
+    "cacheCreationTokens": 13593600,
+    "duplicateReadsUSD": 0,
+    "idleContextUSD": 0,
+    "cacheCreationUSD": 25.488,
+    "totalRecoverableUSD": 25.488
+  },
+  "trendDaily": [
+    {
+      "date": "2026-03-01",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-02",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-03",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-06",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-03-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-11",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-12",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-13",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-16",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-03-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-21",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-22",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-23",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-26",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-03-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-31",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-01",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 5.8217
+    },
+    {
+      "date": "2026-04-02",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 5.8217
+    },
+    {
+      "date": "2026-04-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-05",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-04-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-10",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-11",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-12",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-15",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-04-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-20",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-21",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-22",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-25",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-04-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-10",
+      "tokens": 1824300,
+      "sessions": 1,
+      "estCostUSD": 14.9325
+    },
+    {
+      "date": "2026-05-11",
+      "tokens": 1824300,
+      "sessions": 1,
+      "estCostUSD": 14.9325
+    },
+    {
+      "date": "2026-05-12",
+      "tokens": 1824300,
+      "sessions": 1,
+      "estCostUSD": 14.9325
+    },
+    {
+      "date": "2026-05-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-20",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-21",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-22",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-23",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-24",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-25",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-26",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-27",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-30",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 4.5664
+    },
+    {
+      "date": "2026-05-31",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 4.5664
+    },
+    {
+      "date": "2026-06-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-18",
+      "tokens": 30768720,
+      "sessions": 1,
+      "estCostUSD": 22.0317
+    },
+    {
+      "date": "2026-08-19",
+      "tokens": 30768720,
+      "sessions": 1,
+      "estCostUSD": 22.0317
+    },
+    {
+      "date": "2026-08-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-28",
+      "tokens": 1990000,
+      "sessions": 1,
+      "estCostUSD": 3.987
+    },
+    {
+      "date": "2026-08-29",
+      "tokens": 1990000,
+      "sessions": 1,
+      "estCostUSD": 3.987
+    },
+    {
+      "date": "2026-08-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    }
+  ],
+  "topExpensive": [
+    {
+      "sessionId": "sess0045-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0045",
+      "startedAt": "2026-08-19T09:00:59.000Z",
+      "tokens": 30768720,
+      "estCostUSD": 22.0317,
+      "durationHuman": "3h 59m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0044-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0044",
+      "startedAt": "2026-08-18T09:00:59.000Z",
+      "tokens": 30768720,
+      "estCostUSD": 22.0317,
+      "durationHuman": "3h 59m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0023-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0023",
+      "startedAt": "2026-04-22T09:00:59.000Z",
+      "tokens": 2517090,
+      "estCostUSD": 3.5385,
+      "durationHuman": "1h 43m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0022-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0022",
+      "startedAt": "2026-04-21T09:00:59.000Z",
+      "tokens": 2517090,
+      "estCostUSD": 3.5385,
+      "durationHuman": "1h 43m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0021-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0021",
+      "startedAt": "2026-04-20T09:00:59.000Z",
+      "tokens": 2517090,
+      "estCostUSD": 3.5385,
+      "durationHuman": "1h 43m",
+      "project": "demo",
+      "label": ""
+    }
+  ],
+  "byProject": [
+    {
+      "name": "demo",
+      "projectHash": "C--demo",
+      "sessionCount": 45,
+      "tokens": 149570386,
+      "estCostUSD": 225.5493,
+      "pctOfSpend": 100
+    }
+  ],
+  "groupBy": "none",
+  "metaPricing": {
+    "asOf": "2026-10-08",
+    "ageDays": 1
+  },
+  "warnings": []
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== stats --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-stats/1",
+  "window": {
+    "sinceIso": "2026-05-19T00:00:00.000Z",
+    "untilIso": "2026-10-10T00:00:00.000Z",
+    "days": 144,
+    "raw": "all"
+  },
+  "agent": "codex",
+  "primaryModel": "gpt-5.4",
+  "sessionCount": 8,
+  "totals": {
+    "inputTokens": 58772000,
+    "outputTokens": 2450703,
+    "cacheReadTokens": 47250000,
+    "cacheCreationTokens": 0,
+    "totalTokens": 108472703,
+    "outputRatioPct": 2.3,
+    "estCostUSD": 389.381
+  },
+  "savings": {
+    "duplicateReadsTokens": 0,
+    "idleContextTokens": 0,
+    "cacheCreationTokens": 0,
+    "duplicateReadsUSD": 0,
+    "idleContextUSD": 0,
+    "cacheCreationUSD": 0,
+    "totalRecoverableUSD": 0
+  },
+  "trendDaily": [
+    {
+      "date": "2026-05-19",
+      "tokens": 2200,
+      "sessions": 1,
+      "estCostUSD": 0.006
+    },
+    {
+      "date": "2026-05-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-01",
+      "tokens": 18750000,
+      "sessions": 1,
+      "estCostUSD": 41.625
+    },
+    {
+      "date": "2026-06-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-08",
+      "tokens": 18750000,
+      "sessions": 1,
+      "estCostUSD": 41.625
+    },
+    {
+      "date": "2026-06-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-15",
+      "tokens": 18750000,
+      "sessions": 1,
+      "estCostUSD": 41.625
+    },
+    {
+      "date": "2026-06-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-01",
+      "tokens": 46000000,
+      "sessions": 1,
+      "estCostUSD": 230
+    },
+    {
+      "date": "2026-09-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-07",
+      "tokens": 3100000,
+      "sessions": 1,
+      "estCostUSD": 17.25
+    },
+    {
+      "date": "2026-10-08",
+      "tokens": 3120503,
+      "sessions": 2,
+      "estCostUSD": 17.25
+    },
+    {
+      "date": "2026-10-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    }
+  ],
+  "topExpensive": [
+    {
+      "sessionId": "0199a000-0000-7000-8000-000000000001",
+      "sessionIdShort": "0199a000-0000-7000",
+      "startedAt": "2026-09-01T01:00:00.000Z",
+      "tokens": 46000000,
+      "estCostUSD": 230,
+      "durationHuman": "887h 00m",
+      "project": "proj",
+      "label": ""
+    },
+    {
+      "sessionId": "0199a000-0000-7000-8000-00000000000c",
+      "sessionIdShort": "0199a000-0000-7000",
+      "startedAt": "2026-06-15T01:00:00.000Z",
+      "tokens": 18750000,
+      "estCostUSD": 41.625,
+      "durationHuman": "2h 30m",
+      "project": "proj",
+      "label": ""
+    },
+    {
+      "sessionId": "0199a000-0000-7000-8000-00000000000b",
+      "sessionIdShort": "0199a000-0000-7000",
+      "startedAt": "2026-06-08T01:00:00.000Z",
+      "tokens": 18750000,
+      "estCostUSD": 41.625,
+      "durationHuman": "2h 30m",
+      "project": "proj",
+      "label": ""
+    },
+    {
+      "sessionId": "0199a000-0000-7000-8000-00000000000a",
+      "sessionIdShort": "0199a000-0000-7000",
+      "startedAt": "2026-06-01T01:00:00.000Z",
+      "tokens": 18750000,
+      "estCostUSD": 41.625,
+      "durationHuman": "2h 30m",
+      "project": "proj",
+      "label": ""
+    },
+    {
+      "sessionId": "0199a0f7-11aa-7b02-8000-00000000000b",
+      "sessionIdShort": "0199a0f7-11aa-7b02",
+      "startedAt": "2026-10-08T20:00:00.000Z",
+      "tokens": 3100000,
+      "estCostUSD": 17.25,
+      "durationHuman": "12h 00m",
+      "project": "my-app",
+      "label": ""
+    }
+  ],
+  "byProject": [
+    {
+      "name": "proj",
+      "projectHash": "-home-u-proj",
+      "sessionCount": 4,
+      "tokens": 102250000,
+      "estCostUSD": 354.875,
+      "pctOfSpend": 91.1
+    },
+    {
+      "name": "my-app",
+      "projectHash": "-home-u-my-app",
+      "sessionCount": 1,
+      "tokens": 3100000,
+      "estCostUSD": 17.25,
+      "pctOfSpend": 4.4
+    },
+    {
+      "name": "sipcode",
+      "projectHash": "C--work-sipcode",
+      "sessionCount": 2,
+      "tokens": 3120503,
+      "estCostUSD": 17.25,
+      "pctOfSpend": 4.4
+    },
+    {
+      "name": "p",
+      "projectHash": "C--p",
+      "sessionCount": 1,
+      "tokens": 2200,
+      "estCostUSD": 0.006,
+      "pctOfSpend": 0
+    }
+  ],
+  "groupBy": "none",
+  "metaPricing": {
+    "asOf": "2026-10-09",
+    "ageDays": 0
+  },
+  "warnings": []
+}
+stderr: 20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+=== stats --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-stats/1",
+  "window": {
+    "sinceIso": "2026-03-01T00:00:00.000Z",
+    "untilIso": "2026-10-10T00:00:00.000Z",
+    "days": 223,
+    "raw": "all"
+  },
+  "agent": "claude-code",
+  "primaryModel": "claude-opus-4-8",
+  "sessionCount": 45,
+  "totals": {
+    "inputTokens": 164911,
+    "outputTokens": 634800,
+    "cacheReadTokens": 135177075,
+    "cacheCreationTokens": 13593600,
+    "totalTokens": 149570386,
+    "outputRatioPct": 0.4,
+    "estCostUSD": 225.5493
+  },
+  "savings": {
+    "duplicateReadsTokens": 0,
+    "idleContextTokens": 0,
+    "cacheCreationTokens": 13593600,
+    "duplicateReadsUSD": 0,
+    "idleContextUSD": 0,
+    "cacheCreationUSD": 25.488,
+    "totalRecoverableUSD": 25.488
+  },
+  "trendDaily": [
+    {
+      "date": "2026-03-01",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-02",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-03",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-06",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-03-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-11",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-12",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-13",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-16",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-03-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-21",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-22",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-23",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-03-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-26",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-03-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-03-31",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-01",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 5.8217
+    },
+    {
+      "date": "2026-04-02",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 5.8217
+    },
+    {
+      "date": "2026-04-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-05",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-04-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-10",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-11",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-12",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-15",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-04-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-20",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-21",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-22",
+      "tokens": 2517090,
+      "sessions": 1,
+      "estCostUSD": 3.5385
+    },
+    {
+      "date": "2026-04-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-25",
+      "tokens": 1910125,
+      "sessions": 1,
+      "estCostUSD": 3.1883
+    },
+    {
+      "date": "2026-04-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-04-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-10",
+      "tokens": 1824300,
+      "sessions": 1,
+      "estCostUSD": 14.9325
+    },
+    {
+      "date": "2026-05-11",
+      "tokens": 1824300,
+      "sessions": 1,
+      "estCostUSD": 14.9325
+    },
+    {
+      "date": "2026-05-12",
+      "tokens": 1824300,
+      "sessions": 1,
+      "estCostUSD": 14.9325
+    },
+    {
+      "date": "2026-05-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-20",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-21",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-22",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-23",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-24",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-25",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-26",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-27",
+      "tokens": 838642,
+      "sessions": 1,
+      "estCostUSD": 4.0242
+    },
+    {
+      "date": "2026-05-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-05-30",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 4.5664
+    },
+    {
+      "date": "2026-05-31",
+      "tokens": 5034180,
+      "sessions": 2,
+      "estCostUSD": 4.5664
+    },
+    {
+      "date": "2026-06-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-06-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-07-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-18",
+      "tokens": 30768720,
+      "sessions": 1,
+      "estCostUSD": 22.0317
+    },
+    {
+      "date": "2026-08-19",
+      "tokens": 30768720,
+      "sessions": 1,
+      "estCostUSD": 22.0317
+    },
+    {
+      "date": "2026-08-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-28",
+      "tokens": 1990000,
+      "sessions": 1,
+      "estCostUSD": 3.987
+    },
+    {
+      "date": "2026-08-29",
+      "tokens": 1990000,
+      "sessions": 1,
+      "estCostUSD": 3.987
+    },
+    {
+      "date": "2026-08-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-08-31",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-10",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-11",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-12",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-13",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-14",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-15",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-16",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-17",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-18",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-19",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-20",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-21",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-22",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-23",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-24",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-25",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-26",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-27",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-28",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-29",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-09-30",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-01",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-02",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-03",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-04",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-05",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-06",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-07",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-08",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    },
+    {
+      "date": "2026-10-09",
+      "tokens": 0,
+      "sessions": 0,
+      "estCostUSD": 0
+    }
+  ],
+  "topExpensive": [
+    {
+      "sessionId": "sess0045-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0045",
+      "startedAt": "2026-08-19T09:00:59.000Z",
+      "tokens": 30768720,
+      "estCostUSD": 22.0317,
+      "durationHuman": "3h 59m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0044-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0044",
+      "startedAt": "2026-08-18T09:00:59.000Z",
+      "tokens": 30768720,
+      "estCostUSD": 22.0317,
+      "durationHuman": "3h 59m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0023-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0023",
+      "startedAt": "2026-04-22T09:00:59.000Z",
+      "tokens": 2517090,
+      "estCostUSD": 3.5385,
+      "durationHuman": "1h 43m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0022-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0022",
+      "startedAt": "2026-04-21T09:00:59.000Z",
+      "tokens": 2517090,
+      "estCostUSD": 3.5385,
+      "durationHuman": "1h 43m",
+      "project": "demo",
+      "label": ""
+    },
+    {
+      "sessionId": "sess0021-0000-4000-8000-000000000000",
+      "sessionIdShort": "sess0021",
+      "startedAt": "2026-04-20T09:00:59.000Z",
+      "tokens": 2517090,
+      "estCostUSD": 3.5385,
+      "durationHuman": "1h 43m",
+      "project": "demo",
+      "label": ""
+    }
+  ],
+  "byProject": [
+    {
+      "name": "demo",
+      "projectHash": "C--demo",
+      "sessionCount": 45,
+      "tokens": 149570386,
+      "estCostUSD": 225.5493,
+      "pctOfSpend": 100
+    }
+  ],
+  "groupBy": "none",
+  "metaPricing": {
+    "asOf": "2026-10-08",
+    "ageDays": 1
+  },
+  "warnings": []
+}
+=== today
+exit 0
+── Claude Code ──
+sipcode today · today
+
+(no sessions today — baseline 30d still shown above headline)
+
+No sessions today yet. Your 30-day median is $0.00/day — go build something.
+
+── Codex ──
+sipcode today · today
+
+(no sessions today — baseline 30d still shown above headline)
+
+No sessions today yet. Your 30-day median is $17.25/day — go build something.
+Codex weekly limit: 62% used, resets Wed 08:30. At this pace you run out Sat ~16:00.
+
+=== today --agent codex
+exit 0
+sipcode today · today
+
+(no sessions today — baseline 30d still shown above headline)
+
+No sessions today yet. Your 30-day median is $17.25/day — go build something.
+Codex weekly limit: 62% used, resets Wed 08:30. At this pace you run out Sat ~16:00.
+=== today --agent claude-code
+exit 0
+sipcode today · today
+
+(no sessions today — baseline 30d still shown above headline)
+
+No sessions today yet. Your 30-day median is $0.00/day — go build something.
+=== today --json
+exit 0
+{
+  "schemaVersion": "sipcode-today/1",
+  "status": "no-sessions-today",
+  "today": null,
+  "baseline": {
+    "windowDays": 30,
+    "isPartial": false,
+    "medianSpendPerDayUSD": 0,
+    "medianTokensPerDay": 0,
+    "medianOutputRatioPct": 0
+  },
+  "comparison": null,
+  "headline": "No sessions today yet. Your 30-day median is $0.00/day — go build something."
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== today --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-today/1",
+  "status": "no-sessions-today",
+  "today": null,
+  "baseline": {
+    "windowDays": 30,
+    "isPartial": false,
+    "medianSpendPerDayUSD": 17.25,
+    "medianTokensPerDay": 3110251.5,
+    "medianOutputRatioPct": 3.0326797179956353
+  },
+  "comparison": null,
+  "headline": "No sessions today yet. Your 30-day median is $17.25/day — go build something."
+}
+=== today --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-today/1",
+  "status": "no-sessions-today",
+  "today": null,
+  "baseline": {
+    "windowDays": 30,
+    "isPartial": false,
+    "medianSpendPerDayUSD": 0,
+    "medianTokensPerDay": 0,
+    "medianOutputRatioPct": 0
+  },
+  "comparison": null,
+  "headline": "No sessions today yet. Your 30-day median is $0.00/day — go build something."
+}
+=== forecast
+exit 0
+── Claude Code ──
+sipcode forecast · projection to end of this month
+
+  No sessions in your last 14 days — can't forecast a trajectory.
+
+── Codex ──
+sipcode forecast · projection to end of October 2026 (22 days remaining)
+
+  current pace (last 14 days)
+    avg daily spend     $2.46  across 3 sessions
+    median daily spend  $0.00
+
+  projected month-end
+    spend               $88.71   (range: $71 – $106)
+    20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+    vs last month       61.4% less than previous month ($230.00)
+
+  At your current pace ($2.46/day across 14 days of recent sessions), you're on track to spend about $89 by month-end. 61.4% less than last month ($230.00). Confidence range: $71–$106.
+
+=== forecast --agent codex
+exit 0
+sipcode forecast · projection to end of October 2026 (22 days remaining)
+
+  current pace (last 14 days)
+    avg daily spend     $2.46  across 3 sessions
+    median daily spend  $0.00
+
+  projected month-end
+    spend               $88.71   (range: $71 – $106)
+    20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+    vs last month       61.4% less than previous month ($230.00)
+
+  At your current pace ($2.46/day across 14 days of recent sessions), you're on track to spend about $89 by month-end. 61.4% less than last month ($230.00). Confidence range: $71–$106.
+=== forecast --agent claude-code
+exit 0
+sipcode forecast · projection to end of this month
+
+  No sessions in your last 14 days — can't forecast a trajectory.
+=== forecast --json
+exit 0
+{
+  "schemaVersion": "sipcode-forecast/1",
+  "status": "no-recent-activity",
+  "trajectoryInput": null,
+  "monthEnd": null,
+  "comparison": null,
+  "headline": "No sessions in your last 14 days — can't forecast a trajectory."
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== forecast --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-forecast/1",
+  "status": "ok",
+  "trajectoryInput": {
+    "windowDays": 14,
+    "isPartial": false,
+    "sessionsSampled": 3,
+    "avgDailySpendUSD": 2.4642857142857144,
+    "medianDailySpendUSD": 0
+  },
+  "monthEnd": {
+    "monthLabel": "October 2026",
+    "daysRemaining": 22,
+    "projectedSpendUSD": 88.71428571428572,
+    "confidenceLowUSD": 70.97142857142858,
+    "confidenceHighUSD": 106.45714285714287,
+    "spendSoFarUSD": 34.5
+  },
+  "comparison": {
+    "lastMonthSpendUSD": 230,
+    "vsLastMonthPct": -61.42857142857142
+  },
+  "headline": "At your current pace ($2.46/day across 14 days of recent sessions), you're on track to spend about $89 by month-end. 61.4% less than last month ($230.00). Confidence range: $71–$106."
+}
+stderr: 20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+=== forecast --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-forecast/1",
+  "status": "no-recent-activity",
+  "trajectoryInput": null,
+  "monthEnd": null,
+  "comparison": null,
+  "headline": "No sessions in your last 14 days — can't forecast a trajectory."
+}
+=== trend
+exit 0
+── Claude Code ──
+sipcode trend · output ratio (output tokens / total tokens, higher = leaner context)
+
+  insufficient data — need at least 5 days with sessions to compute a trend.
+
+  2026-09-09 → 2026-10-09
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+  min 0.0% · median 0.0% · max 0.0%
+
+  total sessions across window: 0
+
+── Codex ──
+sipcode trend · output ratio (output tokens / total tokens, higher = leaner context)
+
+  insufficient data — need at least 5 days with sessions to compute a trend.
+
+  2026-09-09 → 2026-10-09
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁██▁
+  min 0.0% · median 0.0% · max 3.2%
+
+  total sessions across window: 3
+
+=== trend --agent codex
+exit 0
+sipcode trend · output ratio (output tokens / total tokens, higher = leaner context)
+
+  insufficient data — need at least 5 days with sessions to compute a trend.
+
+  2026-09-09 → 2026-10-09
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁██▁
+  min 0.0% · median 0.0% · max 3.2%
+
+  total sessions across window: 3
+=== trend --agent claude-code
+exit 0
+sipcode trend · output ratio (output tokens / total tokens, higher = leaner context)
+
+  insufficient data — need at least 5 days with sessions to compute a trend.
+
+  2026-09-09 → 2026-10-09
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+  min 0.0% · median 0.0% · max 0.0%
+
+  total sessions across window: 0
+=== trend --json
+exit 0
+{
+  "schemaVersion": "sipcode-trend/1",
+  "metric": "output-ratio",
+  "window": {
+    "since": "2026-09-09",
+    "until": "2026-10-09"
+  },
+  "verdict": "insufficient-data",
+  "median": 0,
+  "slopePerDay": 0,
+  "days": [
+    {
+      "date": "2026-09-09",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-10",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-11",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-12",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-13",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-14",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-15",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-16",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-17",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-18",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-19",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-20",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-21",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-22",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-23",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-24",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-25",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-26",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-27",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-28",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-29",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-30",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-01",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-02",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-03",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-04",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-05",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-06",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-07",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-08",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-09",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    }
+  ]
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== trend --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-trend/1",
+  "metric": "output-ratio",
+  "window": {
+    "since": "2026-09-09",
+    "until": "2026-10-09"
+  },
+  "verdict": "insufficient-data",
+  "median": 0.0322326860600317,
+  "slopePerDay": 0,
+  "days": [
+    {
+      "date": "2026-09-09",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-10",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-11",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-12",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-13",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-14",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-15",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-16",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-17",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-18",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-19",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-20",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-21",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-22",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-23",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-24",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-25",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-26",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-27",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-28",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-29",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-30",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-01",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-02",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-03",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-04",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-05",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-06",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-07",
+      "sessions": 1,
+      "value": 0.03225806451612903,
+      "numerator": 100000,
+      "denominator": 3100000
+    },
+    {
+      "date": "2026-10-08",
+      "sessions": 2,
+      "value": 0.032207307603934365,
+      "numerator": 100503,
+      "denominator": 3120503
+    },
+    {
+      "date": "2026-10-09",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    }
+  ]
+}
+stderr: 20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+=== trend --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-trend/1",
+  "metric": "output-ratio",
+  "window": {
+    "since": "2026-09-09",
+    "until": "2026-10-09"
+  },
+  "verdict": "insufficient-data",
+  "median": 0,
+  "slopePerDay": 0,
+  "days": [
+    {
+      "date": "2026-09-09",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-10",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-11",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-12",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-13",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-14",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-15",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-16",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-17",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-18",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-19",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-20",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-21",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-22",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-23",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-24",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-25",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-26",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-27",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-28",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-29",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-09-30",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-01",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-02",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-03",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-04",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-05",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-06",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-07",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-08",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    },
+    {
+      "date": "2026-10-09",
+      "sessions": 0,
+      "value": 0,
+      "numerator": 0,
+      "denominator": 0
+    }
+  ]
+}
+=== impact
+exit 0
+── Claude Code ──
+sipcode impact · before vs after the optimizer kicked in
+──────────────────────────────────────────────────────────────────────────
+all-time totals (across every Claude Code session on disk):
+──────────────────────────────────────────────────────────────────────────
+  sessions:       45
+  total tokens:   149.57M
+  total spend:    $225.55
+  output ratio:   0.4%
+──────────────────────────────────────────────────────────────────────────
+(no install marker = no before/after split possible)
+
+found 45 sessions across all time (149.57M tokens, $225.55 total) — but no install marker, so no before/after split is possible. Run `sipcode rules --install` in your project, or pass since=YYYY-MM-DD, to enable a real comparison.
+
+
+  • If you've been using Sipcode without `rules --install`, pass --since YYYY-MM-DD to set the pivot manually.
+  • Or run `sipcode rules --install` to start measuring the impact going forward.
+
+
+── Codex ──
+sipcode impact · before vs after the optimizer kicked in
+──────────────────────────────────────────────────────────────────────────
+all-time totals (across every Codex session on disk):
+──────────────────────────────────────────────────────────────────────────
+  sessions:       8
+  total tokens:   108.47M
+  total spend:    $389.38
+  20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+  output ratio:   2.3%
+──────────────────────────────────────────────────────────────────────────
+(no install marker = no before/after split possible)
+
+found 8 sessions across all time (108.47M tokens, $389.38 total), but no install marker, so no before/after split is possible. Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet; pass --since YYYY-MM-DD to compare before and after a date.
+
+
+  • Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet, so there is no install date to compare from.
+  • Pass --since YYYY-MM-DD to compare before and after a date of your choice.
+
+
+=== impact --agent codex
+exit 0
+sipcode impact · before vs after the optimizer kicked in
+──────────────────────────────────────────────────────────────────────────
+all-time totals (across every Codex session on disk):
+──────────────────────────────────────────────────────────────────────────
+  sessions:       8
+  total tokens:   108.47M
+  total spend:    $389.38
+  20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+  output ratio:   2.3%
+──────────────────────────────────────────────────────────────────────────
+(no install marker = no before/after split possible)
+
+found 8 sessions across all time (108.47M tokens, $389.38 total), but no install marker, so no before/after split is possible. Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet; pass --since YYYY-MM-DD to compare before and after a date.
+
+
+  • Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet, so there is no install date to compare from.
+  • Pass --since YYYY-MM-DD to compare before and after a date of your choice.
+
+=== impact --agent claude-code
+exit 0
+sipcode impact · before vs after the optimizer kicked in
+──────────────────────────────────────────────────────────────────────────
+all-time totals (across every Claude Code session on disk):
+──────────────────────────────────────────────────────────────────────────
+  sessions:       45
+  total tokens:   149.57M
+  total spend:    $225.55
+  output ratio:   0.4%
+──────────────────────────────────────────────────────────────────────────
+(no install marker = no before/after split possible)
+
+found 45 sessions across all time (149.57M tokens, $225.55 total) — but no install marker, so no before/after split is possible. Run `sipcode rules --install` in your project, or pass since=YYYY-MM-DD, to enable a real comparison.
+
+
+  • If you've been using Sipcode without `rules --install`, pass --since YYYY-MM-DD to set the pivot manually.
+  • Or run `sipcode rules --install` to start measuring the impact going forward.
+
+=== impact --json
+exit 0
+{
+  "schemaVersion": "sipcode-impact/1",
+  "status": "no-install-marker",
+  "installedAtIso": null,
+  "markerSource": "none",
+  "before": {
+    "sinceIso": "2026-03-01T09:00:59.000Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 222,
+    "sessionCount": 0,
+    "totalTokens": 0,
+    "estCostUSD": 0,
+    "avgCostPerSessionUSD": 0,
+    "avgTokensPerSession": 0,
+    "outputRatioPct": 0,
+    "recoverableTokens": 0
+  },
+  "after": {
+    "sinceIso": "2026-03-01T09:00:59.000Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 222,
+    "sessionCount": 0,
+    "totalTokens": 0,
+    "estCostUSD": 0,
+    "avgCostPerSessionUSD": 0,
+    "avgTokensPerSession": 0,
+    "outputRatioPct": 0,
+    "recoverableTokens": 0
+  },
+  "delta": null,
+  "warningReason": "no-install-marker",
+  "allTime": {
+    "sinceIso": "2026-03-01T09:00:59.000Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 222,
+    "sessionCount": 45,
+    "totalTokens": 149570386,
+    "estCostUSD": 225.55,
+    "avgCostPerSessionUSD": 5.01,
+    "avgTokensPerSession": 3323786,
+    "outputRatioPct": 0.4,
+    "recoverableTokens": 13593600
+  },
+  "headline": "found 45 sessions across all time (149.57M tokens, $225.55 total) — but no install marker, so no before/after split is possible. Run `sipcode rules --install` in your project, or pass since=YYYY-MM-DD, to enable a real comparison.",
+  "notes": [
+    "If you've been using Sipcode without `rules --install`, pass --since YYYY-MM-DD to set the pivot manually.",
+    "Or run `sipcode rules --install` to start measuring the impact going forward."
+  ]
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== impact --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-impact/1",
+  "status": "no-install-marker",
+  "installedAtIso": null,
+  "markerSource": "none",
+  "before": {
+    "sinceIso": "2026-05-19T10:00:00Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 143,
+    "sessionCount": 0,
+    "totalTokens": 0,
+    "estCostUSD": 0,
+    "avgCostPerSessionUSD": 0,
+    "avgTokensPerSession": 0,
+    "outputRatioPct": 0,
+    "recoverableTokens": 0
+  },
+  "after": {
+    "sinceIso": "2026-05-19T10:00:00Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 143,
+    "sessionCount": 0,
+    "totalTokens": 0,
+    "estCostUSD": 0,
+    "avgCostPerSessionUSD": 0,
+    "avgTokensPerSession": 0,
+    "outputRatioPct": 0,
+    "recoverableTokens": 0
+  },
+  "delta": null,
+  "warningReason": "no-install-marker",
+  "allTime": {
+    "sinceIso": "2026-05-19T10:00:00Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 143,
+    "sessionCount": 8,
+    "totalTokens": 108472703,
+    "estCostUSD": 389.38,
+    "avgCostPerSessionUSD": 48.67,
+    "avgTokensPerSession": 13559088,
+    "outputRatioPct": 2.3,
+    "recoverableTokens": 0
+  },
+  "headline": "found 8 sessions across all time (108.47M tokens, $389.38 total), but no install marker, so no before/after split is possible. Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet; pass --since YYYY-MM-DD to compare before and after a date.",
+  "notes": [
+    "Setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet, so there is no install date to compare from.",
+    "Pass --since YYYY-MM-DD to compare before and after a date of your choice."
+  ]
+}
+stderr: 20,503 tokens on models without a known price (codex-auto-review): not included in the cost above.
+=== impact --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-impact/1",
+  "status": "no-install-marker",
+  "installedAtIso": null,
+  "markerSource": "none",
+  "before": {
+    "sinceIso": "2026-03-01T09:00:59.000Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 222,
+    "sessionCount": 0,
+    "totalTokens": 0,
+    "estCostUSD": 0,
+    "avgCostPerSessionUSD": 0,
+    "avgTokensPerSession": 0,
+    "outputRatioPct": 0,
+    "recoverableTokens": 0
+  },
+  "after": {
+    "sinceIso": "2026-03-01T09:00:59.000Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 222,
+    "sessionCount": 0,
+    "totalTokens": 0,
+    "estCostUSD": 0,
+    "avgCostPerSessionUSD": 0,
+    "avgTokensPerSession": 0,
+    "outputRatioPct": 0,
+    "recoverableTokens": 0
+  },
+  "delta": null,
+  "warningReason": "no-install-marker",
+  "allTime": {
+    "sinceIso": "2026-03-01T09:00:59.000Z",
+    "untilIso": "2026-10-09T10:00:00.000Z",
+    "days": 222,
+    "sessionCount": 45,
+    "totalTokens": 149570386,
+    "estCostUSD": 225.55,
+    "avgCostPerSessionUSD": 5.01,
+    "avgTokensPerSession": 3323786,
+    "outputRatioPct": 0.4,
+    "recoverableTokens": 13593600
+  },
+  "headline": "found 45 sessions across all time (149.57M tokens, $225.55 total) — but no install marker, so no before/after split is possible. Run `sipcode rules --install` in your project, or pass since=YYYY-MM-DD, to enable a real comparison.",
+  "notes": [
+    "If you've been using Sipcode without `rules --install`, pass --since YYYY-MM-DD to set the pivot manually.",
+    "Or run `sipcode rules --install` to start measuring the impact going forward."
+  ]
+}
+=== why
+exit 0
+── Codex ──
+(showing latest session 0199a0f7-11aa-7b02 from -home-u-my-app; pass --here to scope to this directory)
+
+sipcode why · session 0199a0f7-11aa-7b02 · 12h 0m · gpt-5.4
+project: -home-u-my-app
+
+you used 3,100,000 tokens. 100,000 were output (text, code and reasoning). the other 3,000,000 were context sent with each request.
+output ratio: 3.2% of the tokens not read from cache
+
+sipcode estimates ~0 tokens were RECOVERABLE this session (potential, not yet realized). (Sipcode cannot capture this: setup is not supported for Codex yet.)
+  · smart manifest (S001): 0 tokens
+  · read-once cache (S030): 0 tokens
+  · diff-output (S021):     0 tokens
+
+top leaks (this session):
+  1. input tokens (system + prompts) — 3,000,000 tokens (rehydrated each turn)
+
+est. cost: $17.2500 · 0 tool calls · 0 distinct files read
+(pass --verbose for the full breakdown)
+
+prices from 2026-10-09 (0 days old)
+
+run `npx sipcode stats --agent codex` to track your Codex spend; setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet.
+
+Claude Code also has a recent session (sess0043): run with --agent claude-code.
+=== why --agent codex
+exit 0
+(showing latest session 0199a0f7-11aa-7b02 from -home-u-my-app; pass --here to scope to this directory)
+
+sipcode why · session 0199a0f7-11aa-7b02 · 12h 0m · gpt-5.4
+project: -home-u-my-app
+
+you used 3,100,000 tokens. 100,000 were output (text, code and reasoning). the other 3,000,000 were context sent with each request.
+output ratio: 3.2% of the tokens not read from cache
+
+sipcode estimates ~0 tokens were RECOVERABLE this session (potential, not yet realized). (Sipcode cannot capture this: setup is not supported for Codex yet.)
+  · smart manifest (S001): 0 tokens
+  · read-once cache (S030): 0 tokens
+  · diff-output (S021):     0 tokens
+
+top leaks (this session):
+  1. input tokens (system + prompts) — 3,000,000 tokens (rehydrated each turn)
+
+est. cost: $17.2500 · 0 tool calls · 0 distinct files read
+(pass --verbose for the full breakdown)
+
+prices from 2026-10-09 (0 days old)
+
+run `npx sipcode stats --agent codex` to track your Codex spend; setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet.
+=== why --agent claude-code
+exit 0
+(showing latest session sess0043 from C--demo; pass --here to scope to this directory)
+
+sipcode why · session sess0043 · 24m 1s · claude-fable-5-1
+project: C--demo
+
+you used 1,990,000 tokens. 10,000 were output (text, code and reasoning). the other 1,980,000 were context sent with each request, 90% of it read from cache.
+output ratio: 5% of the tokens not read from cache
+
+sipcode estimates ~24,640 tokens were RECOVERABLE this session (potential, not yet realized). (Run `sipcode rules --install` to start capturing this for real, then `sipcode impact` to measure.)
+  · smart manifest (S001): 24,640 tokens
+  · read-once cache (S030): 0 tokens
+  · diff-output (S021):     0 tokens
+
+top leaks (this session):
+  1. cache-creation overhead — 112,000 tokens (context written into cache)
+  2. input tokens (system + prompts) — 80,000 tokens (rehydrated each turn)
+
+est. cost: $3.9870 · 0 tool calls · 0 distinct files read
+(pass --verbose for the full breakdown)
+
+prices from 2026-06-11 (120 days old)
+
+run `npx sipcode init` to start saving on your next session.
+=== why --json
+exit 0
+{
+  "schemaVersion": "sipcode-why/1",
+  "header": {
+    "sessionIdShort": "sess0043",
+    "model": "claude-fable-5-1",
+    "durationHuman": "24m 1s",
+    "projectHash": "C--demo"
+  },
+  "punchline": {
+    "totalTokens": 1990000,
+    "outputTokens": 10000,
+    "nonOutputTokens": 1980000,
+    "outputRatioPct": 5,
+    "oneLiner": "you used 1,990,000 tokens. 10,000 were output (text, code and reasoning). the other 1,980,000 were context sent with each request, 90% of it read from cache."
+  },
+  "estimatedSavings": {
+    "totalTokens": 24640,
+    "totalUSD": 0.04936667336683417,
+    "breakdown": {
+      "s001_manifest": 24640,
+      "s030_readOnce": 0,
+      "s021_diffOutput": 0
+    }
+  },
+  "topLeaks": [
+    {
+      "rank": 1,
+      "title": "cache-creation overhead",
+      "tokens": 112000,
+      "detail": "context written into cache"
+    },
+    {
+      "rank": 2,
+      "title": "input tokens (system + prompts)",
+      "tokens": 80000,
+      "detail": "rehydrated each turn"
+    }
+  ],
+  "totals": {
+    "inputTokens": 80000,
+    "outputTokens": 10000,
+    "cacheReadTokens": 1788000,
+    "cacheCreationTokens": 112000,
+    "estCostUSD": 3.9869999999999997,
+    "toolCallCount": 0,
+    "distinctFilesRead": 0
+  },
+  "topExpensive": [],
+  "duplicates": [],
+  "idle": [],
+  "warnings": [],
+  "metaPricing": {
+    "asOf": "2026-06-11",
+    "ageDays": 120
+  },
+  "nextStep": "run `npx sipcode init` to start saving on your next session."
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== why --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-why/1",
+  "header": {
+    "sessionIdShort": "0199a0f7-11aa-7b02",
+    "model": "gpt-5.4",
+    "durationHuman": "12h 0m",
+    "projectHash": "-home-u-my-app"
+  },
+  "punchline": {
+    "totalTokens": 3100000,
+    "outputTokens": 100000,
+    "nonOutputTokens": 3000000,
+    "outputRatioPct": 3.2,
+    "oneLiner": "you used 3,100,000 tokens. 100,000 were output (text, code and reasoning). the other 3,000,000 were context sent with each request."
+  },
+  "estimatedSavings": {
+    "totalTokens": 0,
+    "totalUSD": 0,
+    "breakdown": {
+      "s001_manifest": 0,
+      "s030_readOnce": 0,
+      "s021_diffOutput": 0
+    }
+  },
+  "topLeaks": [
+    {
+      "rank": 1,
+      "title": "input tokens (system + prompts)",
+      "tokens": 3000000,
+      "detail": "rehydrated each turn"
+    }
+  ],
+  "totals": {
+    "inputTokens": 3000000,
+    "outputTokens": 100000,
+    "cacheReadTokens": 0,
+    "cacheCreationTokens": 0,
+    "estCostUSD": 17.25,
+    "toolCallCount": 0,
+    "distinctFilesRead": 0
+  },
+  "topExpensive": [],
+  "duplicates": [],
+  "idle": [],
+  "warnings": [],
+  "metaPricing": {
+    "asOf": "2026-10-09",
+    "ageDays": 0
+  },
+  "nextStep": "run `npx sipcode stats --agent codex` to track your Codex spend; setting Sipcode up (rules, MCP, proxy) is not supported for Codex yet."
+}
+=== why --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-why/1",
+  "header": {
+    "sessionIdShort": "sess0043",
+    "model": "claude-fable-5-1",
+    "durationHuman": "24m 1s",
+    "projectHash": "C--demo"
+  },
+  "punchline": {
+    "totalTokens": 1990000,
+    "outputTokens": 10000,
+    "nonOutputTokens": 1980000,
+    "outputRatioPct": 5,
+    "oneLiner": "you used 1,990,000 tokens. 10,000 were output (text, code and reasoning). the other 1,980,000 were context sent with each request, 90% of it read from cache."
+  },
+  "estimatedSavings": {
+    "totalTokens": 24640,
+    "totalUSD": 0.04936667336683417,
+    "breakdown": {
+      "s001_manifest": 24640,
+      "s030_readOnce": 0,
+      "s021_diffOutput": 0
+    }
+  },
+  "topLeaks": [
+    {
+      "rank": 1,
+      "title": "cache-creation overhead",
+      "tokens": 112000,
+      "detail": "context written into cache"
+    },
+    {
+      "rank": 2,
+      "title": "input tokens (system + prompts)",
+      "tokens": 80000,
+      "detail": "rehydrated each turn"
+    }
+  ],
+  "totals": {
+    "inputTokens": 80000,
+    "outputTokens": 10000,
+    "cacheReadTokens": 1788000,
+    "cacheCreationTokens": 112000,
+    "estCostUSD": 3.9869999999999997,
+    "toolCallCount": 0,
+    "distinctFilesRead": 0
+  },
+  "topExpensive": [],
+  "duplicates": [],
+  "idle": [],
+  "warnings": [],
+  "metaPricing": {
+    "asOf": "2026-06-11",
+    "ageDays": 120
+  },
+  "nextStep": "run `npx sipcode init` to start saving on your next session."
+}
+=== receipt
+exit 0
+── Codex ──
+sipcode · session 0199a0f7-11aa-7b02 · 12h 0m · Oct 08, 2026
+
+  3,100,000 tokens wasted  ($17.2500)
+
+  what we caught
+    1. input tokens (system + prompts)     3,000,000
+
+  prices as of 2026-10-09
+
+wrote <cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+→ file://<cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+
+Claude Code also has a recent session (sess0043): run with --agent claude-code.
+=== receipt --agent codex
+exit 0
+sipcode · session 0199a0f7-11aa-7b02 · 12h 0m · Oct 08, 2026
+
+  3,100,000 tokens wasted  ($17.2500)
+
+  what we caught
+    1. input tokens (system + prompts)     3,000,000
+
+  prices as of 2026-10-09
+
+wrote <cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+→ file://<cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html
+=== receipt --agent claude-code
+exit 0
+sipcode · session sess · 24m 1s · Aug 29, 2026
+
+  24,640 tokens sipped  ($0.0494)
+
+  what we caught
+    1. cache-creation overhead               112,000
+    2. input tokens (system + prompts)        80,000
+
+  prices as of 2026-06-11
+
+wrote <cwd>/.sipcode/receipts/sess/receipt.html
+→ file://<cwd>/.sipcode/receipts/sess/receipt.html
+=== receipt --json
+exit 0
+{
+  "schemaVersion": "sipcode-receipt/1",
+  "variant": "post-install",
+  "htmlPath": "<cwd>/.sipcode/receipts/sess/receipt.html",
+  "pngPath": null,
+  "hero": {
+    "tokens": 24640,
+    "tokensDisplay": "24,640",
+    "sublabel": "sipped",
+    "dollarDisplay": "$0.0494",
+    "pricingAsOf": "2026-06-11"
+  },
+  "leaks": [
+    {
+      "rank": 1,
+      "title": "cache-creation overhead",
+      "tokensDisplay": "112,000"
+    },
+    {
+      "rank": 2,
+      "title": "input tokens (system + prompts)",
+      "tokensDisplay": "80,000"
+    }
+  ],
+  "sessionIdShort": "sess",
+  "durationDisplay": "24m 1s",
+  "dateDisplay": "Aug 29, 2026"
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== receipt --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-receipt/1",
+  "variant": "pre-install",
+  "htmlPath": "<cwd>/.sipcode/receipts/0199a0f7-11aa-7b02/receipt.html",
+  "pngPath": null,
+  "hero": {
+    "tokens": 3100000,
+    "tokensDisplay": "3,100,000",
+    "sublabel": "wasted",
+    "dollarDisplay": "$17.2500",
+    "pricingAsOf": "2026-10-09"
+  },
+  "leaks": [
+    {
+      "rank": 1,
+      "title": "input tokens (system + prompts)",
+      "tokensDisplay": "3,000,000"
+    }
+  ],
+  "sessionIdShort": "0199a0f7-11aa-7b02",
+  "durationDisplay": "12h 0m",
+  "dateDisplay": "Oct 08, 2026"
+}
+=== receipt --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-receipt/1",
+  "variant": "post-install",
+  "htmlPath": "<cwd>/.sipcode/receipts/sess/receipt.html",
+  "pngPath": null,
+  "hero": {
+    "tokens": 24640,
+    "tokensDisplay": "24,640",
+    "sublabel": "sipped",
+    "dollarDisplay": "$0.0494",
+    "pricingAsOf": "2026-06-11"
+  },
+  "leaks": [
+    {
+      "rank": 1,
+      "title": "cache-creation overhead",
+      "tokensDisplay": "112,000"
+    },
+    {
+      "rank": 2,
+      "title": "input tokens (system + prompts)",
+      "tokensDisplay": "80,000"
+    }
+  ],
+  "sessionIdShort": "sess",
+  "durationDisplay": "24m 1s",
+  "dateDisplay": "Aug 29, 2026"
+}
+=== drift
+exit 0
+── Codex ──
+⚠  Context drift detected in your latest Codex session
+
+What this means: your newest session is behaving differently from your
+recent norm, in ways that waste tokens and can make Codex less reliable.
+(This is "context rot": answer quality drops as context gets bloated or stale.)
+
+Signals that regressed (2):
+
+  ▲ Tokens per turn — up 1140%
+      your norm: 125,000   →   this session: 1,550,000
+      Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail Codex needs, which is the heart of context rot.
+      → Fix: Start a fresh chat for your next task to reset the context, and run `sipcode why` to see which turns and files are heaviest.
+
+  ▼ Cache reuse — down 44 points
+      your norm: 44%   →   this session: 0%
+      Much less of your context is being reused from cache (cached tokens cost far less). Usually from settings/MCP servers changing mid-session, or idle gaps long enough for the cache to expire.
+      → Fix: Avoid changing MCP servers or config mid-task, and work in steady bursts so the cache stays warm.
+
+How this was measured: your latest session vs the median of your last 6 sessions.
+Conservative by design — it stays silent unless something really moved.
+Run `sipcode why` for a per-session forensic breakdown.
+
+Claude Code also has a recent session (sess0043): run with --agent claude-code.
+=== drift --agent codex
+exit 0
+⚠  Context drift detected in your latest Codex session
+
+What this means: your newest session is behaving differently from your
+recent norm, in ways that waste tokens and can make Codex less reliable.
+(This is "context rot": answer quality drops as context gets bloated or stale.)
+
+Signals that regressed (2):
+
+  ▲ Tokens per turn — up 1140%
+      your norm: 125,000   →   this session: 1,550,000
+      Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail Codex needs, which is the heart of context rot.
+      → Fix: Start a fresh chat for your next task to reset the context, and run `sipcode why` to see which turns and files are heaviest.
+
+  ▼ Cache reuse — down 44 points
+      your norm: 44%   →   this session: 0%
+      Much less of your context is being reused from cache (cached tokens cost far less). Usually from settings/MCP servers changing mid-session, or idle gaps long enough for the cache to expire.
+      → Fix: Avoid changing MCP servers or config mid-task, and work in steady bursts so the cache stays warm.
+
+How this was measured: your latest session vs the median of your last 6 sessions.
+Conservative by design — it stays silent unless something really moved.
+Run `sipcode why` for a per-session forensic breakdown.
+=== drift --agent claude-code
+exit 0
+✓ Sipcode drift: no drift — context health stable vs your recent baseline.
+=== drift --json
+exit 0
+{
+  "schemaVersion": "sipcode-drift/2",
+  "hasRegression": false,
+  "summary": "no drift — context health stable vs your recent baseline.",
+  "causes": [],
+  "latest": {
+    "sessionId": "sess0043-0000-4000-8000-000000000000",
+    "endedAtMs": 1787995500000,
+    "totalTokens": 1990000,
+    "assistantTurns": 25,
+    "tokensPerTurn": 79600,
+    "cacheHitRate": 0.9030303030303031,
+    "duplicateReadTokens": 0,
+    "outputRatio": 0.04950495049504951,
+    "projectHash": "C--demo"
+  },
+  "baseline": {
+    "count": 6,
+    "medianTokensPerTurn": 83903,
+    "medianCacheHitRate": 0.9492672917939076,
+    "medianDuplicateReadTokens": 0
+  },
+  "note": "Drift compares your latest session against the median of recent ones. Conservative by design — it stays silent unless something really moved. Run `sipcode why` for a per-session forensic breakdown.",
+  "projectHash": "C--demo",
+  "baselineScope": "project"
+}
+stderr: note: Codex logs found too. JSON covers Claude Code; run with --agent codex for Codex.
+=== drift --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-drift/2",
+  "hasRegression": true,
+  "summary": "drift detected — 2 signals regressed vs your baseline (using your global baseline; not enough per-project history yet). These cost tokens and degrade answer quality (context rot).",
+  "causes": [
+    {
+      "metric": "Tokens per turn",
+      "direction": "up",
+      "changeDisplay": "up 1140%",
+      "baselineDisplay": "125,000",
+      "latestDisplay": "1,550,000",
+      "meaning": "Each step is sending far more context than your norm. Bloated context costs more tokens and can bury the detail Codex needs, which is the heart of context rot.",
+      "fix": "Start a fresh chat for your next task to reset the context, and run `sipcode why` to see which turns and files are heaviest."
+    },
+    {
+      "metric": "Cache reuse",
+      "direction": "down",
+      "changeDisplay": "down 44 points",
+      "baselineDisplay": "44%",
+      "latestDisplay": "0%",
+      "meaning": "Much less of your context is being reused from cache (cached tokens cost far less). Usually from settings/MCP servers changing mid-session, or idle gaps long enough for the cache to expire.",
+      "fix": "Avoid changing MCP servers or config mid-task, and work in steady bursts so the cache stays warm."
+    }
+  ],
+  "latest": {
+    "sessionId": "0199a0f7-11aa-7b02-8000-00000000000b",
+    "endedAtMs": 1791489660000,
+    "totalTokens": 3100000,
+    "assistantTurns": 2,
+    "tokensPerTurn": 1550000,
+    "cacheHitRate": 0,
+    "duplicateReadTokens": 0,
+    "outputRatio": 0.03225806451612903,
+    "projectHash": "-home-u-my-app"
+  },
+  "baseline": {
+    "count": 6,
+    "medianTokensPerTurn": 125000,
+    "medianCacheHitRate": 0.4375,
+    "medianDuplicateReadTokens": 0
+  },
+  "note": "Drift compares your latest session against the median of recent ones. Conservative by design — it stays silent unless something really moved. Run `sipcode why` for a per-session forensic breakdown.",
+  "projectHash": "-home-u-my-app",
+  "baselineScope": "global"
+}
+=== drift --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-drift/2",
+  "hasRegression": false,
+  "summary": "no drift — context health stable vs your recent baseline.",
+  "causes": [],
+  "latest": {
+    "sessionId": "sess0043-0000-4000-8000-000000000000",
+    "endedAtMs": 1787995500000,
+    "totalTokens": 1990000,
+    "assistantTurns": 25,
+    "tokensPerTurn": 79600,
+    "cacheHitRate": 0.9030303030303031,
+    "duplicateReadTokens": 0,
+    "outputRatio": 0.04950495049504951,
+    "projectHash": "C--demo"
+  },
+  "baseline": {
+    "count": 6,
+    "medianTokensPerTurn": 83903,
+    "medianCacheHitRate": 0.9492672917939076,
+    "medianDuplicateReadTokens": 0
+  },
+  "note": "Drift compares your latest session against the median of recent ones. Conservative by design — it stays silent unless something really moved. Run `sipcode why` for a per-session forensic breakdown.",
+  "projectHash": "C--demo",
+  "baselineScope": "project"
+}
+=== limits
+exit 0
+sipcode limits · Codex · plan: plus · as of 2h ago (your last Codex request)
+
+Weekly limit    62% used   resets Wed 14 Oct 08:30   at this pace: runs out Sat 10 Oct ~16:00
+
+What used your weekly limit (since Wed 7 Oct)
+  0199a0f7-11aa-7b02   my-app        27%   3.1M tokens
+  0199a1b2-c3d4-7a11   sipcode       22%   3.1M tokens
+  0199a000-0000-7000   proj           8%   1.0M tokens
+  codex-auto-review (1 request)       5%
+
+Tokens per 1% of your weekly limit (gpt-5.4)
+  Sep 1: 400K   Sep 8: 400K   Sep 15: 100K
+  Possible limit cut around Sep 15: 4.0x fewer tokens per 1%.
+  Limits cover your whole account. Codex use on other devices or in the cloud
+  is not in these logs and can look like a cut.
+=== limits --agent codex
+exit 0
+sipcode limits · Codex · plan: plus · as of 2h ago (your last Codex request)
+
+Weekly limit    62% used   resets Wed 14 Oct 08:30   at this pace: runs out Sat 10 Oct ~16:00
+
+What used your weekly limit (since Wed 7 Oct)
+  0199a0f7-11aa-7b02   my-app        27%   3.1M tokens
+  0199a1b2-c3d4-7a11   sipcode       22%   3.1M tokens
+  0199a000-0000-7000   proj           8%   1.0M tokens
+  codex-auto-review (1 request)       5%
+
+Tokens per 1% of your weekly limit (gpt-5.4)
+  Sep 1: 400K   Sep 8: 400K   Sep 15: 100K
+  Possible limit cut around Sep 15: 4.0x fewer tokens per 1%.
+  Limits cover your whole account. Codex use on other devices or in the cloud
+  is not in these logs and can look like a cut.
+=== limits --json
+exit 0
+{
+  "agent": "codex",
+  "planType": "plus",
+  "asOf": "2026-10-09T08:00:00.000Z",
+  "windows": [
+    {
+      "limitId": "codex",
+      "windowMinutes": 10080,
+      "label": "Weekly",
+      "usedPercent": 62,
+      "resetsAt": "2026-10-14T08:30:00.000Z",
+      "projection": {
+        "kind": "runs-out",
+        "at": "2026-10-10T16:20:19.354Z"
+      },
+      "usedBy": [
+        {
+          "sessionId": "0199a0f7-11aa-7b02-8000-00000000000b",
+          "project": "my-app",
+          "percent": 27,
+          "tokens": 3100000
+        },
+        {
+          "sessionId": "0199a1b2-c3d4-7a11-8000-00000000000a",
+          "project": "sipcode",
+          "percent": 22.15686274509804,
+          "tokens": 3100000
+        },
+        {
+          "sessionId": "0199a000-0000-7000-8000-000000000001",
+          "project": "proj",
+          "percent": 7.8431372549019605,
+          "tokens": 1000000
+        },
+        {
+          "sessionId": "codex-auto-review",
+          "project": null,
+          "percent": 5,
+          "tokens": 20503
+        }
+      ],
+      "unattributedPercent": 0,
+      "tokensPerPercent": [
+        {
+          "model": "gpt-5.5",
+          "periodStart": "2026-06-15T00:00:00.000Z",
+          "tokensPerPercent": 250000
+        },
+        {
+          "model": "gpt-5.4",
+          "periodStart": "2026-09-01T00:00:00.000Z",
+          "tokensPerPercent": 400000
+        },
+        {
+          "model": "gpt-5.4",
+          "periodStart": "2026-09-08T00:00:00.000Z",
+          "tokensPerPercent": 400000
+        },
+        {
+          "model": "gpt-5.4",
+          "periodStart": "2026-09-15T00:00:00.000Z",
+          "tokensPerPercent": 100000
+        }
+      ],
+      "possibleCut": {
+        "at": "2026-09-15",
+        "factor": 4
+      },
+      "periodCount": 7
+    }
+  ]
+}
+=== limits --agent codex --json
+exit 0
+{
+  "agent": "codex",
+  "planType": "plus",
+  "asOf": "2026-10-09T08:00:00.000Z",
+  "windows": [
+    {
+      "limitId": "codex",
+      "windowMinutes": 10080,
+      "label": "Weekly",
+      "usedPercent": 62,
+      "resetsAt": "2026-10-14T08:30:00.000Z",
+      "projection": {
+        "kind": "runs-out",
+        "at": "2026-10-10T16:20:19.354Z"
+      },
+      "usedBy": [
+        {
+          "sessionId": "0199a0f7-11aa-7b02-8000-00000000000b",
+          "project": "my-app",
+          "percent": 27,
+          "tokens": 3100000
+        },
+        {
+          "sessionId": "0199a1b2-c3d4-7a11-8000-00000000000a",
+          "project": "sipcode",
+          "percent": 22.15686274509804,
+          "tokens": 3100000
+        },
+        {
+          "sessionId": "0199a000-0000-7000-8000-000000000001",
+          "project": "proj",
+          "percent": 7.8431372549019605,
+          "tokens": 1000000
+        },
+        {
+          "sessionId": "codex-auto-review",
+          "project": null,
+          "percent": 5,
+          "tokens": 20503
+        }
+      ],
+      "unattributedPercent": 0,
+      "tokensPerPercent": [
+        {
+          "model": "gpt-5.5",
+          "periodStart": "2026-06-15T00:00:00.000Z",
+          "tokensPerPercent": 250000
+        },
+        {
+          "model": "gpt-5.4",
+          "periodStart": "2026-09-01T00:00:00.000Z",
+          "tokensPerPercent": 400000
+        },
+        {
+          "model": "gpt-5.4",
+          "periodStart": "2026-09-08T00:00:00.000Z",
+          "tokensPerPercent": 400000
+        },
+        {
+          "model": "gpt-5.4",
+          "periodStart": "2026-09-15T00:00:00.000Z",
+          "tokensPerPercent": 100000
+        }
+      ],
+      "possibleCut": {
+        "at": "2026-09-15",
+        "factor": 4
+      },
+      "periodCount": 7
+    }
+  ]
+}
+=== regress
+exit 0
+sipcode regress · local only, no network
+Claude Code: 1,527 interactive requests in 43 sessions (60 subagent and Agent SDK requests left out of the comparison), 2026-03-01 to 2026-08-29, versions 2.1.60 to 2.1.262
+Known-regression windows your logs cover: R1, R2, R3, R4, R5
+Codex: 461 requests in 8 sessions, 2026-05-19 to 2026-10-09, versions 0.140.0 to 0.160.0, 4 version/model groups with enough limit data
+
+● Prompt cache missing on back-to-back turns  [warm-cache-miss]  Claude Code 2.1.76 to 2.1.90  = known R2, R3
+    v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]
+    v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]
+    e.g. session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500
+    e.g. session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000
+    e.g. session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500
+● Cache stays cold for several turns after an idle break  [post-idle-cold]  Claude Code 2.1.90  = known R3
+    v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]
+    e.g. session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+    e.g. session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+    e.g. session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+● Main-conversation cache written with the 5-minute TTL instead of 1-hour  [ttl-5m]  Claude Code 2.1.100 to 2.1.105  = known R4
+    v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+    v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+    note: If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug.
+● Large uncached input on tool-result turns (context not being cached)  [uncached-input]  Claude Code 2.1.258  = known R1
+    claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]
+    e.g. session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200
+    e.g. session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200
+    e.g. session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200
+● Whole prompt cache rebuilt about every hour  [hourly-rebuild]  Claude Code 2.1.240  = known R5
+    v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]
+● Codex rate limit drains faster per token  [codex-limit-burn]  Codex 0.142.0  (not in the known-issue catalog)
+    v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)
+    note: Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk.
+
+A finding that is not in the known-issue catalog is a signal worth reporting, not proof of a bug.
+
+---- paste into a GitHub issue (review it first) ----
+
+### Prompt cache missing on back-to-back turns
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.76 to 2.1.90
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]
+- v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]
+
+**Sample requests (token counts only)**
+- session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500
+- session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000
+- session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500
+
+**Matches known issue:** R2 --resume full prompt-cache miss (every message under --print --resume) (anthropics/claude-code#34629, CHANGELOG 2.1.90, fixed in 2.1.90); R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)
+
+### Cache stays cold for several turns after an idle break
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.90
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]
+
+**Sample requests (token counts only)**
+- session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+- session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+- session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+
+**Matches known issue:** R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)
+
+### Main-conversation cache written with the 5-minute TTL instead of 1-hour
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.100 to 2.1.105
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+- v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+
+**Matches known issue:** R4 1-hour prompt cache TTL silently downgraded to 5 minutes (anthropics/claude-code#46829, CHANGELOG 2.1.108 + 2.1.129, fixed in 2.1.129)
+
+_Note: If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug._
+
+### Large uncached input on tool-result turns (context not being cached)
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.258
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]
+
+**Sample requests (token counts only)**
+- session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200
+- session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200
+- session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200
+
+**Matches known issue:** R1 Fable 5.1 context after tool results re-sent as uncached input every tool-call turn (CHANGELOG 2.1.260, fixed in 2.1.260)
+
+### Whole prompt cache rebuilt about every hour
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.240
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]
+
+**Matches known issue:** R5 OAuth token refresh re-rendered tool definitions, rebuilding the whole cache about hourly (CHANGELOG 2.1.248, fixed in 2.1.248)
+
+### Codex rate limit drains faster per token
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Codex versions (from my logs):** 0.142.0
+**My data:** 461 Codex requests, 8 sessions, 2026-05-19 to 2026-10-09
+
+**Evidence**
+- v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)
+
+_Note: Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk._
+
+=== regress --agent codex
+exit 0
+sipcode regress · local only, no network
+Codex: 461 requests in 8 sessions, 2026-05-19 to 2026-10-09, versions 0.140.0 to 0.160.0, 4 version/model groups with enough limit data
+
+● Codex rate limit drains faster per token  [codex-limit-burn]  Codex 0.142.0  (not in the known-issue catalog)
+    v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)
+    note: Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk.
+
+A finding that is not in the known-issue catalog is a signal worth reporting, not proof of a bug.
+
+---- paste into a GitHub issue (review it first) ----
+
+### Codex rate limit drains faster per token
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Codex versions (from my logs):** 0.142.0
+**My data:** 461 Codex requests, 8 sessions, 2026-05-19 to 2026-10-09
+
+**Evidence**
+- v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)
+
+_Note: Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk._
+
+=== regress --agent claude-code
+exit 0
+sipcode regress · local only, no network
+Claude Code: 1,527 interactive requests in 43 sessions (60 subagent and Agent SDK requests left out of the comparison), 2026-03-01 to 2026-08-29, versions 2.1.60 to 2.1.262
+Known-regression windows your logs cover: R1, R2, R3, R4, R5
+
+● Prompt cache missing on back-to-back turns  [warm-cache-miss]  Claude Code 2.1.76 to 2.1.90  = known R2, R3
+    v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]
+    v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]
+    e.g. session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500
+    e.g. session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000
+    e.g. session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500
+● Cache stays cold for several turns after an idle break  [post-idle-cold]  Claude Code 2.1.90  = known R3
+    v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]
+    e.g. session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+    e.g. session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+    e.g. session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+● Main-conversation cache written with the 5-minute TTL instead of 1-hour  [ttl-5m]  Claude Code 2.1.100 to 2.1.105  = known R4
+    v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+    v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+    note: If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug.
+● Large uncached input on tool-result turns (context not being cached)  [uncached-input]  Claude Code 2.1.258  = known R1
+    claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]
+    e.g. session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200
+    e.g. session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200
+    e.g. session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200
+● Whole prompt cache rebuilt about every hour  [hourly-rebuild]  Claude Code 2.1.240  = known R5
+    v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]
+
+---- paste into a GitHub issue (review it first) ----
+
+### Prompt cache missing on back-to-back turns
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.76 to 2.1.90
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]
+- v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]
+
+**Sample requests (token counts only)**
+- session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500
+- session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000
+- session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500
+
+**Matches known issue:** R2 --resume full prompt-cache miss (every message under --print --resume) (anthropics/claude-code#34629, CHANGELOG 2.1.90, fixed in 2.1.90); R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)
+
+### Cache stays cold for several turns after an idle break
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.90
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]
+
+**Sample requests (token counts only)**
+- session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+- session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+- session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003
+
+**Matches known issue:** R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)
+
+### Main-conversation cache written with the 5-minute TTL instead of 1-hour
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.100 to 2.1.105
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+- v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]
+
+**Matches known issue:** R4 1-hour prompt cache TTL silently downgraded to 5 minutes (anthropics/claude-code#46829, CHANGELOG 2.1.108 + 2.1.129, fixed in 2.1.129)
+
+_Note: If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug._
+
+### Large uncached input on tool-result turns (context not being cached)
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.258
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]
+
+**Sample requests (token counts only)**
+- session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200
+- session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200
+- session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200
+
+**Matches known issue:** R1 Fable 5.1 context after tool results re-sent as uncached input every tool-call turn (CHANGELOG 2.1.260, fixed in 2.1.260)
+
+### Whole prompt cache rebuilt about every hour
+
+**Detected by** sipcode regress unknown from local logs only (no data left the machine).
+**Affected Claude Code versions (from my logs):** 2.1.240
+**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29
+
+**Evidence**
+- v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]
+
+**Matches known issue:** R5 OAuth token refresh re-rendered tool definitions, rebuilding the whole cache about hourly (CHANGELOG 2.1.248, fixed in 2.1.248)
+
+=== regress --json
+exit 0
+{
+  "schemaVersion": "sipcode-regress/1",
+  "agents": [
+    "claude-code",
+    "codex"
+  ],
+  "minN": 20,
+  "coverage": {
+    "claudeCode": {
+      "requests": 1527,
+      "excludedAutomated": 60,
+      "sessions": 43,
+      "versions": 12,
+      "firstVersion": "2.1.60",
+      "lastVersion": "2.1.262",
+      "from": "2026-03-01",
+      "to": "2026-08-29",
+      "knownWindowsCovered": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "codex": {
+      "requests": 461,
+      "sessions": 8,
+      "versions": 4,
+      "firstVersion": "0.140.0",
+      "lastVersion": "0.160.0",
+      "from": "2026-05-19",
+      "to": "2026-10-09",
+      "readings": 459,
+      "groups": 4
+    }
+  },
+  "access": {
+    "missingDirs": [],
+    "unreadableFiles": 0,
+    "unreadableFolders": 0,
+    "skippedCompressed": 0,
+    "nothingRead": false
+  },
+  "comparable": true,
+  "comparableByAgent": {
+    "claudeCode": true,
+    "codex": true
+  },
+  "findings": [
+    {
+      "id": "warm-cache-miss",
+      "agent": "claude-code",
+      "title": "Prompt cache missing on back-to-back turns",
+      "from": "2.1.76",
+      "to": "2.1.90",
+      "known": [
+        {
+          "id": "R2",
+          "what": "--resume full prompt-cache miss (every message under --print --resume)",
+          "ref": "anthropics/claude-code#34629, CHANGELOG 2.1.90",
+          "fixed": "2.1.90"
+        },
+        {
+          "id": "R3",
+          "what": "thinking history cleared on every turn after an idle >1h, causing repeated cache misses",
+          "ref": "Anthropic April 23 postmortem",
+          "fixed": "2.1.101"
+        }
+      ],
+      "evidence": [
+        "v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]",
+        "v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]"
+      ],
+      "examples": [
+        "session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500",
+        "session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000",
+        "session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500"
+      ],
+      "note": null
+    },
+    {
+      "id": "post-idle-cold",
+      "agent": "claude-code",
+      "title": "Cache stays cold for several turns after an idle break",
+      "from": "2.1.90",
+      "to": "2.1.90",
+      "known": [
+        {
+          "id": "R3",
+          "what": "thinking history cleared on every turn after an idle >1h, causing repeated cache misses",
+          "ref": "Anthropic April 23 postmortem",
+          "fixed": "2.1.101"
+        }
+      ],
+      "evidence": [
+        "v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]"
+      ],
+      "examples": [
+        "session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003",
+        "session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003",
+        "session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003"
+      ],
+      "note": null
+    },
+    {
+      "id": "ttl-5m",
+      "agent": "claude-code",
+      "title": "Main-conversation cache written with the 5-minute TTL instead of 1-hour",
+      "from": "2.1.100",
+      "to": "2.1.105",
+      "known": [
+        {
+          "id": "R4",
+          "what": "1-hour prompt cache TTL silently downgraded to 5 minutes",
+          "ref": "anthropics/claude-code#46829, CHANGELOG 2.1.108 + 2.1.129",
+          "fixed": "2.1.129"
+        }
+      ],
+      "evidence": [
+        "v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]",
+        "v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]"
+      ],
+      "examples": [],
+      "note": "If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug."
+    },
+    {
+      "id": "uncached-input",
+      "agent": "claude-code",
+      "title": "Large uncached input on tool-result turns (context not being cached)",
+      "from": "2.1.258",
+      "to": "2.1.258",
+      "known": [
+        {
+          "id": "R1",
+          "what": "Fable 5.1 context after tool results re-sent as uncached input every tool-call turn",
+          "ref": "CHANGELOG 2.1.260",
+          "fixed": "2.1.260"
+        }
+      ],
+      "evidence": [
+        "claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]"
+      ],
+      "examples": [
+        "session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200",
+        "session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200",
+        "session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200"
+      ],
+      "note": null
+    },
+    {
+      "id": "hourly-rebuild",
+      "agent": "claude-code",
+      "title": "Whole prompt cache rebuilt about every hour",
+      "from": "2.1.240",
+      "to": "2.1.240",
+      "known": [
+        {
+          "id": "R5",
+          "what": "OAuth token refresh re-rendered tool definitions, rebuilding the whole cache about hourly",
+          "ref": "CHANGELOG 2.1.248",
+          "fixed": "2.1.248"
+        }
+      ],
+      "evidence": [
+        "v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]"
+      ],
+      "examples": [],
+      "note": null
+    },
+    {
+      "id": "codex-limit-burn",
+      "agent": "codex",
+      "title": "Codex rate limit drains faster per token",
+      "from": "0.142.0",
+      "to": "0.142.0",
+      "known": [],
+      "evidence": [
+        "v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)"
+      ],
+      "examples": [],
+      "note": "Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk."
+    }
+  ],
+  "checks": {
+    "claudeCode": {
+      "warmCacheMiss": [
+        {
+          "version": "2.1.60",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.76",
+          "n": 72,
+          "rate": 1,
+          "baseline": 0.021645021645021644,
+          "baselineN": 1386
+        },
+        {
+          "version": "2.1.90",
+          "n": 96,
+          "rate": 0.25,
+          "baseline": 0.05726872246696035,
+          "baselineN": 1362
+        },
+        {
+          "version": "2.1.95",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.100",
+          "n": 58,
+          "rate": 0,
+          "baseline": 0.07285714285714286,
+          "baselineN": 1400
+        },
+        {
+          "version": "2.1.105",
+          "n": 58,
+          "rate": 0,
+          "baseline": 0.07285714285714286,
+          "baselineN": 1400
+        },
+        {
+          "version": "2.1.140",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.200",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.240",
+          "n": 478,
+          "rate": 0.012552301255230125,
+          "baseline": 0.09795918367346938,
+          "baselineN": 980
+        },
+        {
+          "version": "2.1.250",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.258",
+          "n": 48,
+          "rate": 0,
+          "baseline": 0.07234042553191489,
+          "baselineN": 1410
+        },
+        {
+          "version": "2.1.262",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        }
+      ],
+      "postIdleCold": [
+        {
+          "version": "2.1.90",
+          "n": 8,
+          "rate": 1,
+          "baseline": 0,
+          "baselineN": 18
+        }
+      ],
+      "ttl5m": [
+        {
+          "version": "2.1.60",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.76",
+          "n": 75,
+          "share5m": 0,
+          "baseline": 0.08264462809917356
+        },
+        {
+          "version": "2.1.90",
+          "n": 112,
+          "share5m": 0,
+          "baseline": 0.08480565371024736
+        },
+        {
+          "version": "2.1.95",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.100",
+          "n": 60,
+          "share5m": 1,
+          "baseline": 0.0408997955010225
+        },
+        {
+          "version": "2.1.105",
+          "n": 60,
+          "share5m": 1,
+          "baseline": 0.0408997955010225
+        },
+        {
+          "version": "2.1.140",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.200",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.240",
+          "n": 480,
+          "share5m": 0,
+          "baseline": 0.11461318051575932
+        },
+        {
+          "version": "2.1.250",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.258",
+          "n": 50,
+          "share5m": 0,
+          "baseline": 0.08124576844955991
+        },
+        {
+          "version": "2.1.262",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        }
+      ],
+      "uncachedInput": [
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.258",
+          "n": 50,
+          "median": 3200,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.240",
+          "n": 480,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.100",
+          "n": 60,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.105",
+          "n": 60,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.90",
+          "n": 112,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.76",
+          "n": 75,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.262",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.262",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.250",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.250",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.200",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.200",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.140",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.140",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.95",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.95",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.60",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.60",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        }
+      ],
+      "hourlyRebuild": [
+        {
+          "version": "2.1.76",
+          "n": 30,
+          "hourly": 0
+        },
+        {
+          "version": "2.1.90",
+          "n": 16,
+          "hourly": 0
+        },
+        {
+          "version": "2.1.240",
+          "n": 4,
+          "hourly": 4
+        }
+      ]
+    },
+    "codex": [
+      {
+        "version": "0.140.0",
+        "model": "gpt-5.5",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 150,
+        "percent": 6.000000000000004,
+        "workTokens": 3000000,
+        "percentPerMillion": 2.0000000000000013
+      },
+      {
+        "version": "0.141.0",
+        "model": "gpt-5.5",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 137,
+        "percent": 6.0000000000000115,
+        "workTokens": 2740000,
+        "percentPerMillion": 2.189781021897814
+      },
+      {
+        "version": "0.142.0",
+        "model": "gpt-5.5",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 150,
+        "percent": 75,
+        "workTokens": 3000000,
+        "percentPerMillion": 25
+      },
+      {
+        "version": "0.160.0",
+        "model": "gpt-5.4",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 8,
+        "percent": 207,
+        "workTokens": 52200000,
+        "percentPerMillion": 3.96551724137931
+      }
+    ]
+  },
+  "bugReport": "### Prompt cache missing on back-to-back turns\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.76 to 2.1.90\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]\n- v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]\n\n**Sample requests (token counts only)**\n- session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500\n- session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000\n- session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500\n\n**Matches known issue:** R2 --resume full prompt-cache miss (every message under --print --resume) (anthropics/claude-code#34629, CHANGELOG 2.1.90, fixed in 2.1.90); R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)\n\n### Cache stays cold for several turns after an idle break\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.90\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]\n\n**Sample requests (token counts only)**\n- session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003\n- session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003\n- session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003\n\n**Matches known issue:** R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)\n\n### Main-conversation cache written with the 5-minute TTL instead of 1-hour\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.100 to 2.1.105\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]\n- v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]\n\n**Matches known issue:** R4 1-hour prompt cache TTL silently downgraded to 5 minutes (anthropics/claude-code#46829, CHANGELOG 2.1.108 + 2.1.129, fixed in 2.1.129)\n\n_Note: If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug._\n\n### Large uncached input on tool-result turns (context not being cached)\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.258\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]\n\n**Sample requests (token counts only)**\n- session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200\n- session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200\n- session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200\n\n**Matches known issue:** R1 Fable 5.1 context after tool results re-sent as uncached input every tool-call turn (CHANGELOG 2.1.260, fixed in 2.1.260)\n\n### Whole prompt cache rebuilt about every hour\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.240\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]\n\n**Matches known issue:** R5 OAuth token refresh re-rendered tool definitions, rebuilding the whole cache about hourly (CHANGELOG 2.1.248, fixed in 2.1.248)\n\n### Codex rate limit drains faster per token\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Codex versions (from my logs):** 0.142.0\n**My data:** 461 Codex requests, 8 sessions, 2026-05-19 to 2026-10-09\n\n**Evidence**\n- v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)\n\n_Note: Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk._\n"
+}
+=== regress --agent codex --json
+exit 0
+{
+  "schemaVersion": "sipcode-regress/1",
+  "agents": [
+    "codex"
+  ],
+  "minN": 20,
+  "coverage": {
+    "claudeCode": null,
+    "codex": {
+      "requests": 461,
+      "sessions": 8,
+      "versions": 4,
+      "firstVersion": "0.140.0",
+      "lastVersion": "0.160.0",
+      "from": "2026-05-19",
+      "to": "2026-10-09",
+      "readings": 459,
+      "groups": 4
+    }
+  },
+  "access": {
+    "missingDirs": [],
+    "unreadableFiles": 0,
+    "unreadableFolders": 0,
+    "skippedCompressed": 0,
+    "nothingRead": false
+  },
+  "comparable": true,
+  "comparableByAgent": {
+    "claudeCode": null,
+    "codex": true
+  },
+  "findings": [
+    {
+      "id": "codex-limit-burn",
+      "agent": "codex",
+      "title": "Codex rate limit drains faster per token",
+      "from": "0.142.0",
+      "to": "0.142.0",
+      "known": [],
+      "evidence": [
+        "v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)"
+      ],
+      "examples": [],
+      "note": "Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk."
+    }
+  ],
+  "checks": {
+    "claudeCode": null,
+    "codex": [
+      {
+        "version": "0.140.0",
+        "model": "gpt-5.5",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 150,
+        "percent": 6.000000000000004,
+        "workTokens": 3000000,
+        "percentPerMillion": 2.0000000000000013
+      },
+      {
+        "version": "0.141.0",
+        "model": "gpt-5.5",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 137,
+        "percent": 6.0000000000000115,
+        "workTokens": 2740000,
+        "percentPerMillion": 2.189781021897814
+      },
+      {
+        "version": "0.142.0",
+        "model": "gpt-5.5",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 150,
+        "percent": 75,
+        "workTokens": 3000000,
+        "percentPerMillion": 25
+      },
+      {
+        "version": "0.160.0",
+        "model": "gpt-5.4",
+        "plan": "plus",
+        "limitId": "codex",
+        "windowMinutes": 10080,
+        "requests": 8,
+        "percent": 207,
+        "workTokens": 52200000,
+        "percentPerMillion": 3.96551724137931
+      }
+    ]
+  },
+  "bugReport": "### Codex rate limit drains faster per token\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Codex versions (from my logs):** 0.142.0\n**My data:** 461 Codex requests, 8 sessions, 2026-05-19 to 2026-10-09\n\n**Evidence**\n- v0.142.0 gpt-5.5 (plus, weekly window): 25.00% of the limit per 1M uncached+output tokens vs 2.19% on your other versions (11.4x)\n\n_Note: Limits are shared with Codex on your other devices and in the cloud. A limit change on your plan at the same time as the update would look the same: run `sipcode limits` to see whether a limit may have shrunk._\n"
+}
+=== regress --agent claude-code --json
+exit 0
+{
+  "schemaVersion": "sipcode-regress/1",
+  "agents": [
+    "claude-code"
+  ],
+  "minN": 20,
+  "coverage": {
+    "claudeCode": {
+      "requests": 1527,
+      "excludedAutomated": 60,
+      "sessions": 43,
+      "versions": 12,
+      "firstVersion": "2.1.60",
+      "lastVersion": "2.1.262",
+      "from": "2026-03-01",
+      "to": "2026-08-29",
+      "knownWindowsCovered": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "codex": null
+  },
+  "access": {
+    "missingDirs": [],
+    "unreadableFiles": 0,
+    "unreadableFolders": 0,
+    "skippedCompressed": 0,
+    "nothingRead": false
+  },
+  "comparable": true,
+  "comparableByAgent": {
+    "claudeCode": true,
+    "codex": null
+  },
+  "findings": [
+    {
+      "id": "warm-cache-miss",
+      "agent": "claude-code",
+      "title": "Prompt cache missing on back-to-back turns",
+      "from": "2.1.76",
+      "to": "2.1.90",
+      "known": [
+        {
+          "id": "R2",
+          "what": "--resume full prompt-cache miss (every message under --print --resume)",
+          "ref": "anthropics/claude-code#34629, CHANGELOG 2.1.90",
+          "fixed": "2.1.90"
+        },
+        {
+          "id": "R3",
+          "what": "thinking history cleared on every turn after an idle >1h, causing repeated cache misses",
+          "ref": "Anthropic April 23 postmortem",
+          "fixed": "2.1.101"
+        }
+      ],
+      "evidence": [
+        "v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]",
+        "v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]"
+      ],
+      "examples": [
+        "session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500",
+        "session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000",
+        "session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500"
+      ],
+      "note": null
+    },
+    {
+      "id": "post-idle-cold",
+      "agent": "claude-code",
+      "title": "Cache stays cold for several turns after an idle break",
+      "from": "2.1.90",
+      "to": "2.1.90",
+      "known": [
+        {
+          "id": "R3",
+          "what": "thinking history cleared on every turn after an idle >1h, causing repeated cache misses",
+          "ref": "Anthropic April 23 postmortem",
+          "fixed": "2.1.101"
+        }
+      ],
+      "evidence": [
+        "v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]"
+      ],
+      "examples": [
+        "session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003",
+        "session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003",
+        "session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003"
+      ],
+      "note": null
+    },
+    {
+      "id": "ttl-5m",
+      "agent": "claude-code",
+      "title": "Main-conversation cache written with the 5-minute TTL instead of 1-hour",
+      "from": "2.1.100",
+      "to": "2.1.105",
+      "known": [
+        {
+          "id": "R4",
+          "what": "1-hour prompt cache TTL silently downgraded to 5 minutes",
+          "ref": "anthropics/claude-code#46829, CHANGELOG 2.1.108 + 2.1.129",
+          "fixed": "2.1.129"
+        }
+      ],
+      "evidence": [
+        "v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]",
+        "v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]"
+      ],
+      "examples": [],
+      "note": "If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug."
+    },
+    {
+      "id": "uncached-input",
+      "agent": "claude-code",
+      "title": "Large uncached input on tool-result turns (context not being cached)",
+      "from": "2.1.258",
+      "to": "2.1.258",
+      "known": [
+        {
+          "id": "R1",
+          "what": "Fable 5.1 context after tool results re-sent as uncached input every tool-call turn",
+          "ref": "CHANGELOG 2.1.260",
+          "fixed": "2.1.260"
+        }
+      ],
+      "evidence": [
+        "claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]"
+      ],
+      "examples": [
+        "session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200",
+        "session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200",
+        "session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200"
+      ],
+      "note": null
+    },
+    {
+      "id": "hourly-rebuild",
+      "agent": "claude-code",
+      "title": "Whole prompt cache rebuilt about every hour",
+      "from": "2.1.240",
+      "to": "2.1.240",
+      "known": [
+        {
+          "id": "R5",
+          "what": "OAuth token refresh re-rendered tool definitions, rebuilding the whole cache about hourly",
+          "ref": "CHANGELOG 2.1.248",
+          "fixed": "2.1.248"
+        }
+      ],
+      "evidence": [
+        "v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]"
+      ],
+      "examples": [],
+      "note": null
+    }
+  ],
+  "checks": {
+    "claudeCode": {
+      "warmCacheMiss": [
+        {
+          "version": "2.1.60",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.76",
+          "n": 72,
+          "rate": 1,
+          "baseline": 0.021645021645021644,
+          "baselineN": 1386
+        },
+        {
+          "version": "2.1.90",
+          "n": 96,
+          "rate": 0.25,
+          "baseline": 0.05726872246696035,
+          "baselineN": 1362
+        },
+        {
+          "version": "2.1.95",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.100",
+          "n": 58,
+          "rate": 0,
+          "baseline": 0.07285714285714286,
+          "baselineN": 1400
+        },
+        {
+          "version": "2.1.105",
+          "n": 58,
+          "rate": 0,
+          "baseline": 0.07285714285714286,
+          "baselineN": 1400
+        },
+        {
+          "version": "2.1.140",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.200",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.240",
+          "n": 478,
+          "rate": 0.012552301255230125,
+          "baseline": 0.09795918367346938,
+          "baselineN": 980
+        },
+        {
+          "version": "2.1.250",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        },
+        {
+          "version": "2.1.258",
+          "n": 48,
+          "rate": 0,
+          "baseline": 0.07234042553191489,
+          "baselineN": 1410
+        },
+        {
+          "version": "2.1.262",
+          "n": 108,
+          "rate": 0,
+          "baseline": 0.07555555555555556,
+          "baselineN": 1350
+        }
+      ],
+      "postIdleCold": [
+        {
+          "version": "2.1.90",
+          "n": 8,
+          "rate": 1,
+          "baseline": 0,
+          "baselineN": 18
+        }
+      ],
+      "ttl5m": [
+        {
+          "version": "2.1.60",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.76",
+          "n": 75,
+          "share5m": 0,
+          "baseline": 0.08264462809917356
+        },
+        {
+          "version": "2.1.90",
+          "n": 112,
+          "share5m": 0,
+          "baseline": 0.08480565371024736
+        },
+        {
+          "version": "2.1.95",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.100",
+          "n": 60,
+          "share5m": 1,
+          "baseline": 0.0408997955010225
+        },
+        {
+          "version": "2.1.105",
+          "n": 60,
+          "share5m": 1,
+          "baseline": 0.0408997955010225
+        },
+        {
+          "version": "2.1.140",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.200",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.240",
+          "n": 480,
+          "share5m": 0,
+          "baseline": 0.11461318051575932
+        },
+        {
+          "version": "2.1.250",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        },
+        {
+          "version": "2.1.258",
+          "n": 50,
+          "share5m": 0,
+          "baseline": 0.08124576844955991
+        },
+        {
+          "version": "2.1.262",
+          "n": 115,
+          "share5m": 0,
+          "baseline": 0.08498583569405099
+        }
+      ],
+      "uncachedInput": [
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.258",
+          "n": 50,
+          "median": 3200,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.240",
+          "n": 480,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.100",
+          "n": 60,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.105",
+          "n": 60,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.90",
+          "n": 112,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-opus-4-6",
+          "version": "2.1.76",
+          "n": 75,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.262",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.262",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.250",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.250",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.200",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.200",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.140",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.140",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.95",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.95",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        },
+        {
+          "model": "claude-fable-5-1",
+          "version": "2.1.60",
+          "n": 25,
+          "median": 5,
+          "baseline": 5
+        },
+        {
+          "model": "claude-opus-4-8",
+          "version": "2.1.60",
+          "n": 90,
+          "median": 3,
+          "baseline": 3
+        }
+      ],
+      "hourlyRebuild": [
+        {
+          "version": "2.1.76",
+          "n": 30,
+          "hourly": 0
+        },
+        {
+          "version": "2.1.90",
+          "n": 16,
+          "hourly": 0
+        },
+        {
+          "version": "2.1.240",
+          "n": 4,
+          "hourly": 4
+        }
+      ]
+    },
+    "codex": null
+  },
+  "bugReport": "### Prompt cache missing on back-to-back turns\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.76 to 2.1.90\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.76: 100.0% of 72 warm turns were cache misses (your other versions: 2.2% of 1386)  [matches known R2]\n- v2.1.90: 25.0% of 96 warm turns were cache misses (your other versions: 5.7% of 1362)  [matches known R3]\n\n**Sample requests (token counts only)**\n- session sess0029 2026-05-12T09:02:00.000Z ctx=56,072 cache_read=14,569 cache_write=41,500\n- session sess0029 2026-05-12T09:03:00.000Z ctx=57,572 cache_read=14,569 cache_write=43,000\n- session sess0029 2026-05-12T09:04:00.000Z ctx=59,072 cache_read=14,569 cache_write=44,500\n\n**Matches known issue:** R2 --resume full prompt-cache miss (every message under --print --resume) (anthropics/claude-code#34629, CHANGELOG 2.1.90, fixed in 2.1.90); R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)\n\n### Cache stays cold for several turns after an idle break\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.90\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.90: 100.0% of 8 idle returns stayed cold (other versions: 0.0%)  [matches known R3]\n\n**Sample requests (token counts only)**\n- session sess0037 2026-05-27T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003\n- session sess0036 2026-05-26T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003\n- session sess0035 2026-05-25T10:20:00.000Z 2 turns later cache_read=0 of ctx 76,003\n\n**Matches known issue:** R3 thinking history cleared on every turn after an idle >1h, causing repeated cache misses (Anthropic April 23 postmortem, fixed in 2.1.101)\n\n### Main-conversation cache written with the 5-minute TTL instead of 1-hour\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.100 to 2.1.105\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.100: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]\n- v2.1.105: 100.0% of cache writes were 5-minute over 60 turns (other versions: 4.1%)  [matches known R4]\n\n**Matches known issue:** R4 1-hour prompt cache TTL silently downgraded to 5 minutes (anthropics/claude-code#46829, CHANGELOG 2.1.108 + 2.1.129, fixed in 2.1.129)\n\n_Note: If you use an API key, cloud provider or usage credits, 5-minute TTL is expected, not a bug._\n\n### Large uncached input on tool-result turns (context not being cached)\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.258\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- claude-fable-5-1 v2.1.258: median uncached input 3,200 tokens/turn over 50 tool-result turns (same model, other versions: 5)  [matches known R1]\n\n**Sample requests (token counts only)**\n- session sess0043 2026-08-29T09:01:00.000Z uncached_input=3,200 ctx=43,200\n- session sess0043 2026-08-29T09:02:00.000Z uncached_input=3,200 ctx=46,200\n- session sess0043 2026-08-29T09:03:00.000Z uncached_input=3,200 ctx=49,200\n\n**Matches known issue:** R1 Fable 5.1 context after tool results re-sent as uncached input every tool-call turn (CHANGELOG 2.1.260, fixed in 2.1.260)\n\n### Whole prompt cache rebuilt about every hour\n\n**Detected by** sipcode regress unknown from local logs only (no data left the machine).\n**Affected Claude Code versions (from my logs):** 2.1.240\n**My data:** 1,527 requests, 43 sessions, 2026-03-01 to 2026-08-29\n\n**Evidence**\n- v2.1.240: 4 of 4 gaps between full rebuilds were 50 to 70 minutes  [matches known R5]\n\n**Matches known issue:** R5 OAuth token refresh re-rendered tool definitions, rebuilding the whole cache about hourly (CHANGELOG 2.1.248, fixed in 2.1.248)\n"
+}

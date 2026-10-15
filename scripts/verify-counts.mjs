@@ -49,6 +49,13 @@
 //   the percent its requests were charged rise by rise (by tokens), per 1M
 //   uncached input + output tokens; groups of 200,000+ such tokens; flagged
 //   at 2x the upper median of the others on the same plan, limit and window.
+// - Codex compresses older rollouts to rollout-*.jsonl.zst. They are decoded
+//   here with node:zlib directly, frame by frame (Node's decoder stops after
+//   the first frame), and each frame must be complete. One log per rollout
+//   name: the plain .jsonl when both exist, else sessions/ before
+//   archived_sessions/. Without zstd in this Node the script stops (it would
+//   otherwise agree with a Sipcode that skips them).
+import { zstdDecompressSync } from "node:zlib";
 import { readFileSync, readdirSync, statSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir, tmpdir } from "node:os";
@@ -390,7 +397,57 @@ function readCodexFile(text) {
   };
 }
 
-/** Rollout files by name; sessions/ is walked first and wins over archived_sessions/. */
+/**
+ * Decode a .zst rollout: split into frames by walking their headers (RFC 8878
+ * 3.1), decode each, check each decoded size against its header, concatenate.
+ * Throws on anything incomplete.
+ */
+function decodeZst(buf) {
+  if (typeof zstdDecompressSync !== "function") {
+    throw new Error(`compressed Codex logs need Node.js 22.15 or newer to verify (this is ${process.version})`);
+  }
+  const parts = [];
+  let p = 0;
+  while (p < buf.length) {
+    const magic = buf.readUInt32LE(p);
+    if (((magic & 0xfffffff0) >>> 0) === 0x184d2a50) {
+      p += 8 + buf.readUInt32LE(p + 4);
+      continue;
+    }
+    if (magic !== 0xfd2fb528) throw new Error("not a zstd frame");
+    const start = p;
+    const fhd = buf[p + 4];
+    const single = (fhd >> 5) & 1;
+    const fcsLen = [single, 2, 4, 8][fhd >> 6];
+    p += 5 + (single ? 0 : 1) + [0, 1, 2, 4][fhd & 3];
+    const fcs =
+      fcsLen === 1 ? buf[p] : fcsLen === 2 ? buf.readUInt16LE(p) + 256 : fcsLen === 4 ? buf.readUInt32LE(p) : fcsLen === 8 ? Number(buf.readBigUInt64LE(p)) : undefined;
+    p += fcsLen;
+    for (let last = 0; !last; ) {
+      if (p + 3 > buf.length) throw new Error("truncated zstd block");
+      const h = buf[p] | (buf[p + 1] << 8) | (buf[p + 2] << 16);
+      last = h & 1;
+      p += 3 + (((h >> 1) & 3) === 1 ? 1 : h >>> 3);
+    }
+    if ((fhd >> 2) & 1) p += 4;
+    if (p > buf.length) throw new Error("truncated zstd frame");
+    const out = zstdDecompressSync(buf.subarray(start, p));
+    if (fcs !== undefined && out.length !== fcs) throw new Error("zstd frame decoded to the wrong size");
+    parts.push(out);
+  }
+  return Buffer.concat(parts).toString("utf8");
+}
+
+/** A rollout's text, plain or compressed. */
+function readRollout(p) {
+  return p.endsWith(".zst") ? decodeZst(readFileSync(p)) : readFileSync(p, "utf8");
+}
+
+/**
+ * Rollout files by plain name (X.jsonl for X.jsonl and X.jsonl.zst): the
+ * plain file wins over a compressed one; otherwise sessions/ is walked first
+ * and wins over archived_sessions/.
+ */
 function listRollouts() {
   const byName = new Map();
   for (const sub of ["sessions", "archived_sessions"]) {
@@ -404,8 +461,11 @@ function listRollouts() {
       for (const e of entries) {
         const p = join(dir, e.name);
         if (e.isDirectory()) walk(p);
-        else if (e.isFile() && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl") && !byName.has(e.name))
-          byName.set(e.name, p);
+        else if (e.isFile() && e.name.startsWith("rollout-") && (e.name.endsWith(".jsonl") || e.name.endsWith(".jsonl.zst"))) {
+          const name = e.name.replace(/\.zst$/, "");
+          const kept = byName.get(name);
+          if (!kept || (kept.endsWith(".zst") && !p.endsWith(".zst"))) byName.set(name, p);
+        }
       }
     };
     walk(join(CODEX_HOME, sub));
@@ -418,8 +478,8 @@ function readCodex() {
   const out = [];
   for (const [name, p] of byName) {
     const st = statSync(p);
-    const f = readCodexFile(readFileSync(p, "utf8"));
-    out.push({ ...f, id: f.metaId ?? name.slice(0, -6), label: name.slice(8, 27), mtimeMs: st.mtimeMs });
+    const f = readCodexFile(readRollout(p));
+    out.push({ ...f, id: f.metaId ?? name.slice(0, -6), label: name.slice(8, 27), mtimeMs: st.mtimeMs, compressed: p.endsWith(".zst") });
   }
   return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
@@ -835,7 +895,7 @@ function limitReadings() {
   const out = [];
   let malformed = 0;
   for (const p of listRollouts().values()) {
-    for (const raw of readFileSync(p, "utf8").split(/\r?\n/)) {
+    for (const raw of readRollout(p).split(/\r?\n/)) {
       if (!raw.includes('"rate_limits"')) continue;
       let e;
       try {
@@ -1363,6 +1423,7 @@ function main() {
         `${s.unpricedTokens.toLocaleString("en-US")} unpriced tokens, ${s.synthetic} synthetic requests with usage`,
     );
   }
+  console.log(`codex: ${codex.filter((f) => f.compressed).length} of ${codex.length} rollout files compressed (.jsonl.zst)`);
 
   // Codex ground truth: per file, the counted tokens equal Codex's own final cumulative total.
   codex

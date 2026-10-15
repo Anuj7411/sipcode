@@ -4,7 +4,7 @@ import { runImpactCommand } from "../../src/commands/impact.js";
 import { InMemoryFs } from "../../src/lib/fs.js";
 import { FakeClock } from "../../src/lib/clock.js";
 import { FakeProcessEnv } from "../../src/lib/process.js";
-import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn } from "./codex-fixtures.js";
+import { addCodexRollout, autoReviewTurn, CODEX_SESSIONS, solTurn, withoutZstd, zstdSkipMessage, zstdSkipWarning } from "./codex-fixtures.js";
 
 const NOW = new Date("2026-05-20T12:00:00.000Z");
 // A folder with no .sipcode/install-state.json: no install marker.
@@ -112,13 +112,13 @@ describe("runImpactCommand: Claude Code and Codex sections", () => {
     );
   });
 
-  it("reports skipped compressed Codex logs once, on stderr", async () => {
+  it("on a Node.js without zstd, warns about skipped compressed Codex logs once, at the top of stdout", async () => {
     const fs = withCodex(new InMemoryFs());
     fs.writeFile(`${CODEX_SESSIONS}/2026/05/09/rollout-a.jsonl.zst`, "z", 1);
-    const r = await run({}, fs);
-    expect(r.err).toBe(
-      "note: 1 compressed Codex log(s) (.jsonl.zst) skipped: Sipcode cannot read compressed logs yet.",
-    );
+    const r = await withoutZstd(() => run({}, fs));
+    expect(r.out.split("\n").slice(0, 2)).toEqual([zstdSkipWarning(1), ""]);
+    expect(r.out.match(/\.jsonl\.zst/g)).toHaveLength(1);
+    expect(r.err).toBe("");
   });
 });
 

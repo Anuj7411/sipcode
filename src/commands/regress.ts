@@ -15,6 +15,8 @@ import { RealClock, type Clock } from "../lib/clock.js";
 import { RealProcessEnv, type ProcessEnv } from "../lib/process.js";
 import { MESSAGES } from "../lib/messages.js";
 import { parseAgentFlag } from "../modules/agents/cli.js";
+import { discoveryNotes, unreadWarnings } from "../modules/agents/loadSessions.js";
+import { getAgentById } from "../modules/agents/registry.js";
 import { defaultUsageCaches, type UsageCaches } from "../modules/agents/usageSessions.js";
 import { DEFAULT_MIN_N } from "../modules/regress/claude.js";
 import { formatRegressJson } from "../modules/regress/format-json.js";
@@ -108,7 +110,20 @@ export async function runRegress(opts: RegressOptions = {}, deps: RegressDeps = 
     codex: codex ? { readings: codex.readings, requests: codex.requests } : null,
     access: accessOf(claude, codex),
   });
+  // Logs left out: warnings at the top of the terminal output; with --json,
+  // notes on stderr (the JSON's `access` holds the counts).
+  const loaded = [
+    ...(claude ? [{ name: getAgentById("claude-code").displayName, counts: claude.counts }] : []),
+    ...(codex ? [{ name: getAgentById("codex").displayName, counts: codex.counts }] : []),
+  ];
   const fmt = { bugReport: opts.bugReport === true, version };
-  stdout(opts.json ? formatRegressJson(report, fmt) : formatRegressTerminal(report, fmt));
+  if (opts.json) {
+    for (const l of loaded) {
+      for (const n of discoveryNotes(l.counts)) stderr(loaded.length > 1 ? `${l.name}: ${n}` : n);
+    }
+    stdout(formatRegressJson(report, fmt));
+  } else {
+    stdout(formatRegressTerminal(report, { ...fmt, unreadWarnings: loaded.flatMap((l) => unreadWarnings(l.name, l.counts)) }));
+  }
   return { exitCode: report.access.nothingRead ? 2 : 0 };
 }
