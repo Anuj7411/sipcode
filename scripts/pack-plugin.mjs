@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Builds the ZIP for the OpenAI plugin directory (shared by ChatGPT and Codex):
  *
