@@ -13,15 +13,18 @@
   "keywords": ["codex", "usage", "limits", "tokens", "spend", "regression"],
   "extensions": {
     "com.openai": {
+      "requires_local_executor": true,
       "interface": {
         "displayName": "Sipcode",
         "shortDescription": "Spend, limits and regressions",
-        "longDescription": "Sipcode answers questions about your own Codex use from the logs Codex already writes on this computer: how much you spent today or this month (at API prices), how close you are to your usage limits and whether a limit may have shrunk, why a session used so many tokens, and whether Codex or Claude Code got worse after an update. Each answer comes from the Sipcode command-line tool (npm package sipcode), which reads the logs locally and makes no network calls. Install it once with npm i -g sipcode.",
+        "longDescription": "Sipcode answers questions about your own Codex use from the logs Codex already writes on this computer: how much you spent today or this month (estimated at API prices), how close you are to your usage limits and whether a limit may have shrunk, why a session used so many tokens, and whether Codex or Claude Code got worse after an update. Each answer comes from the Sipcode command-line tool (npm package sipcode), which reads the logs locally and makes no network calls.\n\nSetup: install the tool once with npm i -g sipcode (Node.js 20 or newer; Node.js 22.15 or newer to read the logs Codex compresses). The plugin runs that command on your computer, so it works where Codex can run local commands: Codex in the ChatGPT desktop app and the Codex CLI.\n\nLimitations: dollar figures are estimates at API prices, not your bill. Usage limits cover your whole account, so Codex use on other devices or in the cloud raises the percent without local tokens, and a possible limit cut is a signal, not proof.",
         "developerName": "Anuj Ojha",
         "category": "Developer Tools",
         "capabilities": ["Read"],
         "websiteURL": "https://anuj7411.github.io/sipcode/",
-        "privacyPolicyURL": "https://github.com/Anuj7411/sipcode/blob/main/PRIVACY.md",
+        "supportURL": "https://anuj7411.github.io/sipcode/support/",
+        "privacyPolicyURL": "https://anuj7411.github.io/sipcode/privacy/",
+        "termsOfServiceURL": "https://anuj7411.github.io/sipcode/terms/",
         "defaultPrompt": [
           "How much did I spend on Codex this month?",
           "How close am I to my Codex usage limit?",
