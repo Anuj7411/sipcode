@@ -26,14 +26,21 @@ local files only:
 
 every write is triggered by a command you ran. no background writes, no opportunistic writes.
 
-- **`.sipcode/` artifacts in your repo** — manifest, receipts (HTML + PNG), stats HTML, badge JSON, score HTML, benchmark HTML.
+- **`.sipcode/` artifacts in your repo**: manifest, receipts (HTML + PNG), stats HTML, badge JSON, score HTML, benchmark HTML, and `install-state.json` (when you last ran `rules --install` or `hygiene --install`, and the rules mode, used by `impact`).
 - **one named sub-block in your `CLAUDE.md`** — between recognizable markers. `sipcode rules --uninstall` reverses it byte-identically.
 - **optional entries in `~/.claude/settings.json`** — ONLY when you run `sipcode hygiene --install`. never otherwise. `--uninstall` removes them.
 - **optional hook scripts at `~/.claude/hooks/sipcode-*.mjs`** — same gate. these scripts also run zero-network; the privacy guard test scans them too.
+- **the proxy hook: `~/.claude/hooks/sipcode-proxy.mjs` plus its entry in `~/.claude/settings.json`**, only when you run `sipcode proxy --install` or `sipcode init` (skip it with `init --no-proxy`). `sipcode proxy --uninstall` removes it. it runs inside Claude Code before each tool call, reads and writes only local files, and makes no network calls.
 - **local caches under `~/.sipcode/`**, written by the commands that use them, so repeat runs do not re-read every log:
   - `~/.sipcode/usage-cache/claude-code.json` and `~/.sipcode/usage-cache/codex.json` (`today`, `forecast`, `limits`, `regress`): for each session log, its size and modified time plus token counts, model names, timestamps, request ids, each Claude Code request's version and entrypoint and whether it followed a tool result, the session's working folder and the paths of files the agent read. never message text, prompts, file contents or command output.
   - `~/.sipcode/drift/sessions-v3.jsonl` (`drift`): per-session metrics (session id, end time, token counts, cache-hit rate, duplicate-read tokens, and the project folder as a readable encoded name such as `C--Projects-app`). `~/.sipcode/drift/configs.jsonl` keeps the names of your Claude Code MCP servers over time, so drift can say when a change lines up with a regression. an older `~/.sipcode/drift/sessions.jsonl` from before v1.7.0 is no longer used and can be deleted.
-  - none of these are ever uploaded. to remove them, delete the folder (for example `rm -rf ~/.sipcode/usage-cache ~/.sipcode/drift`). they are rebuilt on the next run; the only cost is a slower first run.
+  - `~/.sipcode/proxy-reads/<session-id>.jsonl` (the proxy hook's re-read check, Claude Code only): for each file Claude read in that session, its path, a sha256 hash of its contents, modified time, size, a rough token estimate, the turn and the time it was first read. never the file contents. a `<session-id>.warmed` marker beside it records that the cache was filled once from the session transcript.
+  - `~/.sipcode/proxy-stats/proxy-stats-*.jsonl` (the proxy hook, read by `sipcode proxy --stats`): one line per rewritten or deduplicated tool call, with its time, the tool name, which rewriter acted, the estimated tokens saved and an integrity score. never the command output.
+  - `~/.sipcode/proxy-signals/<session-id>.jsonl` (the proxy hook, Claude Code only): the search patterns Claude sent to Grep, Glob or a grep command in that session, with the tool name and the time, so a later read can return only the matching symbols.
+  - `~/.sipcode/install-pending.json`: written only when `sipcode init` runs while a Claude Code session is active; it holds the hook script and settings paths so the next quiet `sipcode` command can finish the proxy install. it is removed once applied.
+  - `~/.sipcode/benchmark-live/results.jsonl`: written only when you run `sipcode benchmark --vs-rtk --live`; one line per run with the task id, condition, model, token counts, the cost Claude Code reported and the duration. that command runs `claude --print`, which uses your Claude account and the network the way Claude Code always does.
+  - `~/.sipcode/.star-nudge`: a marker file (its only content is `sipcode-star-nudge/1`) so the one-time "star on GitHub" line after `proxy --stats` is shown only once per machine.
+  - none of these are ever uploaded. to remove them, delete the folder (for example `rm -rf ~/.sipcode/usage-cache ~/.sipcode/drift`, or all of `~/.sipcode`). they are rebuilt on the next run; the only cost is a slower first run.
 - **the receipt PNG is copied to your system clipboard** — ONLY when you run `sipcode receipt`, never silently. via the OS's standard clipboard tool, locally.
 
 ## What sipcode never does without you running a command
@@ -57,6 +64,14 @@ every command file in `src/commands/` also imports a marker constant `ASSERT_NO_
 ## Honest scope
 
 the guarantee covers **sipcode's own code paths**. it does not extend to third-party libraries (chalk, commander, prompts, etc.), to claude code itself, or to your shell / OS / editor. we publish the test and the source so you can re-verify.
+
+two commands start another program that uses the network, and only when you run them: `sipcode update --run` runs `npm i -g sipcode@latest` (npm downloads the new version), and `sipcode benchmark --vs-rtk --live` runs `claude --print`. without `--run`, `sipcode update` only prints the npm command.
+
+## This website
+
+the website (anuj7411.github.io/sipcode) is separate from the CLI and the plugin. it is hosted on GitHub Pages and counts page views with Umami Cloud, which does not set cookies and records page-level data such as the page address, referring site, browser, operating system, screen size and language. the page loads fonts from Google Fonts and the Product Hunt badge image from Product Hunt, so those services and GitHub receive your browser's request (including your IP address) under their own privacy policies. nothing the CLI or the plugin does is sent to the website.
+
+the web version of this document is at https://anuj7411.github.io/sipcode/privacy/.
 
 ## Future telemetry
 

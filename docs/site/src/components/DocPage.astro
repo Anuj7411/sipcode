@@ -1,0 +1,167 @@
+---
+// DocPage: shared shell for the plain text pages (terms, privacy, support).
+// Same head, NavBar, Footer and type scale as compare.astro; the page body
+// goes in the default slot. No MobileNotice modal: these pages must be readable
+// on a phone without a dialog in the way.
+import "../styles/global.css";
+import NavBar from "./NavBar.astro";
+import Footer from "./Footer.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  path: string; // e.g. "terms/"
+  heading: string;
+  updated: string; // yyyy-mm-dd
+}
+
+const { title, description, path, heading, updated } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const canonical = `https://anuj7411.github.io/sipcode/${path}`;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" type="image/png" href={`${base}/favicon-32.png`} />
+  <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} />
+  <meta name="theme-color" content="#F8F8F6" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://api.producthunt.com; connect-src 'self' https://gateway.umami.is https://api-gateway.umami.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+  <script defer src={`${base}/umami.js`} data-website-id="43a9182d-f3fe-46eb-b172-e347b520b9ae" data-host-url="https://gateway.umami.is"></script>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main id="top">
+    <NavBar />
+
+    <section class="doc-hero">
+      <div class="container">
+        <h1 class="doc-h1">{heading}</h1>
+        <p class="doc-updated">Last updated: {updated}</p>
+      </div>
+    </section>
+
+    <section class="doc-body">
+      <div class="container doc-prose">
+        <slot />
+        <div class="doc-cta">
+          <a href={`${base}/`} class="btn-ghost">← back to home</a>
+        </div>
+      </div>
+    </section>
+
+    <Footer />
+  </main>
+</body>
+</html>
+
+<style>
+  .doc-hero {
+    padding: 56px 0 24px;
+    background: var(--paper, #F8F8F6);
+    border-bottom: 1px solid rgba(10,10,10,0.08);
+  }
+  .doc-hero .container,
+  .doc-body .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .doc-h1 {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: clamp(32px, 4.5vw, 52px);
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+    color: #0A0A0A;
+    margin: 0 0 12px;
+  }
+  .doc-updated {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    color: #5B4FCF;
+    margin: 0;
+  }
+  .doc-body {
+    padding: 40px 0 80px;
+    background: var(--paper, #F8F8F6);
+  }
+  .doc-prose :global(h2) {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: clamp(20px, 2.2vw, 26px);
+    letter-spacing: -0.025em;
+    color: #0A0A0A;
+    margin: 36px 0 12px;
+  }
+  .doc-prose :global(h2:first-child) { margin-top: 0; }
+  .doc-prose :global(p),
+  .doc-prose :global(li) {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: #2D3142;
+  }
+  .doc-prose :global(p) { margin: 0 0 14px; }
+  .doc-prose :global(ul) {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px;
+  }
+  .doc-prose :global(li) {
+    padding-left: 22px;
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .doc-prose :global(li)::before {
+    content: "▸";
+    color: #5B4FCF;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  .doc-prose :global(a) {
+    color: #5B4FCF;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .doc-prose :global(code) {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    color: #0A0A0A;
+    background: rgba(10,10,10,0.05);
+    border-radius: 4px;
+    padding: 1px 5px;
+    overflow-wrap: break-word;
+  }
+  .doc-prose :global(.note) {
+    border: 1px solid rgba(91,79,207,0.25);
+    background: rgba(91,79,207,0.05);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 0 0 24px;
+  }
+  .doc-cta { margin-top: 36px; }
+  .doc-cta .btn-ghost {
+    display: inline-block;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    background: transparent;
+    color: #0A0A0A;
+    border: 1px solid rgba(10,10,10,0.18);
+    transition: transform 120ms ease;
+  }
+  .doc-cta a:hover { transform: translateY(-1px); }
+</style>

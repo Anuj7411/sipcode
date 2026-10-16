@@ -1,0 +1,54 @@
+---
+import DocPage from "../components/DocPage.astro";
+---
+<DocPage
+  title="Sipcode support"
+  description="How to get help with the Sipcode CLI and its Codex plugin: common fixes, GitHub issues, and what to include in a report."
+  path="support/"
+  heading="Support"
+  updated="2026-10-16"
+>
+  <p class="note">
+    Sipcode is a free, open-source project with one maintainer. Help happens in public on GitHub:
+    <a href="https://github.com/Anuj7411/sipcode/issues" target="_blank" rel="noopener">github.com/Anuj7411/sipcode/issues</a>.
+  </p>
+
+  <h2>Common fixes</h2>
+  <ul>
+    <li><strong>"sipcode is not recognized" or "command not found"</strong> (also what the Codex plugin tells you): install it once with <code>npm i -g sipcode</code> in a terminal. You need Node.js 20 or newer.</li>
+    <li><strong>"Your Sipcode is older than this plugin"</strong> or an unknown command or option: update with <code>npm i -g sipcode@latest</code>, or run <code>sipcode update</code> to see your version and the command.</li>
+    <li><strong>A warning that compressed Codex logs were skipped</strong>: Codex compresses older logs to <code>.jsonl.zst</code>, and reading them needs Node.js 22.15 or newer.</li>
+    <li><strong>The plugin says it needs permission, or reports no sessions while you use Codex</strong>: Codex's sandbox can block <code>~/.codex</code> or <code>~/.claude</code>. Allow the plugin to run the same command with read access when Codex asks.</li>
+    <li><strong>The plugin does not show up in Codex</strong>: follow <a href="https://github.com/Anuj7411/sipcode#use-sipcode-inside-codex" target="_blank" rel="noopener">Use Sipcode inside Codex</a> in the README, then quit and reopen the ChatGPT desktop app and start a new chat.</li>
+    <li>More answers: the <a href="https://github.com/Anuj7411/sipcode#frequently-asked-questions" target="_blank" rel="noopener">FAQ</a> and the <a href="https://github.com/Anuj7411/sipcode#readme" target="_blank" rel="noopener">README</a>.</li>
+  </ul>
+
+  <h2>Report a problem or ask a question</h2>
+  <p>
+    Open an issue at <a href="https://github.com/Anuj7411/sipcode/issues/new" target="_blank" rel="noopener">github.com/Anuj7411/sipcode/issues/new</a>
+    (a free GitHub account is needed to post). Please include:
+  </p>
+  <ul>
+    <li>The output of <code>sipcode --version</code>.</li>
+    <li>Your operating system and version (for example Windows 11, macOS 15, Ubuntu 24.04).</li>
+    <li>Your Node.js version, from <code>node --version</code>.</li>
+    <li>The exact command you ran, or the question you asked the Codex plugin.</li>
+    <li>What you expected and what happened, including any error or warning Sipcode printed.</li>
+  </ul>
+  <p>
+    <strong>Never paste log contents, prompts, code or session files.</strong> Issues are public. Sipcode's own output
+    (numbers, errors and warnings) is enough; remove folder names you do not want to share.
+  </p>
+
+  <h2>Privacy problems</h2>
+  <p>
+    If you ever see Sipcode make a network call outside the two commands named in the
+    <a href={`${import.meta.env.BASE_URL}/privacy/`}>privacy policy</a>, please open an issue right away.
+  </p>
+
+  <h2>What to expect</h2>
+  <p>
+    There is no paid support and no guaranteed response time. Issues are read and answered by the maintainer as time
+    allows. Fixes ship in the next release on npm; update with <code>npm i -g sipcode@latest</code>.
+  </p>
+</DocPage>
