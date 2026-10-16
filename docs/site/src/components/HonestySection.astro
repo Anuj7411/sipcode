@@ -1,5 +1,5 @@
 ---
-// Honesty — four things Sipcode does NOT do. Single dark panel, four
+// Honesty: six things Sipcode does NOT do. Single dark panel, six
 // hairline-divided rows. No "no" glyph repeated per row — restraint IS the
 // brand statement. Dark card so it stands out from paper and reads as a
 // deliberate "we name our limits" block.
@@ -9,6 +9,14 @@ const NOTS = [
   {
     title: "Optimize Claude Desktop chat itself.",
     body: "The Desktop pipeline is closed. The proxy only works in Claude Code. Desktop gets the analytics tools.",
+  },
+  {
+    title: "Change what Codex does.",
+    body: "For Codex, Sipcode reads the logs: spend, usage limits, regressions. Codex setup (rules, proxy) is not supported yet.",
+  },
+  {
+    title: "Hide its own mistakes.",
+    body: "Sipcode once over-counted Claude Code tokens by 11.4% on one machine: resumed sessions copy earlier requests, and both copies were summed. Fixed in 1.7.0. An independent counter that shares no code with Sipcode cross-checks every period command against the same logs.",
   },
   {
     title: "Change anything until you turn it on.",

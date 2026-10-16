@@ -1,12 +1,28 @@
 ---
 // FAQ — single column, hairline-divided accordion. Plain + / − toggle, not
-// circle-chevron. First item open by default. Six questions, locked copy.
+// circle-chevron. First item open by default. Eleven questions, locked copy.
 import PlotBackground from "./PlotBackground.astro";
 
 const FAQS = [
   {
     q: "What is Sipcode?",
-    a: "An open-source toolkit that keeps Claude Code's context clean. It rewrites bulky tool calls before they run (the proxy), measures what got saved (the meter), and warns you when a session starts to drift from your baseline (the drift detector). Newer features layered on top: re-read dedup that refuses to reload files Claude already has, integrity scoring that tells you how much signal a rewrite kept, and AST-aware reads that return only the symbol Claude searched for. MIT licensed.",
+    a: "A free, open-source (MIT) command-line tool that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go: spend per day and month, the largest requests in a session, drift from your own baseline, Codex usage limits, and regressions after an update. For Claude Code it can also act: a proxy hook trims bulky tool output before it reaches the model, re-read dedup refuses to reload files Claude already has, and AST-aware reads return only the symbol Claude searched for. Zero network calls.",
+  },
+  {
+    q: "Does it work with Codex?",
+    aHtml: `Yes, for reading. <code class="chip">stats</code>, <code class="chip">today</code>, <code class="chip">forecast</code>, <code class="chip">why</code>, <code class="chip">drift</code>, <code class="chip">trend</code>, <code class="chip">impact</code> and <code class="chip">receipt</code> read Codex logs next to Claude Code's; add <code class="chip">--agent codex</code> or <code class="chip">--agent claude-code</code> for one tool. <code class="chip">sipcode limits</code> shows your Codex usage limits, <code class="chip">sipcode regress</code> checks whether an update made things worse, and the Codex plugin lets you ask Codex about all of it in plain words. Codex setup (rules, proxy) is not supported yet, so Sipcode does not change what Codex does.`,
+  },
+  {
+    q: "Does it send my code anywhere?",
+    aHtml: `No. Sipcode makes zero network calls during normal use and reads only files on your machine. A privacy test fails the build if network code is imported into the source. To make repeat runs fast it keeps small caches under <code class="chip">~/.sipcode/</code> (token counts, models, timestamps). They never hold message text and are never uploaded.`,
+  },
+  {
+    q: 'What does "possible limit cut" mean?',
+    aHtml: `<code class="chip">sipcode limits</code> counts how many tokens 1% of a Codex limit bought in each finished period, comparing periods on the same model. When a period bought at most half the median of at least two earlier periods, it is flagged as a possible limit cut. It always says "possible": limits are account-wide, and Codex use on your other devices or in the cloud raises the percent without leaving tokens in your local logs, which looks the same. On the maintainer's machine, 1% of the weekly limit bought about 425K tokens (week of Mar 28), 357K (Apr 1), then 77K (week of Apr 13): about 5x fewer, flagged as possible.`,
+  },
+  {
+    q: "Do I need the Codex CLI for the plugin?",
+    aHtml: `No. Install Sipcode once with <code class="chip">npm i -g sipcode</code>, then run <code class="chip">npx -y @openai/codex plugin marketplace add Anuj7411/sipcode</code> and <code class="chip">npx -y @openai/codex plugin add sipcode@sipcode</code>. <code class="chip">npx</code> runs OpenAI's Codex CLI without installing it. Restart the ChatGPT desktop app and ask in a new chat. If you already have the Codex CLI, run the same two commands with <code class="chip">codex</code> in place of <code class="chip">npx -y @openai/codex</code>.`,
   },
   {
     q: "Can I ask Sipcode questions in Claude Desktop?",
@@ -18,7 +34,7 @@ const FAQS = [
   },
   {
     q: "How much will it actually save me?",
-    aHtml: `The reproducible benchmark shows a 62.6 percent median. Its 20 tasks are synthetic, scripted transcripts rather than live sessions, so your number will depend on your workload. After install, <code class="chip">sipcode proxy --stats</code> shows the exact tokens rewritten on your machine.`,
+    aHtml: `For the Claude Code proxy, the reproducible benchmark shows a 62.6 percent median. Its 20 tasks are synthetic, scripted transcripts rather than live sessions, so your number will depend on your workload. After install, <code class="chip">sipcode proxy --stats</code> shows the exact tokens rewritten on your machine.`,
   },
   {
     q: "Does it change Claude's answer quality?",
@@ -43,7 +59,7 @@ const FAQS = [
     <header class="faq-head">
       <div class="head-row">
         <span class="eyebrow"><span class="tick"></span>Honest answers</span>
-        <span class="head-meta">six questions, no spin</span>
+        <span class="head-meta">eleven questions, no spin</span>
       </div>
       <h2 class="faq-title">
         Questions people <span class="accent">actually ask.</span>
