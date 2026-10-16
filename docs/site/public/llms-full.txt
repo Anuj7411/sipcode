@@ -1,12 +1,18 @@
 # Sipcode
 
-> Open source MIT CLI that keeps Anthropic Claude Code's context window clean within a session, so you get sharper answers and pay less for the same work. Runs as a PreToolUse hook, caps verbose tool output, dedups same-session re-reads, and exposes 16 MCP tools so Claude can read its own context-hygiene stats.
+> Free, open-source (MIT) command-line tool that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go. Zero network calls; nothing leaves your laptop. For Claude Code it also runs as a PreToolUse hook that caps verbose tool output and dedups same-session re-reads, and it exposes 16 MCP tools so Claude can read its own usage stats.
+
+AI coding agents spend tokens and usage limits where you cannot see them: the conversation is re-sent with every request, files get read again, idle context rides along, limits change quietly, and an update can make things worse. Sipcode makes that visible from your own logs, with numbers checked against an independent counter that shares no code with it (`scripts/verify-counts.mjs` in the repo).
 
 Sipcode is a context-hygiene proxy for [Claude Code](https://www.anthropic.com/claude-code), Anthropic's terminal coding agent. It installs as a PreToolUse hook and intercepts noisy tool output (git log, npm install, grep, ls, cat, find, tsc) before those bytes reach the model. Same-session re-reads of unchanged files are deduplicated. A Verified Warm-Fill step back-fills the dedup cache from the active Claude Code transcript on the first hook fire, so files Claude read before Sipcode was installed still get caught on their next read. The cache is only back-filled when transcript bytes match current disk after LF and BOM canonicalization, which gives zero false-dedup risk by construction.
 
 On a locked, public, synthetic 20-task benchmark corpus (scripted transcript pairs, not recordings of live sessions), Sipcode's mechanisms remove 62.6% of tokens at the median (range 37.4% to 80.6%), totalling 3,567,170 tokens and $22.48 priced as Claude Opus 4.7. Anyone can reproduce these numbers with `sipcode benchmark`. Real-world savings depend on the workload. Anthropic's published research finds cleaner context gives a 29% quality lift and 40% fewer agent errors, which is the mechanism Sipcode targets.
 
-Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag.
+Sipcode also reads OpenAI Codex CLI session logs for spend analytics. `stats`, `today`, `forecast`, `trend`, `impact`, `why`, `receipt` and `drift` accept `--agent codex`; with both tools installed they show one section per tool. Codex models are priced from OpenAI's API price table as of 2026-10-08, and a model with no known price is shown as unpriced, never as $0. The proxy, hooks and rules are not supported for Codex yet. `sipcode limits` reads the usage-limit readings Codex writes into its logs: percent used per limit window, when it runs out at the current pace, which sessions used it, and how many tokens 1% bought over time, with a cautious possible-limit-cut flag. `sipcode regress` checks the user's own Claude Code and Codex logs for regressions after an update and pins each one to the version. A Sipcode plugin for Codex lets users ask "how much did I spend", "how close am I to my limit", "why was that session expensive" and "did it get worse after an update" in plain words, in the ChatGPT desktop app or the Codex CLI; it runs the installed `sipcode` CLI locally. Setup: `npm i -g sipcode`, then `npx -y @openai/codex plugin marketplace add Anuj7411/sipcode` and `npx -y @openai/codex plugin add sipcode@sipcode` (no Codex CLI install needed), restart the ChatGPT desktop app, and ask in a new chat.
+
+Numbers from the maintainer's own logs (one machine): 1% of the weekly Codex limit bought about 425K tokens (week of Mar 28), 357K (Apr 1) and 77K (week of Apr 13), about 5x fewer, which `sipcode limits` flags as a possible limit cut (always "possible": limits are account-wide, and Codex use on other devices or in the cloud looks the same). In 1.7.0 Sipcode found it had over-counted Claude Code tokens by 11.4% (resumed sessions copy earlier requests, and both copies were summed) and fixed it.
+
+Sipcode launched on Product Hunt on Tuesday, June 23, 2026, and finished around #12 of 1,086 products that day (134 points, 28 comments).
 
 Sipcode is solo-maintained, MIT licensed, has 2,409 passing tests, and makes zero network calls during normal use. A privacy test in the repo fails the build if any `node:http`, `node:https`, `node:net`, or `node:dns` import is added to `src/`. Your code and transcripts never leave your laptop.
 
@@ -19,10 +25,16 @@ Sipcode is solo-maintained, MIT licensed, has 2,409 passing tests, and makes zer
 
 ## Install
 
+Node.js 20 or newer (Node.js 22.15 or newer to read the logs Codex compresses, `.jsonl.zst`).
+
 ```bash
 npm i -g sipcode
-sipcode init
+sipcode stats
+sipcode limits
+sipcode why
 ```
+
+For the Claude Code proxy hook, rules and manifest, run `sipcode init` (Claude Code only; Codex setup (rules, proxy) is not supported yet).
 
 ## Documentation
 
@@ -57,11 +69,13 @@ If the output reads `no drift, context health stable`, Sipcode is doing its job.
 
 ## What is Sipcode?
 
-Sipcode is a free command-line tool that sits between you and Claude Code. It does three things:
+Sipcode is a free, open-source (MIT) command-line tool that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go. For Claude Code it also does three things:
 
 1. It watches Claude Code's context window and warns you when it starts to bloat (context rot)
 2. It catches duplicate file reads and other waste before they reach Claude, so you pay less for the same answers
 3. It gives you receipts. Every saving is measurable in your terminal.
+
+For Codex it reads only: spend, usage limits (`sipcode limits`) and regressions after an update (`sipcode regress`). Codex setup (rules, proxy) is not supported yet.
 
 It is open source under the MIT license. It makes zero network calls during normal use. Your data never leaves your laptop.
 
@@ -187,9 +201,21 @@ If drift says "no drift" and proxy --stats shows a few dozen rewrites with savin
 
 Yes. MIT license. No tracking. No telemetry. No paid tier. Every line of source code is on GitHub.
 
-### Does it send code anywhere?
+### Does it send my code anywhere?
 
-No. Sipcode makes zero network calls during normal use. Everything runs locally. A privacy test fails the build if any network code is imported into the source.
+No. Sipcode makes zero network calls during normal use. Everything runs locally. A privacy test fails the build if any network code is imported into the source. Its caches under `~/.sipcode/` hold token counts, models and timestamps, never message text, and are never uploaded.
+
+### Does it work with Codex?
+
+Yes, for reading. `stats`, `today`, `forecast`, `why`, `drift`, `trend`, `impact` and `receipt` read Codex logs next to Claude Code's; `--agent codex` or `--agent claude-code` picks one tool. `sipcode limits` shows Codex usage limits, `sipcode regress` checks whether an update made things worse, and the Codex plugin answers these questions in plain words. Codex setup (rules, proxy) is not supported yet.
+
+### What does "possible limit cut" mean?
+
+`sipcode limits` counts how many tokens 1% of a Codex limit bought in each finished period, on the same model. A period that bought at most half the median of at least two earlier periods is flagged as a possible limit cut. It always says "possible": limits are account-wide, and Codex use on other devices or in the cloud raises the percent without leaving tokens in your local logs, which looks the same.
+
+### Do I need the Codex CLI for the plugin?
+
+No. After `npm i -g sipcode`, run `npx -y @openai/codex plugin marketplace add Anuj7411/sipcode` and `npx -y @openai/codex plugin add sipcode@sipcode`. `npx` runs OpenAI's Codex CLI without installing it. Restart the ChatGPT desktop app and ask in a new chat.
 
 ### How is it different from other context tools?
 
@@ -218,10 +244,12 @@ npm uninstall -g sipcode
 | `sipcode drift` | Check if the current session is drifting from the norm |
 | `sipcode proxy --stats` | See what the proxy caught this session |
 | `sipcode benchmark` | Run the locked 20-task corpus |
+| `sipcode stats` | Tokens and spend over a window, one section per tool by default |
 | `sipcode today` | Today's spend summary |
 | `sipcode forecast` | Month-end spend projection |
 | `sipcode limits` | Codex usage limits: when you run out at this pace, what used them, tokens per 1% over time |
 | `sipcode regress` | Did Claude Code or Codex get worse after an update? Each version against your other versions |
+| `sipcode trend` | Track one metric over time |
 | `sipcode impact` | Before vs after Sipcode comparison |
 | `sipcode why` | Per-session forensics |
 | `sipcode score` | Audit a repo for AI-friendliness |
@@ -265,18 +293,20 @@ The session tools take an optional `agent` input (`"claude-code"` or `"codex"`).
 
 ## Wiring
 
-The MCP server is registered automatically by `sipcode init`. To register manually, add Sipcode to the MCP config of any MCP-aware client. Claude Desktop config example:
+Add Sipcode to the MCP config of any MCP-aware client (`sipcode init` checks the tool count but does not register the server). Claude Desktop config example:
 
 ```json
 {
   "mcpServers": {
     "sipcode": {
-      "command": "sipcode",
-      "args": ["mcp"]
+      "command": "npx",
+      "args": ["-y", "-p", "sipcode", "sipcode-mcp"]
     }
   }
 }
 ```
+
+With Sipcode installed globally, `"command": "sipcode-mcp"` works on macOS and Linux; on Windows use `"command": "cmd", "args": ["/c", "sipcode-mcp"]` (see docs/MCP.md in the repo).
 
 ## Privacy
 
