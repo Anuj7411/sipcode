@@ -1,0 +1,137 @@
+---
+import DocPage from "../components/DocPage.astro";
+---
+<DocPage
+  title="Sipcode privacy policy"
+  description="What the Sipcode CLI and its Codex plugin read on your computer, what they write there, and what they never do: no network calls, no telemetry, nothing uploaded."
+  path="privacy/"
+  heading="Privacy policy"
+  updated="2026-10-16"
+>
+  <p class="note">
+    Short version: Sipcode is a command-line tool that reads files on your computer and writes files on your computer.
+    It makes no network calls, has no telemetry, no account and no sign-in, and uploads nothing.
+    The Sipcode plugin for Codex runs the same local <code>sipcode</code> command and adds nothing to that.
+    This page covers the Sipcode CLI (npm package <code>sipcode</code>), its MCP server and its Codex plugin.
+    The source version of this policy is <a href="https://github.com/Anuj7411/sipcode/blob/main/PRIVACY.md" target="_blank" rel="noopener">PRIVACY.md</a> in the repository.
+  </p>
+
+  <h2>Personal data we collect</h2>
+  <p>
+    None. Sipcode never sends anything to the developer or to anyone else, so nothing about you, your code or your
+    prompts reaches us. Everything below happens only on your own computer.
+  </p>
+  <ul>
+    <li>No analytics, no event pings, no error reporting service.</li>
+    <li>No telemetry of any kind, not even an opt-out kind.</li>
+    <li>No signup, no account, no signed-in mode, no API key prompt.</li>
+    <li>No auto-update check, no version ping, no usage counter.</li>
+    <li>No background daemon. Sipcode runs only when you run a command and exits when it is done.</li>
+  </ul>
+
+  <h2>What Sipcode reads on your computer</h2>
+  <p>Local files only, read-only, and only when you run a command (or ask the Codex plugin a question, which runs one command):</p>
+  <ul>
+    <li><code>~/.claude/projects/&lt;hash&gt;/*.jsonl</code>: the session transcripts Claude Code already writes on your computer. Used by <code>why</code>, <code>stats</code>, <code>receipt</code>, <code>benchmark</code> and <code>regress</code>.</li>
+    <li><code>~/.codex/sessions/</code> and <code>~/.codex/archived_sessions/</code> (or the folder <code>CODEX_HOME</code> points to): the session logs OpenAI Codex writes on your computer. Used by <code>stats</code>, <code>today</code>, <code>forecast</code>, <code>trend</code>, <code>impact</code>, <code>why</code>, <code>receipt</code>, <code>drift</code>, <code>regress</code> and <code>limits</code>, and by the MCP session tools and <code>get_codex_limits</code>, when Codex is installed. <code>limits</code> and <code>today</code> also read the usage-limit readings Codex writes into those logs (percent used, window length, reset time, plan type).</li>
+    <li>Your repository's source files, for <code>manifest</code>, <code>score</code> and <code>init</code>. Parsing happens in-process.</li>
+    <li>Git history, through the <code>git</code> program already on your computer, for hot files and change frequency.</li>
+    <li>The pricing tables shipped inside the npm package (Anthropic and OpenAI). They come with each release and are never fetched.</li>
+  </ul>
+
+  <h2>What Sipcode writes on your computer</h2>
+  <p>Every write is caused by a command you ran. There are no background writes.</p>
+  <ul>
+    <li><code>.sipcode/</code> files in your repository: manifest, receipts (HTML and PNG), stats HTML, badge JSON, score HTML, benchmark HTML, and <code>install-state.json</code> (when you last ran <code>rules --install</code> or <code>hygiene --install</code>, and the rules mode, used by <code>impact</code>).</li>
+    <li>One marked block in your <code>CLAUDE.md</code>. <code>sipcode rules --uninstall</code> removes it exactly.</li>
+    <li>Entries in <code>~/.claude/settings.json</code> and hook scripts at <code>~/.claude/hooks/sipcode-*.mjs</code>, only when you run <code>sipcode hygiene --install</code>. <code>--uninstall</code> removes them. These scripts make no network calls either.</li>
+    <li>The proxy hook, <code>~/.claude/hooks/sipcode-proxy.mjs</code> plus its entry in <code>~/.claude/settings.json</code>, only when you run <code>sipcode proxy --install</code> or <code>sipcode init</code> (skip it with <code>init --no-proxy</code>). <code>sipcode proxy --uninstall</code> removes it. It runs inside Claude Code before each tool call, reads and writes only local files, and makes no network calls.</li>
+    <li>The receipt PNG is copied to your clipboard, only when you run <code>sipcode receipt</code>, using your system's own clipboard tool.</li>
+    <li>Local caches under <code>~/.sipcode/</code>, so repeat runs do not re-read every log:
+      <ul>
+        <li><code>~/.sipcode/usage-cache/claude-code.json</code> and <code>~/.sipcode/usage-cache/codex.json</code> (<code>today</code>, <code>forecast</code>, <code>limits</code>, <code>regress</code>): for each session log, its size and modified time, plus token counts, model names, timestamps, request ids, each Claude Code request's version and entrypoint and whether it followed a tool result, the session's working folder and the paths of files the agent read. Never message text, prompts, file contents or command output.</li>
+        <li><code>~/.sipcode/drift/sessions-v3.jsonl</code> (<code>drift</code>): per-session metrics (session id, end time, token counts, cache-hit rate, duplicate-read tokens, and the project folder as an encoded name such as <code>C--Projects-app</code>). <code>~/.sipcode/drift/configs.jsonl</code> keeps the names of your Claude Code MCP servers over time. An older <code>~/.sipcode/drift/sessions.jsonl</code> from before v1.7.0 is no longer used and can be deleted.</li>
+        <li><code>~/.sipcode/proxy-reads/&lt;session-id&gt;.jsonl</code> (the proxy hook's re-read check, Claude Code only): for each file Claude read in that session, its path, a sha256 hash of its contents, modified time, size, a rough token estimate, and the turn and time it was first read. Never the file contents. A <code>&lt;session-id&gt;.warmed</code> marker beside it records that the cache was filled once from the session transcript.</li>
+        <li><code>~/.sipcode/proxy-stats/proxy-stats-*.jsonl</code> (the proxy hook, read by <code>sipcode proxy --stats</code>): one line per rewritten or deduplicated tool call, with its time, the tool name, which rewriter acted, the estimated tokens saved and an integrity score. Never the command output.</li>
+        <li><code>~/.sipcode/proxy-signals/&lt;session-id&gt;.jsonl</code> (the proxy hook, Claude Code only): the search patterns Claude sent to Grep, Glob or a grep command in that session, with the tool name and the time, so a later read can return only the matching symbols.</li>
+        <li><code>~/.sipcode/install-pending.json</code>: written only when <code>sipcode init</code> runs while a Claude Code session is active. It holds the hook script and settings paths so the next quiet <code>sipcode</code> command can finish the proxy install, and is removed once applied.</li>
+        <li><code>~/.sipcode/benchmark-live/results.jsonl</code>: written only when you run <code>sipcode benchmark --vs-rtk --live</code>. One line per run with the task id, condition, model, token counts, the cost Claude Code reported and the duration. That command runs <code>claude --print</code>, which uses your Claude account and the network the way Claude Code always does.</li>
+        <li><code>~/.sipcode/.star-nudge</code>: a marker file (its only content is <code>sipcode-star-nudge/1</code>) so the one-time "star on GitHub" line after <code>proxy --stats</code> is shown only once per machine.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>Why it reads this</h2>
+  <p>
+    Only to answer the question you asked: token use and cost at API prices, usage limits, why a session was expensive,
+    whether a tool got worse after an update, and the other reports listed in the
+    <a href="https://github.com/Anuj7411/sipcode#readme" target="_blank" rel="noopener">README</a>. The caches exist only to make the next run faster.
+  </p>
+
+  <h2>Who receives it</h2>
+  <p>
+    Nobody. Sipcode does not upload or share anything. What it prints goes to your terminal. When you use the Codex plugin
+    or the MCP server, Sipcode's printed answer goes to the agent you asked (Codex or Claude Code), on your computer, and from
+    there it is handled under that agent's and its provider's own terms and privacy policy, like anything else you share in that chat.
+  </p>
+
+  <h2>How long it is kept</h2>
+  <p>
+    The caches stay on your disk until you delete them. They are never uploaded. To remove them, delete the folders, for example
+    <code>rm -rf ~/.sipcode/usage-cache ~/.sipcode/drift</code>, or all of <code>~/.sipcode</code>. They are rebuilt on the next run; the only cost is a slower first run.
+  </p>
+
+  <h2>Your controls</h2>
+  <ul>
+    <li>Sipcode does nothing unless you run a command. There is no daemon, no installed service and no startup item.</li>
+    <li>Delete <code>~/.sipcode/</code> at any time.</li>
+    <li>Undo the optional changes with <code>sipcode rules --uninstall</code>, <code>sipcode hygiene --uninstall</code> and <code>sipcode proxy --uninstall</code>.</li>
+    <li>Remove Sipcode with <code>npm uninstall -g sipcode</code>, and remove the Codex plugin from Codex's plugin list.</li>
+  </ul>
+
+  <h2>How the no-network promise is checked</h2>
+  <p>
+    It is a property of the code, checked by a test. <code>tests/privacy/no-network.test.ts</code> scans every TypeScript file
+    under <code>src/</code> and fails the build if it finds a runtime import of <code>node:http</code>, <code>node:https</code>,
+    <code>node:net</code>, <code>node:dgram</code>, <code>node:tls</code> or <code>node:dns</code>, or a top-level
+    <code>fetch(</code>, <code>new XMLHttpRequest</code> or <code>new WebSocket(</code>, including in the generated hook scripts.
+    If that test fails on a release, that release breaks this policy: please
+    <a href="https://github.com/Anuj7411/sipcode/issues" target="_blank" rel="noopener">open an issue</a>.
+  </p>
+
+  <h2>Honest scope</h2>
+  <p>
+    The guarantee covers Sipcode's own code. It does not extend to third-party libraries, to Claude Code or Codex themselves,
+    or to your shell, operating system or editor. The source and the test are public so you can check them.
+  </p>
+  <p>
+    Two commands start another program that uses the network, and only when you run them: <code>sipcode update --run</code>
+    runs <code>npm i -g sipcode@latest</code> (npm downloads the new version), and <code>sipcode benchmark --vs-rtk --live</code>
+    runs <code>claude --print</code>. Without <code>--run</code>, <code>sipcode update</code> only prints the npm command.
+    The Codex plugin never runs either of them.
+  </p>
+
+  <h2>This website</h2>
+  <p>
+    This website (anuj7411.github.io/sipcode) is separate from the CLI and the plugin. It is hosted on GitHub Pages and counts
+    page views with <a href="https://umami.is" target="_blank" rel="noopener">Umami Cloud</a>, which does not set cookies and
+    records page-level data such as the page address, referring site, browser, operating system, screen size and language.
+    The page loads fonts from Google Fonts and the Product Hunt badge image from Product Hunt, so those services and GitHub
+    receive your browser's request (including your IP address) under their own privacy policies. Nothing the CLI or the plugin
+    does is sent to this website.
+  </p>
+
+  <h2>Future changes</h2>
+  <p>
+    If a cloud feature ever ships, it will be opt-in, off by default, and announced in the version that introduces it.
+    Changes to this policy are made in <a href="https://github.com/Anuj7411/sipcode/blob/main/PRIVACY.md" target="_blank" rel="noopener">PRIVACY.md</a>
+    and on this page, with a new date at the top.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about privacy: <a href={`${import.meta.env.BASE_URL}/support/`}>support</a>, or open an issue at
+    <a href="https://github.com/Anuj7411/sipcode/issues" target="_blank" rel="noopener">github.com/Anuj7411/sipcode/issues</a>.
+    Sipcode is built by Anuj Ojha.
+  </p>
+</DocPage>

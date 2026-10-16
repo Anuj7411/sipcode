@@ -19,3 +19,6 @@ _export/
 .vscode/
 .idea/
 page_tmp.html
+
+# Plugin directory ZIP (scripts/pack-plugin.mjs)
+dist-plugin/

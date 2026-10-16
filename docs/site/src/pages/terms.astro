@@ -1,0 +1,72 @@
+---
+import DocPage from "../components/DocPage.astro";
+const base = import.meta.env.BASE_URL;
+---
+<DocPage
+  title="Sipcode terms of use"
+  description="Plain-language terms for Sipcode, a free, MIT-licensed, local-only command-line tool, and its Codex plugin."
+  path="terms/"
+  heading="Terms of use"
+  updated="2026-10-16"
+>
+  <p class="note">
+    These terms cover the Sipcode command-line tool (npm package <code>sipcode</code>), its MCP server, its Codex plugin and this website.
+    They are written in plain words. They are not legal advice.
+  </p>
+
+  <h2>What Sipcode is</h2>
+  <p>
+    Sipcode is free, open-source software by Anuj Ojha. It reads the logs Claude Code and OpenAI Codex already write on your
+    computer and reports token use, cost estimates, usage limits and possible regressions. The Codex plugin is a set of
+    instructions that lets Codex run the <code>sipcode</code> command on your computer and explain its output.
+  </p>
+
+  <h2>License and no warranty</h2>
+  <p>
+    Sipcode is released under the <a href="https://github.com/Anuj7411/sipcode/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>.
+    You may use, copy, change and share it under that license. As the license says, the software is provided "as is",
+    without warranty of any kind, and the author is not liable for any claim, damages or other liability arising from it
+    or its use. If these terms and the MIT License ever differ, the MIT License wins.
+  </p>
+
+  <h2>No account, no data collected</h2>
+  <p>
+    There is nothing to sign up for and nothing to pay. Sipcode makes no network calls during normal use, has no telemetry
+    and sends nothing to the developer. The <a href={`${base}/privacy/`}>privacy policy</a> lists exactly what it reads and
+    what it writes on your own computer.
+  </p>
+
+  <h2>Your responsibilities</h2>
+  <ul>
+    <li>You decide what to run and how you use the results.</li>
+    <li>You remain bound by the terms of the AI tools and providers you use (for example OpenAI, Anthropic, Claude Code and Codex). Sipcode does not change those terms or your plan.</li>
+    <li>Some commands change files when you run them (for example <code>sipcode init</code>, <code>rules</code>, <code>hygiene --install</code> and <code>proxy --install</code>). Each has an uninstall or undo option, listed in the <a href="https://github.com/Anuj7411/sipcode#readme" target="_blank" rel="noopener">README</a>.</li>
+  </ul>
+
+  <h2>Numbers are estimates</h2>
+  <ul>
+    <li>Dollar amounts are estimates at public API prices from the price tables shipped with each release. On a subscription plan you are not billed per token, and your real bill can differ.</li>
+    <li>Usage-limit figures come from the readings Codex writes into its own logs. Limits cover your whole account, so use on other devices or in Codex cloud raises the percent without showing up on this computer.</li>
+    <li>"Possible limit cut" is a signal, not proof. It means a finished period bought at most half the median tokens per 1% of at least two earlier periods on the same model. Codex use on another device or in the cloud can cause the same pattern.</li>
+    <li>Regression findings outside Sipcode's known catalog are signals worth reporting, not proof of a bug.</li>
+  </ul>
+
+  <h2>The Codex plugin</h2>
+  <p>
+    The plugin needs the <code>sipcode</code> command installed on your computer (<code>npm i -g sipcode</code>, Node.js 20 or newer).
+    It runs that command locally and shows its output. It adds no network calls, stores nothing of its own, and has no hooks
+    and no MCP server. OpenAI and the plugin directory are not part of Sipcode and do not endorse it.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    These terms may change with new releases. The date at the top shows the last change, and the history is public in the
+    <a href="https://github.com/Anuj7411/sipcode" target="_blank" rel="noopener">repository</a>.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    For problems or questions, see <a href={`${base}/support/`}>support</a> or open an issue at
+    <a href="https://github.com/Anuj7411/sipcode/issues" target="_blank" rel="noopener">github.com/Anuj7411/sipcode/issues</a>.
+  </p>
+</DocPage>

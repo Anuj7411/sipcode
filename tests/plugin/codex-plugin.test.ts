@@ -112,11 +112,26 @@ describe("Codex plugin: manifest", () => {
     expect(iface.defaultPrompt.length).toBeLessThanOrEqual(3);
     for (const p of iface.defaultPrompt) expect(p.length).toBeLessThanOrEqual(128);
     expect(new Set(iface.defaultPrompt).size).toBe(iface.defaultPrompt.length);
-    for (const u of [iface.websiteURL, iface.privacyPolicyURL]) {
+    // All four listing URLs, on the publisher's own site (built from docs/site/src/pages).
+    expect(iface.websiteURL).toBe("https://anuj7411.github.io/sipcode/");
+    expect(iface.supportURL).toBe("https://anuj7411.github.io/sipcode/support/");
+    expect(iface.privacyPolicyURL).toBe("https://anuj7411.github.io/sipcode/privacy/");
+    expect(iface.termsOfServiceURL).toBe("https://anuj7411.github.io/sipcode/terms/");
+    for (const page of ["support", "privacy", "terms"]) {
+      expect(existsSync(path.join(ROOT, "docs", "site", "src", "pages", `${page}.astro`)), page).toBe(true);
+    }
+    for (const u of [iface.websiteURL, iface.supportURL, iface.privacyPolicyURL, iface.termsOfServiceURL]) {
       expect(u).toMatch(/^https:\/\//);
       expect(u.length).toBeLessThanOrEqual(1024);
     }
     expect(iface.brandColor).toMatch(/^#[0-9A-F]{6}$/);
+  });
+
+  // developers.openai.com/plugins/deploy/desktop-only: a skills-only plugin that calls
+  // local programs sets requires_local_executor (Desktop only badge in the directory).
+  it("marked Desktop only: the skills run the local sipcode command", () => {
+    expect(manifest.extensions["com.openai"].requires_local_executor).toBe(true);
+    expect(overlay.requires_local_executor).toBe(true);
   });
 
   it("logo and composer icon: ./assets paths, square PNG of at least 48 px, under 5 MiB", () => {
@@ -137,6 +152,11 @@ describe("Codex plugin: manifest", () => {
     }
     expect(overlay.skills).toBe("./skills/");
     expect(overlay.interface).toEqual(iface);
+    // Same keys as the inline extension (interface plus top-level OpenAI settings), nothing else.
+    const { interface: _i, ...openaiRest } = manifest.extensions["com.openai"];
+    for (const [k, v] of Object.entries(openaiRest)) expect(overlay[k], k).toEqual(v);
+    const overlayKeys = ["name", "version", "description", "author", "homepage", "repository", "license", "keywords", "skills", "interface", ...Object.keys(openaiRest)];
+    expect(Object.keys(overlay).sort()).toEqual([...overlayKeys].sort());
     expect(readdirSync(path.join(PLUGIN, ".codex-plugin"))).toEqual(["plugin.json"]);
   });
 });
@@ -146,6 +166,7 @@ describe("Codex plugin: eligible for the public directory", () => {
     const files = filesUnder(PLUGIN).sort();
     expect(files).toEqual([
       ".codex-plugin/plugin.json",
+      "README.md",
       "assets/logo.png",
       "plugin.json",
       ...SKILLS.map((s) => `skills/${s}/SKILL.md`),

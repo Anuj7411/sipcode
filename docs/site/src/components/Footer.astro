@@ -1,6 +1,7 @@
 ---
 // Footer — dark ink ground. Three columns max. No newsletter form, no six
 // columns, no social icon row for platforms we don't post on.
+const base = import.meta.env.BASE_URL;
 ---
 
 <footer class="footer">
@@ -65,6 +66,9 @@
           <li><a href="https://github.com/Anuj7411/sipcode" target="_blank" rel="noopener">GitHub</a></li>
           <li><a href="https://www.npmjs.com/package/sipcode" target="_blank" rel="noopener">npm</a></li>
           <li><a href="https://github.com/Anuj7411/sipcode/issues" target="_blank" rel="noopener">Issues</a></li>
+          <li><a href={`${base}/support/`}>Support</a></li>
+          <li><a href={`${base}/privacy/`}>Privacy</a></li>
+          <li><a href={`${base}/terms/`}>Terms</a></li>
         </ul>
       </div>
 
