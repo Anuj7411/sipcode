@@ -26,7 +26,7 @@
     "defaultPrompt": [
       "How much did I spend on Codex this month?",
       "How close am I to my Codex usage limit?",
-      "Did Codex or Claude Code get worse after an update?"
+      "Did Codex get worse after an update?"
     ],
     "brandColor": "#5B4FCF",
     "composerIcon": "./assets/logo.png",

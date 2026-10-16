@@ -58,7 +58,7 @@ The directory takes at most three. These are in the manifest:
 
 1. `How much did I spend on Codex this month?` (41 characters)
 2. `How close am I to my Codex usage limit?` (39)
-3. `Did Codex or Claude Code get worse after an update?` (51)
+3. `Did Codex get worse after an update?` (36)
 
 The fourth question does not fit as a starter prompt but works the same way, and the long description names it:
 
