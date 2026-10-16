@@ -11,7 +11,7 @@
  *     "mcpServers": {
  *       "sipcode": {
  *         "command": "npx",
- *         "args": ["-y", "sipcode-mcp"]
+ *         "args": ["-y", "-p", "sipcode", "sipcode-mcp"]
  *       }
  *     }
  *   }

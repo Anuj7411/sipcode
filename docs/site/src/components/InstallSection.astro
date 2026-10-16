@@ -1,6 +1,6 @@
 ---
-// Install section — two side-by-side cards, one per surface (Claude Code,
-// Claude Desktop). Each card: surface label, instruction, copyable code block,
+// Install section: four cards in a 2x2 grid (terminal for both tools, Codex
+// plugin, Claude Code proxy, Claude Desktop). Each card: surface label, instruction, copyable code block,
 // restart note. Stacks on mobile. Designed against real browser viewports,
 // not full monitor heights.
 import PlotBackground from "./PlotBackground.astro";
@@ -17,13 +17,13 @@ import PlotBackground from "./PlotBackground.astro";
         <span class="head-meta">node 20+ · macOS · linux · windows</span>
       </div>
       <h2 class="install-title">
-        Two surfaces. <span class="accent">Same toolkit.</span>
+        Four ways in. <span class="accent">Same local logs.</span>
       </h2>
     </header>
 
     <div class="cards">
 
-      <!-- Card A: Claude Code -->
+      <!-- Card A: terminal, both tools -->
       <article class="card">
         <header class="card-head">
           <span class="card-glyph" aria-hidden="true">
@@ -31,30 +31,94 @@ import PlotBackground from "./PlotBackground.astro";
               <path d="M4 5.5l4 3.5-4 3.5" /><path d="M9.5 13h4.5" />
             </svg>
           </span>
-          <span class="card-name">Claude Code</span>
-          <span class="card-sub">terminal</span>
+          <span class="card-name">Terminal</span>
+          <span class="card-sub">claude code + codex</span>
         </header>
 
         <p class="card-instruction">
-          Install the package, then turn on the proxy hook.
+          Install the package, then read your logs.
         </p>
 
         <div class="code-block">
-          <button class="copy-btn" type="button" data-code="npm install -g sipcode
-sipcode proxy --install" aria-label="Copy install commands to clipboard">
+          <button class="copy-btn" type="button" data-code="npm i -g sipcode
+sipcode stats
+sipcode limits
+sipcode why" aria-label="Copy install commands to clipboard">
             <span class="copy-label">Copy</span>
             <span class="copy-done" aria-hidden="true">Copied</span>
           </button>
-          <pre><code><span class="prompt">$</span> npm install <span class="flag">-g</span> sipcode
-<span class="prompt">$</span> sipcode proxy <span class="flag">--install</span></code></pre>
+          <pre><code><span class="prompt">$</span> npm i <span class="flag">-g</span> sipcode
+<span class="prompt">$</span> sipcode stats
+<span class="prompt">$</span> sipcode limits
+<span class="prompt">$</span> sipcode why</code></pre>
         </div>
 
         <p class="card-note">
-          Restart Claude Code. You are done.
+          Node.js 20 or newer. Reading the logs Codex compresses (<code class="footnote-chip">.jsonl.zst</code>) needs Node.js 22.15 or newer. <code class="footnote-chip">sipcode limits</code> is Codex only.
         </p>
       </article>
 
-      <!-- Card B: Claude Desktop -->
+      <!-- Card B: Codex plugin -->
+      <article class="card">
+        <header class="card-head">
+          <span class="card-glyph" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 4.5h12v8H8l-3.5 2.5V12.5H3z" />
+            </svg>
+          </span>
+          <span class="card-name">Codex plugin</span>
+          <span class="card-sub">chatgpt app · codex cli</span>
+        </header>
+
+        <p class="card-instruction">
+          After <code class="footnote-chip">npm i -g sipcode</code>, add the plugin. <code class="footnote-chip">npx</code> runs the Codex CLI for you, so you do not need it installed.
+        </p>
+
+        <div class="code-block">
+          <button class="copy-btn" type="button" data-code="npx -y @openai/codex plugin marketplace add Anuj7411/sipcode
+npx -y @openai/codex plugin add sipcode@sipcode" aria-label="Copy Codex plugin commands to clipboard">
+            <span class="copy-label">Copy</span>
+            <span class="copy-done" aria-hidden="true">Copied</span>
+          </button>
+          <pre><code><span class="prompt">$</span> npx <span class="flag">-y</span> @openai/codex plugin marketplace add Anuj7411/sipcode
+<span class="prompt">$</span> npx <span class="flag">-y</span> @openai/codex plugin add sipcode@sipcode</code></pre>
+        </div>
+
+        <p class="card-note">
+          Restart the ChatGPT desktop app, then ask in a new chat: "how close am I to my Codex limit?"
+        </p>
+      </article>
+
+      <!-- Card C: Claude Code proxy -->
+      <article class="card">
+        <header class="card-head">
+          <span class="card-glyph" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 5.5l4 3.5-4 3.5" /><path d="M9.5 13h4.5" />
+            </svg>
+          </span>
+          <span class="card-name">Claude Code proxy</span>
+          <span class="card-sub">optional</span>
+        </header>
+
+        <p class="card-instruction">
+          Turn on the hook that trims bulky commands before Claude sees them.
+        </p>
+
+        <div class="code-block">
+          <button class="copy-btn" type="button" data-code="sipcode proxy --install" aria-label="Copy proxy install command to clipboard">
+            <span class="copy-label">Copy</span>
+            <span class="copy-done" aria-hidden="true">Copied</span>
+          </button>
+          <pre><code><span class="prompt">$</span> sipcode proxy <span class="flag">--install</span></code></pre>
+        </div>
+
+        <p class="card-note">
+          Restart Claude Code. This part is Claude Code only: Codex setup (rules, proxy) is not supported yet.
+        </p>
+      </article>
+
+      <!-- Card D: Claude Desktop -->
       <article class="card">
         <header class="card-head">
           <span class="card-glyph" aria-hidden="true">
@@ -73,7 +137,7 @@ sipcode proxy --install" aria-label="Copy install commands to clipboard">
         <div class="code-block">
           <button class="copy-btn" type="button" data-code={`{
   "mcpServers": {
-    "sipcode": { "command": "npx", "args": ["-y", "sipcode-mcp"] }
+    "sipcode": { "command": "npx", "args": ["-y", "-p", "sipcode", "sipcode-mcp"] }
   }
 }`} aria-label="Copy MCP config to clipboard">
             <span class="copy-label">Copy</span>
@@ -81,7 +145,7 @@ sipcode proxy --install" aria-label="Copy install commands to clipboard">
           </button>
           <pre><code><span class="punct">{`{`}</span>
   <span class="key">"mcpServers"</span><span class="punct">:</span> <span class="punct">{`{`}</span>
-    <span class="key">"sipcode"</span><span class="punct">:</span> <span class="punct">{`{`}</span> <span class="key">"command"</span><span class="punct">:</span> <span class="str">"npx"</span><span class="punct">,</span> <span class="key">"args"</span><span class="punct">:</span> <span class="punct">[</span><span class="str">"-y"</span><span class="punct">,</span> <span class="str">"sipcode-mcp"</span><span class="punct">]</span> <span class="punct">{`}`}</span>
+    <span class="key">"sipcode"</span><span class="punct">:</span> <span class="punct">{`{`}</span> <span class="key">"command"</span><span class="punct">:</span> <span class="str">"npx"</span><span class="punct">,</span> <span class="key">"args"</span><span class="punct">:</span> <span class="punct">[</span><span class="str">"-y"</span><span class="punct">,</span> <span class="str">"-p"</span><span class="punct">,</span> <span class="str">"sipcode"</span><span class="punct">,</span> <span class="str">"sipcode-mcp"</span><span class="punct">]</span> <span class="punct">{`}`}</span>
   <span class="punct">{`}`}</span>
 <span class="punct">{`}`}</span></code></pre>
         </div>

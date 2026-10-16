@@ -13,13 +13,16 @@ import PlotBackground from "./PlotBackground.astro";
     <header class="why-head">
       <div class="head-row">
         <span class="eyebrow"><span class="tick"></span>The hidden cost</span>
-        <span class="head-meta">cited from research</span>
+        <span class="head-meta">why sipcode exists</span>
       </div>
       <h2 class="why-title">
-        Your bill isn't the only thing context rot costs.
+        Coding agents spend tokens you never see.
       </h2>
       <p class="why-lede">
-        Same task, same model. Watch what bloated context does.
+        Every request re-sends the conversation so far. Files get read again. Idle context rides along. Usage limits change quietly, and an update can make things worse. Sipcode makes all of it visible from your own logs, with numbers checked against an independent counter that shares no code with it.
+      </p>
+      <p class="why-lede why-lede--next">
+        Bloated context costs quality too. Same task, same model:
       </p>
     </header>
 
@@ -219,7 +222,12 @@ import PlotBackground from "./PlotBackground.astro";
     font-size: clamp(14.5px, 1.1vw, 16px);
     line-height: 1.55;
     color: var(--charcoal);
-    max-width: 600px;
+    max-width: 680px;
+  }
+  .why-lede--next {
+    margin-top: 12px;
+    font-weight: 500;
+    color: var(--ink);
   }
 
   /* ---------- comparison block (DARK so it stands out from paper) ---------- */

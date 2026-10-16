@@ -65,6 +65,14 @@ const rows: Row[] = [
     toolD: "—",
   },
   {
+    capability: "Agents covered",
+    sipcode: "Claude Code (all features); OpenAI Codex (spend, usage limits, regressions; no hook)",
+    toolA: "not compared",
+    toolB: "not compared",
+    toolC: "not compared",
+    toolD: "not compared",
+  },
+  {
     capability: "Network calls during normal use",
     sipcode: "0",
     toolA: "varies",
@@ -87,8 +95,8 @@ const rows: Row[] = [
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How Sipcode compares — Sipcode</title>
-  <meta name="description" content="Honest, anonymized side-by-side comparison of Sipcode and the field. Audit methodology below." />
+  <title>How Sipcode compares: Claude Code and Codex token tools</title>
+  <meta name="description" content="Honest, anonymized side-by-side comparison of Sipcode and the field. Sipcode reads Claude Code and OpenAI Codex logs locally. Audit methodology below." />
   <link rel="canonical" href="https://anuj7411.github.io/sipcode/compare/" />
   <link rel="icon" type="image/png" href={`${base}/favicon-32.png`} />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} />
@@ -149,6 +157,7 @@ const rows: Row[] = [
         <h2 class="method-h2">Methodology</h2>
         <ul class="method-list">
           <li>Audited via public GitHub repositories and shipped documentation on 2026-06-15.</li>
+          <li>The "Agents covered" row was added later and is not compared for the other tools.</li>
           <li>Sipcode is one of the tools audited; you can re-run the audit on Sipcode itself by reading the source.</li>
           <li>Where a capability is binary (does it exist or not), the cell shows <span class="mono">✓</span> or <span class="mono">—</span>.</li>
           <li>Where a capability has a measured value, the cell shows the value and a brief caveat.</li>
@@ -156,7 +165,7 @@ const rows: Row[] = [
         </ul>
         <div class="method-cta">
           <a href={`${base}/`} class="btn-ghost">← back to home</a>
-          <a href={`${base}/roadmap/`} class="btn-primary">see the roadmap →</a>
+          <a href={`${base}/#install`} class="btn-primary">install →</a>
         </div>
       </div>
     </section>

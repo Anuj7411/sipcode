@@ -182,7 +182,7 @@ The MCP server is a standard MCP stdio server. It works with:
 
 Check that you can run `sipcode-mcp` from your terminal directly (after `npm install -g sipcode`). If it prints `[sipcode-mcp] connected (sipcode vX.Y.Z, 6 tools)` and then waits for input, the server is healthy. Press `Ctrl+C` to exit.
 
-If `npx sipcode-mcp` fails: confirm `npm install -g sipcode` succeeded with `sipcode --version` showing `1.1.0` or later.
+If `sipcode-mcp` is not found: confirm `npm install -g sipcode` succeeded with `sipcode --version`. Without a global install, use `npx -y -p sipcode sipcode-mcp` (`sipcode-mcp` is a command inside the `sipcode` package, not a package of its own).
 
 ### "No sessions found" when calling `audit_latest_session`
 

@@ -3,6 +3,7 @@ import "../styles/global.css";
 import Hero from "../components/Hero.astro";
 import WhySection from "../components/WhySection.astro";
 import LayersSection from "../components/LayersSection.astro";
+import CodexSection from "../components/CodexSection.astro";
 import DemoSection from "../components/DemoSection.astro";
 import DriftSection from "../components/DriftSection.astro";
 import InstallSection from "../components/InstallSection.astro";
@@ -20,8 +21,8 @@ const base = import.meta.env.BASE_URL;
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sipcode — Sip your tokens. Don't gulp them.</title>
-  <meta name="description" content="Keep Claude Code's context clean for sharper answers and lower cost, automatically. Open-source token-economy observatory for Claude. MIT." />
+  <title>Sipcode: see where your Claude Code and Codex tokens go</title>
+  <meta name="description" content="Free, open-source (MIT) CLI that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go. Zero network calls." />
   <link rel="canonical" href="https://anuj7411.github.io/sipcode/" />
   <link rel="icon" type="image/png" href={`${base}/favicon-32.png`} />
   <link rel="apple-touch-icon" href={`${base}/apple-touch-icon.png`} />
@@ -36,15 +37,15 @@ const base = import.meta.env.BASE_URL;
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <!-- OpenGraph -->
-  <meta property="og:title" content="Sipcode — Sip your tokens. Don't gulp them." />
-  <meta property="og:description" content="Keep Claude Code's context clean for sharper answers and lower cost, automatically." />
+  <meta property="og:title" content="Sipcode: see where your Claude Code and Codex tokens go" />
+  <meta property="og:description" content="Free, open-source (MIT) CLI that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go. Zero network calls." />
   <meta property="og:image" content="https://anuj7411.github.io/sipcode/opengraph.png" />
   <meta property="og:url" content="https://anuj7411.github.io/sipcode/" />
   <meta property="og:type" content="website" />
   <!-- Twitter card (explicit; doesn't rely on OG fallback) -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Sipcode — Sip your tokens. Don't gulp them." />
-  <meta name="twitter:description" content="Keep Claude Code's context clean for sharper answers and lower cost, automatically." />
+  <meta name="twitter:title" content="Sipcode: see where your Claude Code and Codex tokens go" />
+  <meta name="twitter:description" content="Free, open-source (MIT) CLI that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go. Zero network calls." />
   <meta name="twitter:image" content="https://anuj7411.github.io/sipcode/opengraph.png" />
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -58,6 +59,7 @@ const base = import.meta.env.BASE_URL;
 
     <WhySection />
     <LayersSection />
+    <CodexSection />
     <DemoSection />
     <DriftSection />
     <InstallSection />

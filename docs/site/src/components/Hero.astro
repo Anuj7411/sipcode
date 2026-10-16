@@ -33,7 +33,10 @@ const TEST_COUNT = 2409;
         </span>
       </h1>
       <p class="sub">
-        Keep Claude Code's context clean for sharper answers and lower cost, automatically.
+        A free, open-source (MIT) command-line tool that reads your local Claude Code and OpenAI Codex logs and shows where your tokens and usage limits go.
+      </p>
+      <p class="sub sub--quiet">
+        Zero network calls. Nothing leaves your laptop.
       </p>
       <div class="cta-row">
         <NpmInstallPill />
@@ -46,6 +49,9 @@ const TEST_COUNT = 2409;
         <span class="green-dot" aria-hidden="true"></span>
         {TEST_COUNT.toLocaleString()} tests passing
       </div>
+      <p class="launch-note">
+        Launched on Product Hunt on Tuesday, June 23, 2026. Finished around #12 of 1,086 products that day (134 points, 28 comments).
+      </p>
     </div>
 
     <div class="hero-mascot">
@@ -55,12 +61,12 @@ const TEST_COUNT = 2409;
 
   <div class="container stat-row-wrap">
     <div class="stat-row">
+      <div><strong>2</strong><span>agents read: Claude Code and Codex</span></div>
       <div><strong>62.6%</strong><span>median saved on a synthetic benchmark</span></div>
-      <div><strong>15</strong><span>MCP tools</span></div>
       <div><strong>0</strong><span>network calls</span></div>
       <div><strong>MIT</strong><span>open source</span></div>
     </div>
-    <p class="stat-footnote">measured from your transcripts, not a brochure number.</p>
+    <p class="stat-footnote">62.6% is the Claude Code proxy on a locked, synthetic 20-task corpus. Your own numbers come from your own logs.</p>
   </div>
 </section>
 
@@ -147,7 +153,16 @@ const TEST_COUNT = 2409;
   .sub {
     font-family: var(--font-body); font-size: clamp(16px, 1.6vw, 18px);
     line-height: 1.55; color: var(--charcoal);
-    max-width: 440px; margin: 22px 0 0;
+    max-width: 500px; margin: 22px 0 0;
+  }
+  .sub--quiet {
+    margin-top: 10px;
+    color: rgba(45,49,66,.78);
+  }
+  .launch-note {
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.55;
+    color: rgba(45,49,66,.65);
+    max-width: 500px; margin: 10px 0 0;
   }
   .cta-row {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;

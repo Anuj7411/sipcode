@@ -41,11 +41,11 @@ const pct = (n: number) => (n / AXIS) * 100;
           Trim before context <span class="line-strike">fills up</span>.
         </h3>
         <p class="layer-body">
-          A hook rewrites bulky commands to their compact form before Claude ever sees them.
+          A hook rewrites bulky commands to their compact form before Claude ever sees them. Claude Code only: Codex setup (rules, proxy) is not supported yet.
         </p>
         <div class="layer-foot">
           <code class="layer-cmd">sipcode proxy --install</code>
-          <span class="layer-tagline">automatic · zero config</span>
+          <span class="layer-tagline">claude code · zero config</span>
         </div>
       </div>
 
@@ -79,14 +79,14 @@ const pct = (n: number) => (n / AXIS) * 100;
           <span class="tag-code">LAYER 02 · METER</span>
         </div>
         <h3 class="layer-title">
-          Measure what the cleaning <span class="accent-ochre">earned</span>.
+          See where every token <span class="accent-ochre">went</span>.
         </h3>
         <p class="layer-body">
-          Reads your local Claude transcripts. Tells you where tokens went and what you saved.
+          Reads your local Claude Code and Codex logs. <code class="inline-cmd">stats</code>, <code class="inline-cmd">today</code>, <code class="inline-cmd">forecast</code>, <code class="inline-cmd">trend</code> and <code class="inline-cmd">impact</code> show one section per tool; <code class="inline-cmd">why</code> and <code class="inline-cmd">receipt</code> take your newest session from either. <code class="inline-cmd">--agent codex</code> or <code class="inline-cmd">--agent claude-code</code> picks one tool.
         </p>
         <div class="layer-foot">
-          <code class="layer-cmd">sipcode why · impact · stats</code>
-          <span class="layer-tagline">16 MCP tools · zero network calls</span>
+          <code class="layer-cmd">sipcode stats · why · today</code>
+          <span class="layer-tagline">claude code + codex · zero network calls</span>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ const pct = (n: number) => (n / AXIS) * 100;
           Catch context rot <span class="accent">before it spreads</span>.
         </h3>
         <p class="layer-body">
-          Silent unless your latest session drifts off your baseline. Names what moved and how to fix it.
+          Silent unless your latest Claude Code or Codex session drifts off your baseline. Names what moved and how to fix it.
         </p>
         <div class="layer-foot">
           <code class="layer-cmd">sipcode drift</code>
@@ -364,6 +364,15 @@ const pct = (n: number) => (n / AXIS) * 100;
     border: 1px solid rgba(10, 10, 10, .1);
     border-radius: 6px;
     padding: 5px 10px;
+  }
+  .inline-cmd {
+    font-family: var(--font-mono);
+    font-size: .86em;
+    color: var(--ink);
+    background: rgba(10, 10, 10, .05);
+    border-radius: 4px;
+    padding: 1px 5px;
+    white-space: nowrap;
   }
   .layer-tagline {
     font-family: var(--font-mono);

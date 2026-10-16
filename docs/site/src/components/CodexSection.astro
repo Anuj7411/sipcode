@@ -1,0 +1,368 @@
+---
+// Codex section: what Sipcode does for OpenAI Codex users. One layer-style row
+// (text + terminal) for `sipcode limits`, then two cards for `regress` and the
+// Codex plugin. Same visual vocabulary as Layers/Install (head-row, ochre tick,
+// dark terminal, white cards). Numbers are from the maintainer's own logs
+// (CHANGELOG 1.7.1, README "Codex limits"); do not invent new ones.
+import PlotBackground from "./PlotBackground.astro";
+
+const ASKS = [
+  "How much did I spend on Codex this month?",
+  "How close am I to my limit? Did it shrink?",
+  "Why was my last session so expensive?",
+  "Did it get worse after an update?",
+];
+---
+
+<section id="codex" class="codex">
+  <PlotBackground />
+
+  <div class="container">
+
+    <header class="codex-head">
+      <div class="head-row">
+        <span class="eyebrow"><span class="tick"></span>For OpenAI Codex</span>
+        <span class="head-meta">limits · regressions · plugin</span>
+      </div>
+      <h2 class="codex-title">
+        How close is your Codex limit? <span class="accent">Your logs already know.</span>
+      </h2>
+      <p class="codex-lede">
+        Codex writes your plan's usage-limit readings into its own logs. Sipcode reads them, and the rest of your Codex history, on your machine. For Codex it only reads: it does not change what Codex does.
+      </p>
+    </header>
+
+    <!-- Row: sipcode limits -->
+    <article class="row">
+      <div class="row-text">
+        <div class="row-tag">
+          <span class="tag-dot"></span>
+          <span class="tag-code">sipcode limits</span>
+        </div>
+        <h3 class="row-title">
+          When you run out, what used it, and whether 1% got smaller.
+        </h3>
+        <ul class="row-list">
+          <li>Each limit window (5-hour, weekly, 30-day): percent used, reset time, and when it runs out at your current pace.</li>
+          <li>What used it: your top sessions and projects in the current period.</li>
+          <li>A <strong>possible limit cut</strong> check: how many tokens 1% bought in each finished period, on the same model. A period that bought at most half the median of the earlier ones is flagged, always as "possible": limits are account-wide, and Codex use on your other devices or in the cloud looks the same in these logs.</li>
+        </ul>
+        <p class="row-note">
+          On the maintainer's machine, 1% of the weekly limit bought about 425K tokens (week of Mar 28), 357K (Apr 1), then 77K (week of Apr 13): about 5x fewer. Sipcode flags that as a possible limit cut, not a proven one.
+        </p>
+      </div>
+
+      <div class="row-visual">
+        <div class="term">
+          <header class="term-chrome">
+            <span class="chrome-dot chrome-dot--r"></span>
+            <span class="chrome-dot chrome-dot--y"></span>
+            <span class="chrome-dot chrome-dot--g"></span>
+            <span class="chrome-title">sipcode limits · one machine's logs</span>
+          </header>
+          <div class="term-body">
+            <div class="t-line"><span class="t-dim">$</span> <span class="t-cmd">sipcode limits --since all</span></div>
+            <div class="t-line t-label">Tokens per 1% of your weekly limit (gpt-5.4)</div>
+            <div class="t-line t-ind">Mar 28: <span class="t-val">425K</span>&nbsp;&nbsp;&nbsp;Apr 1: <span class="t-val">357K</span>&nbsp;&nbsp;&nbsp;Apr 13: <span class="t-warn">77K</span></div>
+            <div class="t-line t-ind t-warn">Possible limit cut around Apr 13: 5.1x fewer tokens per 1%.</div>
+            <div class="t-line t-ind t-label">Limits cover your whole account. Codex use on other devices or in the cloud is not in these logs and can look like a cut.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Cards: regress + plugin -->
+    <div class="cards">
+      <article class="card">
+        <div class="row-tag">
+          <span class="tag-dot tag-dot--violet"></span>
+          <span class="tag-code">sipcode regress</span>
+        </div>
+        <h3 class="card-title">Did an update make things worse?</h3>
+        <p class="card-body">
+          Checks your own Claude Code and Codex logs and pins each finding to the version that brought it, comparing every version with your other versions: prompt-cache misses, cache written with a 5-minute lifetime instead of 1 hour, large uncached input after tool results, the whole cache rebuilt about every hour, and a Codex version using more of your limit per token.
+        </p>
+        <p class="card-foot">
+          <code class="chip">--bug-report</code> adds a block to paste into a GitHub issue: token counts, versions, dates and short session ids only. No message text.
+        </p>
+      </article>
+
+      <article class="card">
+        <div class="row-tag">
+          <span class="tag-dot tag-dot--ochre"></span>
+          <span class="tag-code">codex plugin</span>
+        </div>
+        <h3 class="card-title">Ask Codex in plain words.</h3>
+        <ul class="asks">
+          {ASKS.map((q) => <li>"{q}"</li>)}
+        </ul>
+        <p class="card-foot">
+          Works in the ChatGPT desktop app and the Codex CLI. It runs the <code class="chip">sipcode</code> command on your computer: no hooks, no MCP server, no network calls. <a href="#install">Setup below</a>.
+        </p>
+      </article>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .codex {
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    padding: clamp(48px, 7vh, 100px) 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+  }
+
+  /* ---------- header (same pattern as Layers) ---------- */
+  .codex-head {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin-bottom: clamp(24px, 4vh, 48px);
+  }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(10, 10, 10, 0.13);
+    padding-top: 10px;
+    margin-bottom: 14px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .eyebrow .tick {
+    width: 7px; height: 7px;
+    background: #B9831B;
+    transform: rotate(45deg);
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+  .head-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .55);
+  }
+  .codex-title {
+    margin: 0 0 12px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 3.8vw, 46px);
+    line-height: 1.05;
+    letter-spacing: -.025em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .codex-title .accent { color: var(--violet); }
+  .codex-lede {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: clamp(15px, 1.2vw, 16.5px);
+    line-height: 1.55;
+    color: var(--charcoal);
+    max-width: 640px;
+  }
+
+  /* ---------- limits row ---------- */
+  .row {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(20px, 3vh, 32px);
+    align-items: center;
+    padding: clamp(28px, 4vh, 48px) 0;
+    border-top: 1px solid rgba(10, 10, 10, 0.07);
+  }
+  @media (min-width: 880px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+      gap: clamp(36px, 4vw, 64px);
+    }
+  }
+  .row-text { max-width: 560px; }
+  .row-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .tag-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: #E2A23E;
+    box-shadow: 0 0 0 3px rgba(226, 162, 62, .2);
+  }
+  .tag-dot--violet { background: var(--violet); box-shadow: 0 0 0 3px rgba(91, 79, 207, .15); }
+  .tag-dot--ochre  { background: #B9831B;       box-shadow: 0 0 0 3px rgba(185, 131, 27, .18); }
+  .tag-code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(45, 49, 66, .72);
+  }
+  .row-title {
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(22px, 2.4vw, 30px);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .row-list {
+    margin: 0 0 16px;
+    padding-left: 18px;
+    font-family: var(--font-body);
+    font-size: clamp(14.5px, 1.1vw, 15.5px);
+    line-height: 1.6;
+    color: var(--charcoal);
+  }
+  .row-list li + li { margin-top: 6px; }
+  .row-list strong { color: var(--ink); font-weight: 600; }
+  .row-note {
+    margin: 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(10, 10, 10, 0.07);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(45, 49, 66, .72);
+  }
+
+  /* ---------- terminal (same look as the Layers meter preview) ---------- */
+  .term {
+    background: #14141B;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .06),
+      0 28px 60px -38px rgba(8, 8, 14, .55);
+  }
+  .term-chrome {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .03);
+  }
+  .chrome-dot { width: 10px; height: 10px; border-radius: 50%; opacity: .9; }
+  .chrome-dot--r { background: #ff5f57; }
+  .chrome-dot--y { background: #febc2e; }
+  .chrome-dot--g { background: #28c840; }
+  .chrome-title {
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, .4);
+  }
+  .term-body {
+    padding: 16px 18px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, .82);
+    overflow-x: auto;
+  }
+  .t-line { display: block; }
+  .t-ind { padding-left: 2ch; }
+  .t-label { color: rgba(255, 255, 255, .6); }
+  .t-dim { color: rgba(139, 127, 240, .9); }
+  .t-cmd, .t-val { color: #fff; }
+  .t-warn { color: #E2A23E; }
+
+  /* ---------- cards ---------- */
+  .cards {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 2vw, 24px);
+  }
+  @media (min-width: 820px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+  }
+  .card {
+    background: #fff;
+    border: 1px solid rgba(10, 10, 10, 0.09);
+    border-radius: 12px;
+    padding: clamp(18px, 2.4vh, 24px) clamp(18px, 2.2vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color .2s var(--ease-quint);
+  }
+  .card:hover { border-color: rgba(91, 79, 207, 0.28); }
+  .card .row-tag { margin-bottom: 2px; }
+  .card-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(18px, 1.7vw, 21px);
+    letter-spacing: -.012em;
+    color: var(--ink);
+  }
+  .card-body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--charcoal);
+  }
+  .asks {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .asks li {
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--ink);
+    background: rgba(91, 79, 207, 0.05);
+    border: 1px solid rgba(91, 79, 207, 0.16);
+    border-radius: 8px;
+    padding: 7px 11px;
+  }
+  .card-foot {
+    margin: auto 0 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(10, 10, 10, 0.07);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(45, 49, 66, .78);
+  }
+  .card-foot a { color: var(--violet); text-decoration: underline; text-underline-offset: 2px; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: .9em;
+    color: var(--ink);
+    background: rgba(10, 10, 10, .05);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+</style>
